@@ -9,4 +9,5 @@ dependencies:
   - plotly_express
   - nbformat
   - gdal
+  - affine
 prefix: C:\Users\Luc\anaconda3\envs\top2cche1d
