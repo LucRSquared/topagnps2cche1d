@@ -1,3 +1,4 @@
+import os
 import csv
 import pandas as pd
 import numpy as np
@@ -84,23 +85,6 @@ def find_extremities_binary(img):
 
     return skel_coords, skel_length
 
-# def reorder_topagnps_reaches_into_cche1d_links(img, rowcol_outlet_tuple, nodataval=0, ondeindex=False):
-    
-    
-#     nodataval = int(nodataval)
-#     nodataval = np.array(nodataval)
-#     topaz_reaches = np.unique(img) # ignoring the first one being zeros
-#     topaz_reaches = np.setdiff1d(topaz_reaches,nodataval)
-#     topaz_img = np.full_like(img, nodataval)
-
-#     # Find reach number 
-
-#     for treach_id in topaz_reaches:
-#         reach_img = np.where(img==treach_id,1,0)
-
-#     pass
-
-#!!! DO something if more than two reaches come up?
 def build_network(dfagflow, img_flovec):
 
     # For now, nothing is done if more than 2 inflows come at a junction
@@ -248,6 +232,9 @@ def reorder_topagns_reaches_into_cche1d_link_agflow_method(filepath_dfagflow, fi
     # - FILEPATH of DatFrame of Agflow file
     # - FILEPATH of FLOVEC.ASC file
 
+    # Outputs:
+    # - cche1d_reordered_reaches giving the new order of previously ordered reaches from 1 to N_max_reaches
+
     # Reading
     img_flovec = read_esri_asc_file(filepath_flovec)[0]
     dfagflow = read_agflow_reach_data(filepath_dfagflow)
@@ -261,6 +248,71 @@ def reorder_topagns_reaches_into_cche1d_link_agflow_method(filepath_dfagflow, fi
     cche1d_reordered_reaches = dfs_iterative_postorder(network,outlet_reach_id)
 
     return cche1d_reordered_reaches
+
+def apply_permutation_int_array(original_arr, permutation_vect):
+
+    renumbered_arr = np.copy(original_arr)
+
+    for idx, newid in enumerate(permutation_vect):
+        renumbered_arr[original_arr==idx+1] = newid
+
+    return renumbered_arr
+
+def apply_permutation_int_dfagflow(dfagflow, permutation_vect):
+
+    dfagflow_new = dfagflow.copy(deep=True)
+
+    dfagflow_new['New_Reach_ID'] = dfagflow_new.apply(lambda x: permutation_vect[int(x['Reach_ID'])-1], axis=1)
+
+    return dfagflow_new
+
+def create_cche1d_nodes_table(dfagflow, geomatrix, img_reach_asc, permutation_vect, outfilepath=None, writefile = False):
+
+    # INPUTS:
+    # - dfagflow: Original AgFlow dataframe
+    # - img_reach_asc: Array with pixels numbered according to the old (topagnps) numbering of reaches
+    # - permuation_vect: permutation vector for new numbering of reaches
+    # - outfilepath: path to output dat file
+    # - writefile: T/F
+    #
+    # OUTPUTS:
+    # - dfcche1d_nodes table
+    # 
+
+    # If unspecified, the output filepath is set as the current working directory
+    if outfilepath is None:
+        outfilepath = os.getcwd()
+
+    # Apply new numbering to AgFlow Dataframe and img_reach_asc
+    dfagflow_new = apply_permutation_int_dfagflow(dfagflow, permutation_vect)
+    img_reach_asc_new = apply_permutation_int_array(img_reach_asc, permutation_vect)
+
+    # Initialize Arrays
+    nd_ID = []
+    nd_FRMNO = []
+    nd_TYPE = []
+    nd_XC = []
+    nd_YC = []
+    nd_DSID = []
+    nd_USID = []
+
+    N_max_reach = dfagflow_new['New_Reach_ID'].max()
+
+    list_of_receiving_reaches = np.unique(dfagflow['Receiving_Reach'])
+
+    for reach_id in range(1,N_max_reach+1):
+
+        # Get Pixels that match that reach
+        (rows,cols) = np.nonzero(img_reach_asc_new == reach_id)
+
+        # Get Upstream ROW/COL
+        us_row, us_col = dfagflow.loc[dfagflow['Reach_ID']==reach_id,['Upstream_End_Row','Upstream_End_Column']].values[0]
+
+        # Get Downstream ROW/COL
+        ds_row, ds_col = dfagflow.loc[dfagflow['Reach_ID']==reach_id,['Upstream_End_Row','Upstream_End_Column']].values[0]
+
+
+    return
 
 def rowcol2latlon_esri_asc(geomatrix, row, col, oneindexed=False):
     
@@ -286,9 +338,6 @@ def latlon2rowcol_esri_asc(geomatrix, lat, lon, oneindexed=False):
         col += 1
 
     return (int(row), int(col))
-
-# def get_raster_img_asc_rowcol_val(geomatrix, row, col, img, oneindexed=False):
-
 
 def read_esri_asc_file(filename):
     dataset = gdal.Open(filename)
