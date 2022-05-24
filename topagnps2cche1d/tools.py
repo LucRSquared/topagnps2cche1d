@@ -253,8 +253,8 @@ def apply_permutation_int_array(original_arr, permutation_vect):
 
     renumbered_arr = np.copy(original_arr)
 
-    for idx, newid in enumerate(permutation_vect):
-        renumbered_arr[original_arr==idx+1] = newid
+    for idx, newid in enumerate(permutation_vect,1):
+        renumbered_arr[original_arr==idx] = newid
 
     return renumbered_arr
 
@@ -266,7 +266,7 @@ def apply_permutation_int_dfagflow(dfagflow, permutation_vect):
 
     return dfagflow_new
 
-def create_cche1d_nodes_table(dfagflow, geomatrix, img_reach_asc, permutation_vect, outfilepath=None, writefile = False):
+def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, permutation_vect, outfilepath=None, writefile = False):
 
     # INPUTS:
     # - dfagflow: Original AgFlow dataframe
@@ -287,7 +287,7 @@ def create_cche1d_nodes_table(dfagflow, geomatrix, img_reach_asc, permutation_ve
     dfagflow_new = apply_permutation_int_dfagflow(dfagflow, permutation_vect)
     img_reach_asc_new = apply_permutation_int_array(img_reach_asc, permutation_vect)
 
-    # Initialize Arrays
+    # Initialize Nodes Arrays
     nd_ID = []
     nd_FRMNO = []
     nd_TYPE = []
@@ -296,14 +296,18 @@ def create_cche1d_nodes_table(dfagflow, geomatrix, img_reach_asc, permutation_ve
     nd_DSID = []
     nd_USID = []
 
+    # Initialize Channel Arrays
+    ch_ID = []
+    ch_NDUSID = []
+    ch_NDDSID = []
+
     N_max_reach = dfagflow_new['New_Reach_ID'].max()
 
     list_of_receiving_reaches = np.unique(dfagflow['Receiving_Reach'])
 
-    for reach_id in range(1,N_max_reach+1):
+    nd_counter = 0
 
-        # Get Pixels that match that reach
-        (rows,cols) = np.nonzero(img_reach_asc_new == reach_id)
+    for reach_id in range(1,N_max_reach+1):
 
         # Get Upstream ROW/COL
         us_row, us_col = dfagflow.loc[dfagflow['Reach_ID']==reach_id,['Upstream_End_Row','Upstream_End_Column']].values[0]
@@ -311,8 +315,70 @@ def create_cche1d_nodes_table(dfagflow, geomatrix, img_reach_asc, permutation_ve
         # Get Downstream ROW/COL
         ds_row, ds_col = dfagflow.loc[dfagflow['Reach_ID']==reach_id,['Upstream_End_Row','Upstream_End_Column']].values[0]
 
+        # Keep only the pixels pertaining to the current reach
+        curr_img_reach = np.where(img_reach_asc_new==reach_id,1,0)
+
+        # Write function get_intermediate_nodes
+        ordered_path = get_intermediate_nodes_img((us_row,us_col), (ds_row, ds_col), curr_img_reach)
+
+        # Computing corresponding coordinates
+        XCYC_tmp = [rowcol2latlon_esri_asc(geomatrix, rowcol[0], rowcol[1], oneindexed=True) for rowcol in ordered_path]
+        XC_tmp, YC_tmp = zip(*XCYC_tmp)
+
+        if reach_id not in list_of_receiving_reaches:
+            # This is a reach with a source node
+            pass
+
 
     return
+
+def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach):
+    # This function returns the pixel coordinates in sequential order from usrowcol (tuple)
+    # to dsrowcol (tuple) in a form of a list of tuples.
+    #
+    # It is assumed that the path does not contain loops or branches, just an 8-connected path
+
+    img = np.copy(img_reach)
+
+    rows, cols = np.nonzero(img)
+
+    pixels_to_visit = [(r, c) for r, c in zip(rows,cols)]
+
+    visited_pixels = [usrowcol]
+
+    current_pixel = usrowcol
+
+    # Possible directions. The order is important, the first four correspond to the immediate N,S,E,W to use before NE, NW, SW, SE...
+    deltas = [(0,1), (0,-1), (1,0), (-1,0), (1,1), (-1,1), (-1,-1), (1,-1)]
+
+    while pixels_to_visit:
+
+        # Pop it out of the pixels_to_visit list
+        pixels_to_visit.pop(pixels_to_visit.index(current_pixel))
+
+        # Generate possible neighbors
+        candidate_neighbors = [tuple(np.add(current_pixel,dl)) for dl in deltas]
+
+        # Find which of those is in the pixels_to_visit
+        candidates_matches = [c for c in candidate_neighbors if c in pixels_to_visit]
+
+        if len(candidates_matches) == 0 and len(pixels_to_visit) != 0:
+            raise Exception("Could not find the rest of intermediate pixels, this should not happen, if you get this error something serious is going on")
+        elif len(candidates_matches) == 1:
+            # Expected behavior 
+            current_pixel = candidates_matches[0]
+            visited_pixels.append(current_pixel)
+            
+        elif len(candidates_matches) > 1:
+            # print("The shape of the path presents an ambiguous choice, the closest choice is taken")
+            current_pixel = candidates_matches[0]
+            visited_pixels.append(current_pixel)
+    
+    # Test if last pixel is the same as the provided end pixel
+    if current_pixel != dsrowcol:
+        raise Exception('Mismatch with last found pixel and the expected end pixel, review data')
+
+    return visited_pixels
 
 def rowcol2latlon_esri_asc(geomatrix, row, col, oneindexed=False):
     
