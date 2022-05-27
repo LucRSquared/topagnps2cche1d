@@ -85,15 +85,17 @@ def find_extremities_binary(img):
 
     return skel_coords, skel_length
 
-def build_network(dfagflow, img_flovec):
+def build_network(dfagflow, img_flovec, root=None):
 
     # For now, nothing is done if more than 2 inflows come at a junction
+    # If root is specified then all the downstream reaches are ignored
 
     network = {}
 
     # All Reaches that receive a tributary in the network
     receiving_reaches = np.unique(dfagflow['Receiving_Reach'].to_numpy())
 
+    # Build the entire network
     for rr in receiving_reaches:
         receiving_reach = dfagflow.loc[dfagflow['Reach_ID'] == rr,:]
         juncrowcol = tuple(receiving_reach[['Upstream_End_Row','Upstream_End_Column']].to_records(index=False)[0])
@@ -102,6 +104,18 @@ def build_network(dfagflow, img_flovec):
                                 (dfagflow['Reach_ID']!=rr),:]
                           
         network[rr] = get_counterclockwise_inflows(candidates, juncrowcol, img_flovec, oneindexed=True)
+
+    
+    if root is not None:
+        reaches_to_keep = dfs_iterative_postorder(network, root)
+
+        new_network = {}
+
+        for r in reaches_to_keep:
+            if r in network.keys():
+                new_network[r] = network[r]
+
+        return new_network
 
     return network
 
@@ -230,7 +244,7 @@ def dfs_recursive_postorder(network, reach, postorder=[]):
 
     return postorder
 
-def reorder_topagns_reaches_into_cche1d_link_agflow_method(filepath_dfagflow, filepath_flovec):
+def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, filepath_annagnps_reach_ids, outfilespath=None, writefiles = False):
     # This script takes topagns reaches and changes the numbering according to the CCHE1D numbering
     # system for links
     # ASSUMPTIONS :
@@ -238,38 +252,55 @@ def reorder_topagns_reaches_into_cche1d_link_agflow_method(filepath_dfagflow, fi
     # - The Outlet "reach" is its own reach but has 0 length, potential problem !!!!
 
     # Inputs : 
-    # - FILEPATH of DatFrame of Agflow file
-    # - FILEPATH of FLOVEC.ASC file
+    # - FILEPATH to Agflow file
+    # - FILEPATH to FLOVEC.ASC file
+    # -
+    # - outfilespath: path to output dat files
+    # - writefiles: T/F
 
     # Outputs:
     # - cche1d_reordered_reaches giving the new order of previously ordered reaches from 1 to N_max_reaches
 
+    if outfilespath is None:
+        outfilespath = os.getcwd()
+
     # Reading
     img_flovec = read_esri_asc_file(filepath_flovec)[0]
-    dfagflow = read_agflow_reach_data(filepath_dfagflow)
+    img_reach_asc, geomatrix, _, _, _, _ = read_esri_asc_file(filepath_annagnps_reach_ids)
+    dfagflow = read_agflow_reach_data(filepath_agflow)
 
-    # Get Outlet ROW/COL "reach" id (it's the one that has zero reach length)
-    outlet_reach_id = dfagflow.loc[dfagflow['Reach_Length_[m]']==0,'Reach_ID'].values[0]
+    # # Get Outlet ROW/COL "reach" id (it's the one that has zero reach length)
+    # # outlet_reach_id = dfagflow.loc[dfagflow['Reach_Length_[m]']==0,'Reach_ID'].values[0]
 
-    # !!! Potential Problem with outlet reach
-    # initial_outlet_reach_index = dfagflow.index[dfagflow['Reach_Length_[m]']==0].values[0]
-    # dfagflow.drop(labels=initial_outlet_reach_index, axis=0, inplace=True)
+    # # !!! Potential Problem with outlet reach
+    # # initial_outlet_reach_index = dfagflow.index[dfagflow['Reach_Length_[m]']==0].values[0]
+    # # dfagflow.drop(labels=initial_outlet_reach_index, axis=0, inplace=True)
 
-    # outlet_reach_id = dfagflow.loc[dfagflow['Distance_Downstream_End_to_Outlet_[m]']==0,'Reach_ID'].values[0]
+    outlet_reach_id = dfagflow.loc[(dfagflow['Distance_Downstream_End_to_Outlet_[m]']==0) & (dfagflow['Reach_Length_[m]']!=0),'Reach_ID'].values[0]
 
 
     # Build the flow network (each node points to the counterclock wise list of tributaries at the upstream junction)
-    network = build_network(dfagflow, img_flovec)
+    network = build_network(dfagflow, img_flovec, root=outlet_reach_id)
 
     cche1d_reordered_reaches = dfs_iterative_postorder(network, outlet_reach_id)
 
     reordered_network = reorder_network(network, cche1d_reordered_reaches)
 
-    return cche1d_reordered_reaches
+    df_nodes, df_channel, df_link = create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, cche1d_reordered_reaches, reordered_network)
+
+
+    return df_nodes, df_channel, df_link
 
 def apply_permutation_int_array(original_arr, permutation_vect):
 
     renumbered_arr = np.copy(original_arr)
+
+    # Delete entries that aren't in the permutation_vect
+    unique_vals = np.unique(renumbered_arr)
+    vals_to_replace_by_zero = set(unique_vals) - set(permutation_vect)
+
+    for v in vals_to_replace_by_zero:
+        renumbered_arr[renumbered_arr==v] = 0
 
     for idx, newid in enumerate(permutation_vect,1):
         renumbered_arr[original_arr==idx] = newid
@@ -278,14 +309,16 @@ def apply_permutation_int_array(original_arr, permutation_vect):
 
 def apply_permutation_int_dfagflow(dfagflow, permutation_vect):
 
-    dfagflow_new = dfagflow.copy(deep=True)
+    # dfagflow_new = dfagflow.copy(deep=True)
+    # Keep only the reaches present in the permutation vector
+    dfagflow_new = dfagflow[dfagflow['Reach_ID'].isin(permutation_vect)].copy()
 
-    dfagflow_new['New_Reach_ID'] = dfagflow_new.apply(lambda x: permutation_vect[int(x['Reach_ID'])-1], axis=1)
-    dfagflow_new['New_Receiving_Reach'] = dfagflow_new.apply(lambda x: permutation_vect[int(x['Receiving_Reach'])-1], axis=1)
+    dfagflow_new['New_Reach_ID'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Reach_ID']))+1, axis=1)
+    dfagflow_new['New_Receiving_Reach'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Reach_ID']))+1, axis=1)
 
     return dfagflow_new
 
-def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, permutation_vect, reordered_network, outfilepath=None, writefile = False):
+def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, permutation_vect, reordered_network):
 
     # INPUTS:
     # - dfagflow: Original AgFlow dataframe
@@ -295,12 +328,9 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
     # - writefile: T/F
     #
     # OUTPUTS:
-    # - dfcche1d_nodes table
-    # 
-
-    # If unspecified, the output filepath is set as the current working directory
-    if outfilepath is None:
-        outfilepath = os.getcwd()
+    # - df_nodes table
+    # - df_channel table
+    # - df_link table
 
     # Apply new numbering to AgFlow Dataframe and img_reach_asc
     dfagflow_new = apply_permutation_int_dfagflow(dfagflow, permutation_vect)
@@ -316,33 +346,42 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
     nd_USID = []
     nd_US2ID = []
     nd_CSID = []
-    # nd_RSID = [] # Those are generated on their own later, identically -1
-    # nd_STID = []
 
     # Initialize Channel Arrays
     ch_ID = []
     ch_NDUSID = []
     ch_NDDSID = []
 
-    us_nd_ID_mem = {}
-    ds_nd_ID_mem = {}
+    # Initialize Link Arrays
+    lk_ID = []
+    lk_CMPSEQ = []
+    lk_NDUSID = []
+    lk_NDDSID = []
+    lk_RCUSID = []
+    lk_RCDSID = []
+    # lk_TYPE = []
+
+    # Useful indexing tools
+    FirstInflowLastNodeIDForSecondInflow = {}
+    FirstInflowLastNodeIDForReceivingReach = {}
+    SecondInflowLastNodeIDForReceivingReach = {}
+
+    FirstInflowLastNodeAbsoluteIndexForReceivingReach = {}
+    SecondInflowLastNodeAbsoluteIndexForReceivingReach = {}
 
     N_max_reach = dfagflow_new['New_Reach_ID'].max()
-
-    # list_of_receiving_reaches = np.unique(dfagflow['New_Receiving_Reach'])
 
     first_inflows = [e[0] for e in reordered_network.values()]
     second_inflows = [e[1] for e in reordered_network.values()]
     list_of_receiving_reaches = [k for k in reordered_network.keys()]
 
     # outlet_reach = dfagflow_new.loc[dfagflow_new['Reach_Length_[m]']==0,['New_Reach_ID']]
-    outlet_reach_id = dfagflow.loc[dfagflow['Distance_Downstream_End_to_Outlet_[m]']==0,'New_Reach_ID'].values[0]
+    outlet_reach_id = dfagflow_new.loc[(dfagflow_new['Distance_Downstream_End_to_Outlet_[m]']==0) & (dfagflow_new['Reach_Length_[m]']!=0) ,'New_Reach_ID'].values[0]
 
     nd_counter = 1
 
-    # Goes from 1 to N_max_reach-1, the "last" reach is the outlet defined by TopAGNPS
-    # but does not have any length and the penultimate reache's last pixel matches that point
-    for reach_id in range(1,N_max_reach):
+    # Goes from 1 to N_max_reach
+    for reach_id in range(1,N_max_reach+1):
 
         # Get Upstream ROW/COL of current reach
         us_row, us_col = dfagflow_new.loc[dfagflow_new['New_Reach_ID']==reach_id,['Upstream_End_Row','Upstream_End_Column']].values[0]
@@ -375,54 +414,80 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
         
         nd_ID_tmp = list(range(nd_counter,numpoints+1))
 
-        # nd_DSID_tmp = nd_ID_tmp[1:]
+        # Channel table
+        ch_ID.append(reach_id)
+        ch_NDUSID.append(nd_ID_tmp[0])
+        ch_NDDSID.append(nd_ID_tmp[-1])
 
-        # this can be consolidated down there
-        if reach_id not in list_of_receiving_reaches:
-            nd_USID_tmp = [-1]
-            nd_USID_tmp.extend(nd_ID_tmp[0:-1])
-        else:
-            pass
-            # more complicated
+        # Link table
+        lk_ID.append(reach_id)
+        lk_CMPSEQ.append(reach_id) # the loop already goes in the computational sequence
+        lk_NDUSID.append(reach_id)
+        lk_NDDSID.append(reach_id)
+        lk_RCUSID.append(reach_id)
+        lk_RCDSID.append(reach_id)
 
-        nd_CSID_tmp = nd_ID_tmp.copy()
-
-        if reach_id in first_inflows:
-            idx = first_inflows.index(reach_id)
-            ds_nd_ID_mem[second_inflows[idx]] = nd_ID_tmp[-1]
-            us_nd_ID_mem[list_of_receiving_reaches[idx]] = nd_ID_tmp[-1]
-
-        if reach_id in second_inflows:
-            nd_CSID_tmp[-1] = ds_nd_ID_mem[reach_id]
-
-        if reach_id in list_of_receiving_reaches:
-            nd_CSID_tmp[0] = us_nd_ID_mem[reach_id]
- 
-
+        
+        nd_CSID_tmp = nd_ID_tmp.copy()        
         nd_FRMNO_tmp = nd_ID_tmp.copy() # Those IDs are the same because this procedure is done in the computational order
-
+        nd_US2ID_tmp = [-1 for _ in nd_ID_tmp]
         nd_TYPE_tmp = [6 for _ in nd_ID_tmp] # assign value 6 by default, special cases are treated hereafter
 
-        # Increment nd_counter
-        nd_counter += numpoints 
-
-        # Deal with nd_DSID, nd_USID, nd_US2ID
-        nd_DSID_tmp = nd_ID_tmp.copy()
-        nd_USID_tmp = nd_ID_tmp.copy()
-        nd_US2ID_tmp = nd_ID_tmp.copy()
-
-        if reach_id not in list_of_receiving_reaches:
-            # This is a reach with a source node
-            nd_TYPE_tmp[0] = 0 # First node is a source node
-            nd_TYPE_tmp[-1] = 3 # Last node is end of link by default
-
-        if (us_row, us_col) in junction_nodes:
-            nd_TYPE_tmp[0] = 2
-            # reset junction nodes list
-            junction_nodes = []
+        
 
         if reach_id == outlet_reach_id:
             nd_TYPE_tmp[-1] = 9 # Label last node as the outflow
+            nd_DSID_tmp.append(nd_DSID_tmp[-1]) # The "downstream" node of the outlet node is itself
+        else:
+            nd_TYPE_tmp[-1] = 3 # Last node is end of link by default
+            
+            # Complete in the main array the DS node id of the correponding inflows
+            idx_firstinflow_last_node = FirstInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][0]
+            id_ds =  FirstInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][1]
+            nd_DSID[idx_firstinflow_last_node] = id_ds
+
+            idx_second_inflow_last_node = FirstInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][0]
+            id_ds =  SecondInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][1]
+            nd_DSID[idx_second_inflow_last_node] = id_ds
+
+            nd_DSID_tmp = nd_ID_tmp[1:]
+            nd_DSID_tmp.append(None) # Leave a placeholder (to keep the index correct)
+                                     # until it can be resolved when the algorithm 
+                                     # gets to the receiving reach
+
+        # this can be consolidated down there
+        if reach_id not in list_of_receiving_reaches:
+            nd_USID_tmp = [-1] # First node is a source node 
+            nd_USID_tmp.extend(nd_ID_tmp[0:-1])
+
+            nd_TYPE_tmp[0] = 0 # First node is a source node
+
+        else:
+            nd_USID_tmp = [SecondInflowLastNodeIDForReceivingReach[reach_id]]
+            nd_USID_tmp.extend(nd_ID_tmp[0:-1])
+            nd_US2ID_tmp[0] = [FirstInflowLastNodeIDForReceivingReach[reach_id]]
+
+            nd_CSID_tmp[0] = FirstInflowLastNodeIDForReceivingReach[reach_id]
+
+            nd_TYPE_tmp[0] = 2 # First node is a junction node
+
+
+        if reach_id in first_inflows:
+            idx1 = first_inflows.index(reach_id)
+            FirstInflowLastNodeIDForSecondInflow[second_inflows[idx1]] = nd_ID_tmp[-1]
+            FirstInflowLastNodeIDForReceivingReach[list_of_receiving_reaches[idx1]] = nd_ID_tmp[-1]
+            FirstInflowLastNodeAbsoluteIndexForReceivingReach[list_of_receiving_reaches[idx1]] = (len(nd_ID)+len(nd_ID_tmp)-1, nd_ID_tmp[0])
+
+        if reach_id in second_inflows:
+            idx2 = second_inflows.index(reach_id)
+            SecondInflowLastNodeIDForReceivingReach[list_of_receiving_reaches[idx2]] = nd_ID_tmp[-1]
+            SecondInflowLastNodeAbsoluteIndexForReceivingReach[list_of_receiving_reaches[idx1]] = (len(nd_ID)+len(nd_ID_tmp)-1, nd_ID_tmp[0])
+            nd_CSID_tmp[-1] = FirstInflowLastNodeIDForSecondInflow[reach_id]
+
+        
+
+        # Increment nd_counter
+        nd_counter += numpoints 
 
         # Append all the temporary lists
         nd_ID.extend(nd_ID_tmp)
@@ -431,11 +496,42 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
         nd_XC.extend(XC_tmp)
         nd_YC.extend(YC_tmp)
         nd_CSID.extend(nd_CSID_tmp)
+        nd_USID.extend(nd_USID_tmp)
+        nd_US2ID.extend(nd_US2ID_tmp)
 
-    nd_RSID = [-1 for _ in range(1,len(nd_ID)+1)]
-    nd_STID = nd_RSID.copy()
 
-    return
+    nd_RSID = [-1 for _ in nd_ID]
+    nd_STID = [1 for _ in nd_ID]
+
+    lk_TYPE = [1 for _ in ch_ID]
+
+    channel = {'CH_ID': ch_ID, 'CH_NDUSID': ch_NDUSID, 'CH_NDDSID': ch_NDDSID}
+    
+    link = {'LK_ID': lk_ID,
+            'LK_CMPSEQ': lk_CMPSEQ,
+            'LK_NDUSID': lk_NDUSID,
+            'LK_NDDSID': lk_NDDSID,
+            'LK_RCUSID': lk_RCUSID,
+            'LK_RCDSID': lk_RCDSID,
+            'LK_TYPE': lk_TYPE}
+
+    nodes = {'ND_ID': nd_ID,
+             'ND_FRMNO': nd_FRMNO,
+             'ND_TYPE': nd_TYPE,
+             'ND_XC': nd_XC,
+             'ND_YC': nd_YC,
+             'ND_DSID': nd_DSID,
+             'ND_USID': nd_USID,
+             'ND_US2ID': nd_US2ID,
+             'ND_CSID': nd_CSID,
+             'ND_RSID': nd_RSID,
+             'ND_STID': nd_STID}
+
+    df_channel = pd.DataFrame.from_dict(channel)
+    df_link = pd.DataFrame.from_dict(link)
+    df_nodes = pd.DataFrame.from_dict(nodes)
+
+    return df_nodes, df_channel, df_link
 
 def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach):
     # This function returns the pixel coordinates in sequential order from usrowcol (tuple)
