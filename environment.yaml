@@ -1,6 +1,7 @@
 name: top2cche1d
 channels:
   - defaults
+  - plotly
 dependencies:
   - python==3.9.1
   - ipykernel
@@ -10,4 +11,3 @@ dependencies:
   - nbformat
   - gdal
   - affine
-prefix: C:\Users\Luc\anaconda3\envs\top2cche1d

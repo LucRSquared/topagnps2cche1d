@@ -302,8 +302,8 @@ def apply_permutation_int_array(original_arr, permutation_vect):
     for v in vals_to_replace_by_zero:
         renumbered_arr[renumbered_arr==v] = 0
 
-    for idx, newid in enumerate(permutation_vect,1):
-        renumbered_arr[original_arr==idx] = newid
+    for newid, oldid in enumerate(permutation_vect,1):
+        renumbered_arr[original_arr==oldid] = newid
 
     return renumbered_arr
 
@@ -392,18 +392,20 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
         # Keep only the pixels pertaining to the current reach
         curr_img_reach = np.where(img_reach_asc_new==reach_id,1,0)
 
-        # Write function get_intermediate_nodes
-        ordered_path = get_intermediate_nodes_img((us_row,us_col), (ds_row,ds_col), curr_img_reach)
+        # Write function get_intermediate_nodes (-1 is added because the rows/cols in dfagflow are 1-indexed )
+        ordered_path = get_intermediate_nodes_img((us_row-1,us_col-1), (ds_row-1,ds_col-1), curr_img_reach)
 
         # Computing corresponding coordinates
-        XCYC_tmp = [rowcol2latlon_esri_asc(geomatrix, rowcol[0], rowcol[1], oneindexed=True) for rowcol in ordered_path]
+        XCYC_tmp = [rowcol2latlon_esri_asc(geomatrix, rowcol[0], rowcol[1], oneindexed=False) for rowcol in ordered_path]
         XC_tmp, YC_tmp = zip(*XCYC_tmp)
+        XC_tmp = list(XC_tmp)
+        YC_tmp = list(YC_tmp)
         
         # For all reaches that are not the outlet
         if reach_id != outlet_reach_id:
             # Get receiving reach's upstream node (that will be the junction)
-            receiving_reach_id = dfagflow_new.loc[dfagflow_new['New_Reach_ID']==reach_id,['New_Receiving_Reach']].values[0]
-            junc_node_row, junc_node_col = dfagflow_new.loc[dfagflow_new['New_Reach_ID']==receiving_reach_id, ['Upstream_End_Row','Upstream_End_Column']]
+            receiving_reach_id = int(dfagflow_new.loc[dfagflow_new['New_Reach_ID']==reach_id,['New_Receiving_Reach']].values[0])
+            junc_node_row, junc_node_col = dfagflow_new.loc[dfagflow_new['New_Reach_ID']==receiving_reach_id, ['Upstream_End_Row','Upstream_End_Column']].values[0]
             junc_node_x, junc_node_y = rowcol2latlon_esri_asc(geomatrix, junc_node_row, junc_node_col, oneindexed=True)
 
             # Append to the reach
@@ -412,7 +414,7 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
 
         numpoints = len(XC_tmp)
         
-        nd_ID_tmp = list(range(nd_counter,numpoints+1))
+        nd_ID_tmp = list(range(nd_counter,nd_counter+numpoints))
 
         # Channel table
         ch_ID.append(reach_id)
@@ -433,45 +435,6 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
         nd_US2ID_tmp = [-1 for _ in nd_ID_tmp]
         nd_TYPE_tmp = [6 for _ in nd_ID_tmp] # assign value 6 by default, special cases are treated hereafter
 
-        
-
-        if reach_id == outlet_reach_id:
-            nd_TYPE_tmp[-1] = 9 # Label last node as the outflow
-            nd_DSID_tmp.append(nd_DSID_tmp[-1]) # The "downstream" node of the outlet node is itself
-        else:
-            nd_TYPE_tmp[-1] = 3 # Last node is end of link by default
-            
-            # Complete in the main array the DS node id of the correponding inflows
-            idx_firstinflow_last_node = FirstInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][0]
-            id_ds =  FirstInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][1]
-            nd_DSID[idx_firstinflow_last_node] = id_ds
-
-            idx_second_inflow_last_node = FirstInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][0]
-            id_ds =  SecondInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][1]
-            nd_DSID[idx_second_inflow_last_node] = id_ds
-
-            nd_DSID_tmp = nd_ID_tmp[1:]
-            nd_DSID_tmp.append(None) # Leave a placeholder (to keep the index correct)
-                                     # until it can be resolved when the algorithm 
-                                     # gets to the receiving reach
-
-        # this can be consolidated down there
-        if reach_id not in list_of_receiving_reaches:
-            nd_USID_tmp = [-1] # First node is a source node 
-            nd_USID_tmp.extend(nd_ID_tmp[0:-1])
-
-            nd_TYPE_tmp[0] = 0 # First node is a source node
-
-        else:
-            nd_USID_tmp = [SecondInflowLastNodeIDForReceivingReach[reach_id]]
-            nd_USID_tmp.extend(nd_ID_tmp[0:-1])
-            nd_US2ID_tmp[0] = [FirstInflowLastNodeIDForReceivingReach[reach_id]]
-
-            nd_CSID_tmp[0] = FirstInflowLastNodeIDForReceivingReach[reach_id]
-
-            nd_TYPE_tmp[0] = 2 # First node is a junction node
-
-
         if reach_id in first_inflows:
             idx1 = first_inflows.index(reach_id)
             FirstInflowLastNodeIDForSecondInflow[second_inflows[idx1]] = nd_ID_tmp[-1]
@@ -481,8 +444,52 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
         if reach_id in second_inflows:
             idx2 = second_inflows.index(reach_id)
             SecondInflowLastNodeIDForReceivingReach[list_of_receiving_reaches[idx2]] = nd_ID_tmp[-1]
-            SecondInflowLastNodeAbsoluteIndexForReceivingReach[list_of_receiving_reaches[idx1]] = (len(nd_ID)+len(nd_ID_tmp)-1, nd_ID_tmp[0])
+            SecondInflowLastNodeAbsoluteIndexForReceivingReach[list_of_receiving_reaches[idx2]] = (len(nd_ID)+len(nd_ID_tmp)-1, nd_ID_tmp[0])
             nd_CSID_tmp[-1] = FirstInflowLastNodeIDForSecondInflow[reach_id]
+        
+
+        if reach_id == outlet_reach_id:
+            nd_TYPE_tmp[-1] = 9 # Label last node as the outflow
+            nd_DSID_tmp = nd_ID_tmp[1:]
+            nd_DSID_tmp.append(nd_DSID_tmp[-1]) # The "downstream" node of the outlet node is itself
+        else:
+            nd_TYPE_tmp[-1] = 3 # Last node is end of link by default
+
+            nd_DSID_tmp = nd_ID_tmp[1:]
+            nd_DSID_tmp.append(None) # Leave a placeholder (to keep the index correct)
+                                     # until it can be resolved when the algorithm 
+                                     # gets to the receiving reach
+
+
+        if reach_id not in list_of_receiving_reaches:
+            # Source reach
+            nd_USID_tmp = [-1] # First node is a source node 
+            nd_USID_tmp.extend(nd_ID_tmp[0:-1])
+
+            nd_TYPE_tmp[0] = 0 # First node is a source node
+
+        else:
+            # Any other reach that receives flow from another one
+
+            # Complete in the main array the DS node id of the correponding inflows
+            idx_first_inflow_last_node = FirstInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][0]
+            id_ds =  FirstInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][1]
+            nd_DSID[idx_first_inflow_last_node] = id_ds
+
+            idx_second_inflow_last_node = SecondInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][0]
+            id_ds =  SecondInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][1]
+            nd_DSID[idx_second_inflow_last_node] = id_ds
+
+            nd_USID_tmp = [SecondInflowLastNodeIDForReceivingReach[reach_id]]
+            nd_USID_tmp.extend(nd_ID_tmp[0:-1])
+            nd_US2ID_tmp[0] = FirstInflowLastNodeIDForReceivingReach[reach_id]
+
+            nd_CSID_tmp[0] = FirstInflowLastNodeIDForReceivingReach[reach_id]
+
+            nd_TYPE_tmp[0] = 2 # First node is a junction node
+
+
+        
 
         
 
@@ -497,6 +504,7 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
         nd_YC.extend(YC_tmp)
         nd_CSID.extend(nd_CSID_tmp)
         nd_USID.extend(nd_USID_tmp)
+        nd_DSID.extend(nd_DSID_tmp)
         nd_US2ID.extend(nd_US2ID_tmp)
 
 
@@ -538,6 +546,7 @@ def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach):
     # to dsrowcol (tuple) in a form of a list of tuples.
     #
     # It is assumed that the path does not contain loops or branches, just an 8-connected path
+    # It is also assumed that all data provided is 0-indexed
 
     img = np.copy(img_reach)
 
@@ -583,6 +592,7 @@ def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach):
 
 def rowcol2latlon_esri_asc(geomatrix, row, col, oneindexed=False):
     
+    # The provided row col NEED to be in 0-index. If oneindexed is provided then an adjustment needs to be done
     if oneindexed:
         row -= 1
         col -= 1
