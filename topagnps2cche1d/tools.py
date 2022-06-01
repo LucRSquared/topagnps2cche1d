@@ -3,6 +3,7 @@ import csv
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 from osgeo import gdal
 from affine import Affine
 
@@ -219,7 +220,7 @@ def dfs_iterative_postorder(network, outlet_reach):
 
     return postorder
 
-def dfs_recursive_postorder(network, reach, postorder=[]):
+def dfs_recursive_postorder(network, reach, postorder=None):
 
     # Depth First Search Post Order Tree Traversal (Recursive)
 
@@ -230,6 +231,9 @@ def dfs_recursive_postorder(network, reach, postorder=[]):
     # network = {0:[1,2], 1:[3,4], 2:[5,6], 6:[7]}
     # start = 0
     # postorder = dfs_recursive_postorder(network, start)
+
+    if postorder == None:
+        postorder = []
 
     if reach not in network:
         postorder.append(reach)
@@ -286,10 +290,10 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
 
     reordered_network = reorder_network(network, cche1d_reordered_reaches)
 
-    df_nodes, df_channel, df_link = create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, cche1d_reordered_reaches, reordered_network)
+    df_nodes, df_channel, df_link, img_reach_reordered = create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, cche1d_reordered_reaches, reordered_network)
 
 
-    return df_nodes, df_channel, df_link
+    return df_nodes, df_channel, df_link, img_reach_reordered
 
 def apply_permutation_int_array(original_arr, permutation_vect):
 
@@ -314,7 +318,7 @@ def apply_permutation_int_dfagflow(dfagflow, permutation_vect):
     dfagflow_new = dfagflow[dfagflow['Reach_ID'].isin(permutation_vect)].copy()
 
     dfagflow_new['New_Reach_ID'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Reach_ID']))+1, axis=1)
-    dfagflow_new['New_Receiving_Reach'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Reach_ID']))+1, axis=1)
+    dfagflow_new['New_Receiving_Reach'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Receiving_Reach']))+1 if x['Receiving_Reach'] in permutation_vect else -1, axis=1)
 
     return dfagflow_new
 
@@ -362,7 +366,6 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
     # lk_TYPE = []
 
     # Useful indexing tools
-    FirstInflowLastNodeIDForSecondInflow = {}
     FirstInflowLastNodeIDForReceivingReach = {}
     SecondInflowLastNodeIDForReceivingReach = {}
 
@@ -396,8 +399,8 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
         ordered_path = get_intermediate_nodes_img((us_row-1,us_col-1), (ds_row-1,ds_col-1), curr_img_reach)
 
         # Computing corresponding coordinates
-        XCYC_tmp = [rowcol2latlon_esri_asc(geomatrix, rowcol[0], rowcol[1], oneindexed=False) for rowcol in ordered_path]
-        XC_tmp, YC_tmp = zip(*XCYC_tmp)
+        YCXC_tmp = [rowcol2latlon_esri_asc(geomatrix, rowcol[0], rowcol[1], oneindexed=False) for rowcol in ordered_path]
+        YC_tmp, XC_tmp = zip(*YCXC_tmp)
         XC_tmp = list(XC_tmp)
         YC_tmp = list(YC_tmp)
         
@@ -406,7 +409,7 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
             # Get receiving reach's upstream node (that will be the junction)
             receiving_reach_id = int(dfagflow_new.loc[dfagflow_new['New_Reach_ID']==reach_id,['New_Receiving_Reach']].values[0])
             junc_node_row, junc_node_col = dfagflow_new.loc[dfagflow_new['New_Reach_ID']==receiving_reach_id, ['Upstream_End_Row','Upstream_End_Column']].values[0]
-            junc_node_x, junc_node_y = rowcol2latlon_esri_asc(geomatrix, junc_node_row, junc_node_col, oneindexed=True)
+            junc_node_y, junc_node_x = rowcol2latlon_esri_asc(geomatrix, junc_node_row, junc_node_col, oneindexed=True)
 
             # Append to the reach
             XC_tmp.append(junc_node_x)
@@ -415,6 +418,8 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
         numpoints = len(XC_tmp)
         
         nd_ID_tmp = list(range(nd_counter,nd_counter+numpoints))
+
+        nd_CSID_tmp = nd_ID_tmp.copy()
 
         # Channel table
         ch_ID.append(reach_id)
@@ -427,26 +432,25 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
         lk_NDUSID.append(reach_id)
         lk_NDDSID.append(reach_id)
         lk_RCUSID.append(reach_id)
-        lk_RCDSID.append(reach_id)
-
-        
-        nd_CSID_tmp = nd_ID_tmp.copy()        
+        lk_RCDSID.append(reach_id)        
+               
         nd_FRMNO_tmp = nd_ID_tmp.copy() # Those IDs are the same because this procedure is done in the computational order
         nd_US2ID_tmp = [-1 for _ in nd_ID_tmp]
         nd_TYPE_tmp = [6 for _ in nd_ID_tmp] # assign value 6 by default, special cases are treated hereafter
 
         if reach_id in first_inflows:
             idx1 = first_inflows.index(reach_id)
-            FirstInflowLastNodeIDForSecondInflow[second_inflows[idx1]] = nd_ID_tmp[-1]
+
             FirstInflowLastNodeIDForReceivingReach[list_of_receiving_reaches[idx1]] = nd_ID_tmp[-1]
-            FirstInflowLastNodeAbsoluteIndexForReceivingReach[list_of_receiving_reaches[idx1]] = (len(nd_ID)+len(nd_ID_tmp)-1, nd_ID_tmp[0])
+            FirstInflowLastNodeAbsoluteIndexForReceivingReach[list_of_receiving_reaches[idx1]] = len(nd_ID)+len(nd_ID_tmp)-1
 
         if reach_id in second_inflows:
             idx2 = second_inflows.index(reach_id)
+
             SecondInflowLastNodeIDForReceivingReach[list_of_receiving_reaches[idx2]] = nd_ID_tmp[-1]
-            SecondInflowLastNodeAbsoluteIndexForReceivingReach[list_of_receiving_reaches[idx2]] = (len(nd_ID)+len(nd_ID_tmp)-1, nd_ID_tmp[0])
-            nd_CSID_tmp[-1] = FirstInflowLastNodeIDForSecondInflow[reach_id]
-        
+            SecondInflowLastNodeAbsoluteIndexForReceivingReach[list_of_receiving_reaches[idx2]] = len(nd_ID)+len(nd_ID_tmp)-1
+
+            nd_CSID_tmp[-1] = FirstInflowLastNodeIDForReceivingReach[list_of_receiving_reaches[idx2]] 
 
         if reach_id == outlet_reach_id:
             nd_TYPE_tmp[-1] = 9 # Label last node as the outflow
@@ -460,7 +464,6 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
                                      # until it can be resolved when the algorithm 
                                      # gets to the receiving reach
 
-
         if reach_id not in list_of_receiving_reaches:
             # Source reach
             nd_USID_tmp = [-1] # First node is a source node 
@@ -472,13 +475,11 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
             # Any other reach that receives flow from another one
 
             # Complete in the main array the DS node id of the correponding inflows
-            idx_first_inflow_last_node = FirstInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][0]
-            id_ds =  FirstInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][1]
-            nd_DSID[idx_first_inflow_last_node] = id_ds
+            idx_first_inflow_last_node = FirstInflowLastNodeAbsoluteIndexForReceivingReach[reach_id]
+            nd_DSID[idx_first_inflow_last_node] = nd_ID_tmp[0] # The downstream point of the last point of the first inflow is the current receiving node
 
-            idx_second_inflow_last_node = SecondInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][0]
-            id_ds =  SecondInflowLastNodeAbsoluteIndexForReceivingReach[reach_id][1]
-            nd_DSID[idx_second_inflow_last_node] = id_ds
+            idx_second_inflow_last_node = SecondInflowLastNodeAbsoluteIndexForReceivingReach[reach_id]
+            nd_DSID[idx_second_inflow_last_node] = nd_ID_tmp[0]
 
             nd_USID_tmp = [SecondInflowLastNodeIDForReceivingReach[reach_id]]
             nd_USID_tmp.extend(nd_ID_tmp[0:-1])
@@ -486,12 +487,7 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
 
             nd_CSID_tmp[0] = FirstInflowLastNodeIDForReceivingReach[reach_id]
 
-            nd_TYPE_tmp[0] = 2 # First node is a junction node
-
-
-        
-
-        
+            nd_TYPE_tmp[0] = 2 # First node is a junction node      
 
         # Increment nd_counter
         nd_counter += numpoints 
@@ -539,7 +535,7 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
     df_link = pd.DataFrame.from_dict(link)
     df_nodes = pd.DataFrame.from_dict(nodes)
 
-    return df_nodes, df_channel, df_link
+    return df_nodes, df_channel, df_link, img_reach_asc_new
 
 def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach):
     # This function returns the pixel coordinates in sequential order from usrowcol (tuple)
@@ -625,11 +621,53 @@ def read_esri_asc_file(filename):
     img = dataset.ReadAsArray()
     return img, geoMatrix, ncols, nrows, nodataval, dataset
 
-def visualize_cche1d_nodes(df, show=True, what="ND_ID", color="ND_TYPE"):
+def visualize_cche1d_nodes(df, show=True):
     # fig = px.scatter(df, x="ND_XC", y="ND_YC", text="ND_FRMNO")
-    df["ND_TYPE"] = df["ND_TYPE"].astype(str)
-    fig = px.scatter(df, x="ND_XC", y="ND_YC", color=color, text=what, title=what)
-    fig.update_traces(textposition='bottom left')
+    dfcopy = df.copy()
+    dfcopy["ND_TYPE_SHOW"] = df["ND_TYPE"].astype(str)
+    # fig = px.scatter(df, x="ND_XC", y="ND_YC", color=color, text=what, title=what)
+    fig = px.scatter(dfcopy, x='ND_XC', y='ND_YC', symbol=dfcopy['ND_TYPE'], color='ND_TYPE_SHOW', title='ND_FRMNO', hover_name='ND_ID', hover_data=['ND_USID', 'ND_DSID', 'ND_US2ID', 'ND_CSID'])
+    fig.update_traces(textposition='bottom left', marker={'size':5})
+    fig.update_yaxes(scaleanchor = 'x', scaleratio =1)
+    fig.update_layout(height=900)
+
     if show==True:
         fig.show()
+    return fig
+
+def visualize_reaches_id(img, geomatrix=None):
+    # img : 2D-Numpy array
+
+    nrows, ncols = img.shape
+
+    cols = list(range(1,ncols+1))
+    rows = list(range(1,nrows+1))
+
+    imgcopy = img.copy()
+    imgcopy = np.where(imgcopy==0,np.nan,imgcopy)
+
+    if geomatrix == None:
+        x = cols
+        y = rows
+    elif len(geomatrix) == 6:
+        y = [rowcol2latlon_esri_asc(geomatrix, r, 1, oneindexed=True) for r in rows]
+        y, _ = zip(*y)
+        y = list(y)
+
+        x = [rowcol2latlon_esri_asc(geomatrix, 1, c, oneindexed=True) for c in cols]
+        _, x = zip(*x)
+        x = list(x)
+    else:
+        raise Exception('Incorrect number of arguments in the geomatrix tuple')
+
+    # fig = px.imshow(img, x=x, y=y, origin='lower', text_auto=True, color_continuous_scale=px.colors.qualitative.D3)
+    
+    # fig.update_coloraxes(showscale=False)
+    data = go.Heatmap(z=imgcopy,
+                      x=x,
+                      y=y)
+    fig = go.Figure(data=data)
+
+    fig.show()
+
     return fig
