@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import csv
 import pandas as pd
@@ -273,15 +274,7 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
     img_reach_asc, geomatrix, _, _, _, _ = read_esri_asc_file(filepath_annagnps_reach_ids)
     dfagflow = read_agflow_reach_data(filepath_agflow)
 
-    # # Get Outlet ROW/COL "reach" id (it's the one that has zero reach length)
-    # # outlet_reach_id = dfagflow.loc[dfagflow['Reach_Length_[m]']==0,'Reach_ID'].values[0]
-
-    # # !!! Potential Problem with outlet reach
-    # # initial_outlet_reach_index = dfagflow.index[dfagflow['Reach_Length_[m]']==0].values[0]
-    # # dfagflow.drop(labels=initial_outlet_reach_index, axis=0, inplace=True)
-
     outlet_reach_id = dfagflow.loc[(dfagflow['Distance_Downstream_End_to_Outlet_[m]']==0) & (dfagflow['Reach_Length_[m]']!=0),'Reach_ID'].values[0]
-
 
     # Build the flow network (each node points to the counterclock wise list of tributaries at the upstream junction)
     network = build_network(dfagflow, img_flovec, root=outlet_reach_id)
@@ -290,8 +283,7 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
 
     reordered_network = reorder_network(network, cche1d_reordered_reaches)
 
-    df_nodes, df_channel, df_link, img_reach_reordered = create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, cche1d_reordered_reaches, reordered_network)
-
+    df_nodes, df_channel, df_link, img_reach_reordered = create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, cche1d_reordered_reaches, reordered_network)
 
     return df_nodes, df_channel, df_link, img_reach_reordered
 
@@ -322,7 +314,7 @@ def apply_permutation_int_dfagflow(dfagflow, permutation_vect):
 
     return dfagflow_new
 
-def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, permutation_vect, reordered_network):
+def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, permutation_vect, reordered_network):
 
     # INPUTS:
     # - dfagflow: Original AgFlow dataframe
@@ -429,8 +421,8 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
         # Link table
         lk_ID.append(reach_id)
         lk_CMPSEQ.append(reach_id) # the loop already goes in the computational sequence
-        lk_NDUSID.append(reach_id)
-        lk_NDDSID.append(reach_id)
+        lk_NDUSID.append(nd_ID_tmp[0])
+        lk_NDDSID.append(nd_ID_tmp[-1])
         lk_RCUSID.append(reach_id)
         lk_RCDSID.append(reach_id)        
                
@@ -537,6 +529,29 @@ def create_cche1d_nodes_and_channel_tables(dfagflow, geomatrix, img_reach_asc, p
 
     return df_nodes, df_channel, df_link, img_reach_asc_new
 
+def write_cche1d_dat_file(filename, df):
+    # This function automatically appends to the filename the appropriate
+    # _channel.dat
+    # _nodes.dat
+
+    header_list = list(df.columns.values)
+
+    if 'CH_ID' in header_list:
+        filename = filename+'_channel.dat'
+    elif 'ND_ID' in header_list:
+        filename = filename+'_nodes.dat'
+    elif 'LK_ID' in header_list:
+        filename = filename+'_link.dat'
+    else:
+        filename = filename+'.dat'
+
+    with open(filename, 'w') as f:
+        f.write(f'{df.shape[0]}\n')
+
+    df.to_csv(filename, mode='a', sep='\t', index=False)
+
+    print(f'{filename} successfully written')
+
 def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach):
     # This function returns the pixel coordinates in sequential order from usrowcol (tuple)
     # to dsrowcol (tuple) in a form of a list of tuples.
@@ -621,7 +636,7 @@ def read_esri_asc_file(filename):
     img = dataset.ReadAsArray()
     return img, geoMatrix, ncols, nrows, nodataval, dataset
 
-def visualize_cche1d_nodes(df, show=True):
+def visualize_cche1d_nodes(df, show=True, renderer='notebook'):
     # fig = px.scatter(df, x="ND_XC", y="ND_YC", text="ND_FRMNO")
     dfcopy = df.copy()
     dfcopy["ND_TYPE_SHOW"] = df["ND_TYPE"].astype(str)
@@ -631,11 +646,11 @@ def visualize_cche1d_nodes(df, show=True):
     fig.update_yaxes(scaleanchor = 'x', scaleratio =1)
     fig.update_layout(height=900)
 
-    if show==True:
-        fig.show()
+    if show:
+        fig.show(renderer=renderer)
     return fig
 
-def visualize_reaches_id(img, geomatrix=None):
+def visualize_reaches_id(img, geomatrix=None, show=True, title='Reach IDs', renderer='notebook'):
     # img : 2D-Numpy array
 
     nrows, ncols = img.shape
@@ -662,12 +677,22 @@ def visualize_reaches_id(img, geomatrix=None):
 
     # fig = px.imshow(img, x=x, y=y, origin='lower', text_auto=True, color_continuous_scale=px.colors.qualitative.D3)
     
-    # fig.update_coloraxes(showscale=False)
     data = go.Heatmap(z=imgcopy,
                       x=x,
-                      y=y)
+                      y=y,
+                    #   text=imgcopy,
+                    #   texttemplate="%{text:1f}",
+                      colorscale = px.colors.qualitative.D3,
+                      showscale=False,
+                      hoverongaps=False,
+                      hovertemplate='<extra></extra> x: %{x:.3f} <br /> y: %{y:.3f} <br /> Reach: %{z:1.f}')
     fig = go.Figure(data=data)
 
-    fig.show()
+    fig.update_layout(title=title,
+                      xaxis_title='Easting (m)',
+                      yaxis_title='Northing (m)')
+
+    if show:
+        fig.show(renderer=renderer)
 
     return fig
