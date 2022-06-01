@@ -249,7 +249,7 @@ def dfs_recursive_postorder(network, reach, postorder=None):
 
     return postorder
 
-def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, filepath_annagnps_reach_ids, outfilespath=None, writefiles = False):
+def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, filepath_annagnps_reach_ids, filepath_netw, outfilespath=None, writefiles = False):
     # This script takes topagns reaches and changes the numbering according to the CCHE1D numbering
     # system for links
     # ASSUMPTIONS :
@@ -272,6 +272,7 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
     # Reading
     img_flovec = read_esri_asc_file(filepath_flovec)[0]
     img_reach_asc, geomatrix, _, _, _, _ = read_esri_asc_file(filepath_annagnps_reach_ids)
+    img_netw_asc, _, _, _, _, _ = read_esri_asc_file(filepath_netw)
     dfagflow = read_agflow_reach_data(filepath_agflow)
 
     outlet_reach_id = dfagflow.loc[(dfagflow['Distance_Downstream_End_to_Outlet_[m]']==0) & (dfagflow['Reach_Length_[m]']!=0),'Reach_ID'].values[0]
@@ -283,9 +284,9 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
 
     reordered_network = reorder_network(network, cche1d_reordered_reaches)
 
-    df_nodes, df_channel, df_link, img_reach_reordered = create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, cche1d_reordered_reaches, reordered_network)
+    df_nodes, df_channel, df_link, df_reach, img_reach_reordered = create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, cche1d_reordered_reaches, reordered_network)
 
-    return df_nodes, df_channel, df_link, img_reach_reordered
+    return df_nodes, df_channel, df_link, df_reach, img_reach_reordered
 
 def apply_permutation_int_array(original_arr, permutation_vect):
 
@@ -314,11 +315,12 @@ def apply_permutation_int_dfagflow(dfagflow, permutation_vect):
 
     return dfagflow_new
 
-def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, permutation_vect, reordered_network):
+def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permutation_vect, reordered_network):
 
     # INPUTS:
     # - dfagflow: Original AgFlow dataframe
     # - img_reach_asc: Array with pixels numbered according to the old (topagnps) numbering of reaches
+    # - img_netw_asc: Array with reaches numbered according to their Strahler order
     # - permuation_vect: permutation vector for new numbering of reaches
     # - outfilepath: path to output dat file
     # - writefile: T/F
@@ -356,6 +358,13 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, permutation_vect, r
     lk_RCUSID = []
     lk_RCDSID = []
     # lk_TYPE = []
+    
+    # Reach table
+    rc_ID = []
+    rc_NDUSID = []
+    rc_NDDSID = []
+    rc_ORDER = []
+    rc_LENGTH = []
 
     # Useful indexing tools
     FirstInflowLastNodeIDForReceivingReach = {}
@@ -424,7 +433,18 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, permutation_vect, r
         lk_NDUSID.append(nd_ID_tmp[0])
         lk_NDDSID.append(nd_ID_tmp[-1])
         lk_RCUSID.append(reach_id)
-        lk_RCDSID.append(reach_id)        
+        lk_RCDSID.append(reach_id)      
+
+        # Reach Table
+        rc_ID.append(reach_id)
+        rc_NDUSID.append(nd_ID_tmp[0])
+        rc_NDDSID.append(nd_ID_tmp[-1])
+
+        reach_length = dfagflow_new.loc[dfagflow_new['New_Reach_ID']==reach_id,['Reach_Length_[m]']].values[0]
+        rc_LENGTH.append(reach_length)
+
+        strahler_order = img_netw_asc[img_reach_asc_new==reach_id].ravel().max()
+        rc_ORDER.append(strahler_order)
                
         nd_FRMNO_tmp = nd_ID_tmp.copy() # Those IDs are the same because this procedure is done in the computational order
         nd_US2ID_tmp = [-1 for _ in nd_ID_tmp]
@@ -523,11 +543,18 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, permutation_vect, r
              'ND_RSID': nd_RSID,
              'ND_STID': nd_STID}
 
+    reach = {'RC_ID': rc_ID,
+             'RC_NDUSID': rc_NDUSID,
+             'RC_NDDSID': rc_NDDSID,
+             'RC_ORDER': rc_ORDER,
+             'RC_LENGTH': rc_LENGTH}
+
     df_channel = pd.DataFrame.from_dict(channel)
     df_link = pd.DataFrame.from_dict(link)
     df_nodes = pd.DataFrame.from_dict(nodes)
+    df_reach = pd.DataFrame.from_dict(reach)
 
-    return df_nodes, df_channel, df_link, img_reach_asc_new
+    return df_nodes, df_channel, df_link, df_reach, img_reach_asc_new
 
 def write_cche1d_dat_file(filename, df):
     # This function automatically appends to the filename the appropriate
@@ -542,6 +569,8 @@ def write_cche1d_dat_file(filename, df):
         filename = filename+'_nodes.dat'
     elif 'LK_ID' in header_list:
         filename = filename+'_link.dat'
+    elif 'RC_ID' in header_list:
+        filename = filename+'_reach.dat'
     else:
         filename = filename+'.dat'
 
