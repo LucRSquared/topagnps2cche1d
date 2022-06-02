@@ -1,0 +1,26 @@
+Here is the format of _csprf.dat:
+
+Number of total CS points
+CP_ID    CP_CSID    CP_POSIDX    CP_W    CP_Z    CP_RGH    CP_BLOCK
+
+CP_ID: global index of CS points
+CP_CSID:  CS index corresponding to the global index of nodes in _nodes.dat
+CP_POSIDX:  local index of CS point of each CS
+CP_W: distance from left to right
+CP_Z: bed elevation of each CS point
+CP_RHG: bed roughness (0.025 is default value)
+CP_BLOCK: 1 is set
+
+For the _csec.dat:
+Num of CS
+CS_ID    CS_NPTS    CS_LOB    CS_LBT    CS_ROB    CS_RBT    CS_SVTYPE    CS_TYPE    CS_ORIGIN    CS_STATION
+
+CS_ID: global index of CS corresponding to global index of node in _nodes.dat
+CS_NPTS:  num of point for each CS
+CS_LOB: local left index of CS point of left floodplain   (1 is default)
+CS_LBT: local right index of CS point of left floodplain (1 is default)
+CS_ROB: local left index of CS point of right floodplain   (total num of point is default)
+CS_RBT: local right index of CS point of right floodplain (total num of point is default)
+CS_SVTYPE: "WZ" is default
+CS_TYPE: "MC" is default)
+CS_ORIGIN:  "USERSPEC" is default

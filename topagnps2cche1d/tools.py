@@ -249,7 +249,7 @@ def dfs_recursive_postorder(network, reach, postorder=None):
 
     return postorder
 
-def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, filepath_annagnps_reach_ids, filepath_netw, outfilespath=None, writefiles = False):
+def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, filepath_annagnps_reach_ids, filepath_netw, filepath_dednm, cross_sections):
     # This script takes topagns reaches and changes the numbering according to the CCHE1D numbering
     # system for links
     # ASSUMPTIONS :
@@ -259,21 +259,22 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
     # Inputs : 
     # - FILEPATH to Agflow file
     # - FILEPATH to FLOVEC.ASC file
-    # -
-    # - outfilespath: path to output dat files
-    # - writefiles: T/F
+    # - FILEPATH to DEDNM.ASC (DEM file)
+    # - cross_sections : dictionary containing the cross sections, for now it's just a default
+    #    default_xsection = {'type' : 'default',
+    #                        'CP_Ws': [-43, -35, -13, -10, 10, 13, 35, 43],
+    #                        'CP_Zs': [6, 2, 2, 0, 0, 2, 2, 6]}
 
-    # Outputs:
-    # - cche1d_reordered_reaches giving the new order of previously ordered reaches from 1 to N_max_reaches
-
-    if outfilespath is None:
-        outfilespath = os.getcwd()
 
     # Reading
     img_flovec = read_esri_asc_file(filepath_flovec)[0]
     img_reach_asc, geomatrix, _, _, _, _ = read_esri_asc_file(filepath_annagnps_reach_ids)
     img_netw_asc, _, _, _, _, _ = read_esri_asc_file(filepath_netw)
+    img_dednm_asc, _, _, _, _, _ = read_esri_asc_file(filepath_dednm)
     dfagflow = read_agflow_reach_data(filepath_agflow)
+
+    # FUTURE:
+    # Test if cross_sections is non-default and read the cross-sections. I'm not sure in what format yet
 
     outlet_reach_id = dfagflow.loc[(dfagflow['Distance_Downstream_End_to_Outlet_[m]']==0) & (dfagflow['Reach_Length_[m]']!=0),'Reach_ID'].values[0]
 
@@ -284,9 +285,9 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
 
     reordered_network = reorder_network(network, cche1d_reordered_reaches)
 
-    df_nodes, df_channel, df_link, df_reach, img_reach_reordered = create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, cche1d_reordered_reaches, reordered_network)
+    df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach_reordered = create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, img_dednm_asc, cche1d_reordered_reaches, reordered_network, cross_sections)
 
-    return df_nodes, df_channel, df_link, df_reach, img_reach_reordered
+    return df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach_reordered
 
 def apply_permutation_int_array(original_arr, permutation_vect):
 
@@ -315,20 +316,22 @@ def apply_permutation_int_dfagflow(dfagflow, permutation_vect):
 
     return dfagflow_new
 
-def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permutation_vect, reordered_network):
+def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, img_dednm_asc, permutation_vect, reordered_network, cross_sections):
 
     # INPUTS:
     # - dfagflow: Original AgFlow dataframe
     # - img_reach_asc: Array with pixels numbered according to the old (topagnps) numbering of reaches
     # - img_netw_asc: Array with reaches numbered according to their Strahler order
     # - permuation_vect: permutation vector for new numbering of reaches
-    # - outfilepath: path to output dat file
-    # - writefile: T/F
+    # - cross_sections: dictionary containing cross sections. if cross_sections['type'] == 'default' then all the cross-sections will be identical
     #
     # OUTPUTS:
     # - df_nodes table
     # - df_channel table
     # - df_link table
+    # - df_reach table
+    # - df_csec table
+    # - df_csprf table
 
     # Apply new numbering to AgFlow Dataframe and img_reach_asc
     dfagflow_new = apply_permutation_int_dfagflow(dfagflow, permutation_vect)
@@ -350,7 +353,7 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
     ch_NDUSID = []
     ch_NDDSID = []
 
-    # Initialize Link Arrays
+    # Initialize Link Arrays (!!! Reaches for TopAGNPS are CCHE1D links and channels (in the absence of the hydraulic structure))
     lk_ID = []
     lk_CMPSEQ = []
     lk_NDUSID = []
@@ -359,12 +362,34 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
     lk_RCDSID = []
     # lk_TYPE = []
     
-    # Reach table
+    # Reach table (!!! For CCHE1D a REACH is not the same thing as a TopAGNPS reach.)
+    #                  For CCHE1D a REACH is formed by two points
     rc_ID = []
     rc_NDUSID = []
     rc_NDDSID = []
     rc_ORDER = []
     rc_LENGTH = []
+
+    # CSEC table (default values are being used and defined in the lower portion of the code)
+    # cs_ID = []
+    # cs_NPTS = []
+    # cs_LOB = []
+    # cs_LBT = []
+    # cs_ROB = []
+    # cs_RBT = []
+    # cs_SVTYPE = []
+    # cs_TYPE = []
+    # cs_ORIGIN = []
+    # cs_STATION = []
+
+    # CSPRF table
+    cp_ID = []
+    cp_CSID = []
+    cp_POSIDX = []
+    cp_W = []
+    cp_Z = []
+    cp_RGH = []
+    # cp_BLOCK = [] # Default values used and defined later
 
     # Useful indexing tools
     FirstInflowLastNodeIDForReceivingReach = {}
@@ -383,6 +408,7 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
     outlet_reach_id = dfagflow_new.loc[(dfagflow_new['Distance_Downstream_End_to_Outlet_[m]']==0) & (dfagflow_new['Reach_Length_[m]']!=0) ,'New_Reach_ID'].values[0]
 
     nd_counter = 1
+    xs_nds_counter = 1
 
     # Goes from 1 to N_max_reach
     for reach_id in range(1,N_max_reach+1):
@@ -433,18 +459,42 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
         lk_NDUSID.append(nd_ID_tmp[0])
         lk_NDDSID.append(nd_ID_tmp[-1])
         lk_RCUSID.append(reach_id)
-        lk_RCDSID.append(reach_id)      
+        lk_RCDSID.append(reach_id)   
 
-        # Reach Table
-        rc_ID.append(reach_id)
-        rc_NDUSID.append(nd_ID_tmp[0])
-        rc_NDDSID.append(nd_ID_tmp[-1])
+        # Reach table
+        rc_ID_tmp = list(range(1,numpoints))
+        rc_LENGTH_tmp = compute_cche1d_reaches_length(XC_tmp, YC_tmp) 
 
-        reach_length = dfagflow_new.loc[dfagflow_new['New_Reach_ID']==reach_id,['Reach_Length_[m]']].values[0]
-        rc_LENGTH.append(reach_length)
+        if reach_id != outlet_reach_id:
+            rc_ORDER_tmp = collect_data_along_img_path(img_netw_asc, ordered_path, oneindexed=False) # The last point is implicitly ignored since 
+                                                                                                     # ordered_path is computed before appending the ds junction node
+        else:
+            rc_ORDER_tmp = collect_data_along_img_path(img_netw_asc, ordered_path[0:-1], oneindexed=False) # The outlet node is ignored since it is the downstream node of the last reach
 
-        strahler_order = img_netw_asc[img_reach_asc_new==reach_id].ravel().max()
-        rc_ORDER.append(strahler_order)
+        rc_NDUSID_tmp = nd_ID_tmp[0:-1]
+        rc_NDDSID_tmp = nd_ID_tmp[1:]
+
+        # CSPRF table
+        if cross_sections['type'] == 'default':
+            npts = len(cross_sections['CP_Ws'])
+
+            cp_ID_tmp = []
+            cp_CSID_tmp = []
+            cp_POSIDX_tmp = []
+            cp_W_tmp = []
+            cp_Z_tmp = []
+            cp_RGH_tmp = []
+            for n in nd_ID_tmp:
+                cp_ID_tmp_tmp = list(range(xs_nds_counter,xs_nds_counter+npts))
+                cp_ID_tmp.extend(cp_ID_tmp_tmp)
+                cp_CSID_tmp.extend([n for _ in cp_ID_tmp_tmp])
+                cp_POSIDX_tmp.extend(list(range(1,npts+1)))
+                cp_W_tmp.extend(cross_sections['CP_Ws'])
+                cp_Z_tmp.extend(cross_sections['CP_Zs'])
+                cp_RGH_tmp.extend(cross_sections['CP_RGHs'])
+
+                xs_nds_counter += npts # Increment cross-section nodes counter
+
                
         nd_FRMNO_tmp = nd_ID_tmp.copy() # Those IDs are the same because this procedure is done in the computational order
         nd_US2ID_tmp = [-1 for _ in nd_ID_tmp]
@@ -515,13 +565,44 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
         nd_DSID.extend(nd_DSID_tmp)
         nd_US2ID.extend(nd_US2ID_tmp)
 
+        rc_ID.extend(rc_ID_tmp)
+        rc_LENGTH.extend(rc_LENGTH_tmp) 
+        rc_ORDER.extend(rc_ORDER_tmp)
+        rc_NDUSID.extend(rc_NDUSID_tmp)
+        rc_NDDSID.extend(rc_NDDSID_tmp)
 
+        cp_ID.extend(cp_ID_tmp)
+        cp_CSID.extend(cp_CSID_tmp)
+        cp_POSIDX.extend(cp_POSIDX_tmp)
+        cp_W.extend(cp_W_tmp)
+        cp_Z.extend(cp_Z_tmp)
+        cp_RGH.extend(cp_RGH_tmp)
+
+    # Default values
     nd_RSID = [-1 for _ in nd_ID]
     nd_STID = [1 for _ in nd_ID]
 
-    lk_TYPE = [1 for _ in ch_ID]
+    lk_TYPE = [1 for _ in lk_ID]
 
-    channel = {'CH_ID': ch_ID, 'CH_NDUSID': ch_NDUSID, 'CH_NDDSID': ch_NDDSID}
+    cp_BLOCK = [1 for _ in cp_ID]
+
+    # cp_BLOCK = []
+    if cross_sections['type'] == 'default':
+        cs_ID = nd_ID.copy()
+        cs_NPTS = list(np.full_like(cs_ID, len(cross_sections['CP_Ws'])))
+        cs_LOB = list(np.full_like(cs_ID, 1))
+        cs_LBT = list(np.full_like(cs_ID, 1))
+        cs_ROB = list(np.full_like(cs_ID, len(cross_sections['CP_Ws'])))
+        cs_RBT = list(np.full_like(cs_ID, len(cross_sections['CP_Ws'])))
+        cs_SVTYPE = ['WZ' for _ in cs_ID]
+        cs_TYPE = ['MC' for _ in cs_ID]
+        cs_ORIGIN = ['USERSPEC' for _ in cs_ID]
+        cs_STATION = ['' for _ in cs_ID]
+
+
+    channel = {'CH_ID': ch_ID, 
+               'CH_NDUSID': ch_NDUSID,
+               'CH_NDDSID': ch_NDDSID}
     
     link = {'LK_ID': lk_ID,
             'LK_CMPSEQ': lk_CMPSEQ,
@@ -549,12 +630,33 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
              'RC_ORDER': rc_ORDER,
              'RC_LENGTH': rc_LENGTH}
 
+    csec = {'CS_ID': cs_ID,
+            'CS_NPTS': cs_NPTS,
+            'CS_LOB': cs_LOB,
+            'CS_LBT': cs_LBT,
+            'CS_ROB': cs_ROB,
+            'CS_RBT': cs_RBT,
+            'CS_SVTYPE': cs_SVTYPE,
+            'CS_TYPE': cs_TYPE,
+            'CS_ORIGIN': cs_ORIGIN,
+            'CS_STATION': cs_STATION}
+
+    csprf = {'CP_ID': cp_ID,
+             'CP_CSID': cp_CSID,
+             'CP_POSIDX': cp_POSIDX,
+             'CP_W': cp_W,
+             'CP_Z': cp_Z,
+             'CP_RGH': cp_RGH,
+             'CP_BLOCK': cp_BLOCK}
+
     df_channel = pd.DataFrame.from_dict(channel)
     df_link = pd.DataFrame.from_dict(link)
     df_nodes = pd.DataFrame.from_dict(nodes)
     df_reach = pd.DataFrame.from_dict(reach)
+    df_csec = pd.DataFrame.from_dict(csec)
+    df_csprf = pd.DataFrame.from_dict(csprf)
 
-    return df_nodes, df_channel, df_link, df_reach, img_reach_asc_new
+    return df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach_asc_new
 
 def write_cche1d_dat_file(filename, df):
     # This function automatically appends to the filename the appropriate
@@ -571,6 +673,10 @@ def write_cche1d_dat_file(filename, df):
         filename = filename+'_link.dat'
     elif 'RC_ID' in header_list:
         filename = filename+'_reach.dat'
+    elif 'CS_ID' in header_list:
+        filename = filename+'_csec.dat'
+    elif 'CP_ID' in header_list:
+        filename = filename+'_csprf.dat'
     else:
         filename = filename+'.dat'
 
@@ -587,6 +693,8 @@ def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach):
     #
     # It is assumed that the path does not contain loops or branches, just an 8-connected path
     # It is also assumed that all data provided is 0-indexed
+    #
+    # The returned path also includes the beginning and end nodes
 
     img = np.copy(img_reach)
 
@@ -630,6 +738,26 @@ def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach):
 
     return visited_pixels
 
+def collect_data_along_img_path(img, path, oneindexed=False):
+    # img is a numpy array
+    # path is a list of (row,col) index coordinates
+    # data is the value in img for every (row,col) point
+
+    if oneindexed: # Index starts at 1 for the row/col coordinates
+        data = [img[rc[0]-1,rc[1]-1] for rc in path]
+    else:
+        data = [img[rc[0],rc[1]] for rc in path]
+
+    return data
+
+def compute_cche1d_reaches_length(x,y):
+    # x,y are two lists of length N containing the coordinates of each node in a channel "link" (in the CCHE1D understanding)
+    # the function returns a rc_length list = [length_between_nodes(0,1), lenth_between_nodes(1,2),..., length_between_nodes(i,i+1), ... length_between_nodes(N-2,N-1)]
+    
+    rc_length = np.sqrt((np.array(x[0:-1])-np.array(x[1:]))**2 + (np.array(y[0:-1])-np.array(y[1:]))**2)
+
+    return rc_length
+
 def rowcol2latlon_esri_asc(geomatrix, row, col, oneindexed=False):
     
     # The provided row col NEED to be in 0-index. If oneindexed is provided then an adjustment needs to be done
@@ -665,18 +793,69 @@ def read_esri_asc_file(filename):
     img = dataset.ReadAsArray()
     return img, geoMatrix, ncols, nrows, nodataval, dataset
 
-def visualize_cche1d_nodes(df, show=True, renderer='notebook'):
+def visualize_cche1d_nodes(df, show=True, renderer='notebook', text='ND_ID'):
     # fig = px.scatter(df, x="ND_XC", y="ND_YC", text="ND_FRMNO")
     dfcopy = df.copy()
     dfcopy["ND_TYPE_SHOW"] = df["ND_TYPE"].astype(str)
     # fig = px.scatter(df, x="ND_XC", y="ND_YC", color=color, text=what, title=what)
-    fig = px.scatter(dfcopy, x='ND_XC', y='ND_YC', symbol=dfcopy['ND_TYPE'], color='ND_TYPE_SHOW', title='ND_FRMNO', hover_name='ND_ID', hover_data=['ND_USID', 'ND_DSID', 'ND_US2ID', 'ND_CSID'])
+    fig = px.scatter(dfcopy, x='ND_XC', y='ND_YC', symbol=dfcopy['ND_TYPE'], text=text, color='ND_TYPE_SHOW', title='ND_FRMNO', hover_name='ND_ID', hover_data=['ND_USID', 'ND_DSID', 'ND_US2ID', 'ND_CSID'])
     fig.update_traces(textposition='bottom left', marker={'size':5})
     fig.update_yaxes(scaleanchor = 'x', scaleratio =1)
-    fig.update_layout(height=900)
+    fig.update_layout(height=900,
+                      showlegend=False)
 
     if show:
         fig.show(renderer=renderer)
+    return fig
+
+def visualize_strahler_number(img, geomatrix=None, show=True, title='Strahler Number', renderer='notebook'):
+    # img : 2D-Numpy array
+
+    nrows, ncols = img.shape
+
+    cols = list(range(1,ncols+1))
+    rows = list(range(1,nrows+1))
+
+    imgcopy = img.copy()
+    imgcopy = np.where(imgcopy==0,np.nan,imgcopy)
+
+    if geomatrix == None:
+        x = cols
+        y = rows
+    elif len(geomatrix) == 6:
+        y = [rowcol2latlon_esri_asc(geomatrix, r, 1, oneindexed=True) for r in rows]
+        y, _ = zip(*y)
+        y = list(y)
+
+        x = [rowcol2latlon_esri_asc(geomatrix, 1, c, oneindexed=True) for c in cols]
+        _, x = zip(*x)
+        x = list(x)
+    else:
+        raise Exception('Incorrect number of arguments in the geomatrix tuple')
+
+    # fig = px.imshow(img, x=x, y=y, origin='lower', text_auto=True, color_continuous_scale=px.colors.qualitative.D3)
+    
+    data = go.Heatmap(z=imgcopy,
+                      x=x,
+                      y=y,
+                    #   text=imgcopy,
+                    #   texttemplate="%{text:1f}",
+                      colorscale = px.colors.qualitative.D3,
+                      showscale=False,
+                      hoverongaps=False,
+                      hovertemplate='<extra></extra> x: %{x:.3f} <br /> y: %{y:.3f} <br /> Strahler Number: %{z:1.f}')
+    fig = go.Figure(data=data)
+
+    fig.update_layout(title=title,
+                      xaxis_title='Easting (m)',
+                      yaxis_title='Northing (m)')
+
+    fig.update_yaxes(scaleanchor="x",
+                     scaleratio= 1)
+
+    if show:
+        fig.show(renderer=renderer)
+
     return fig
 
 def visualize_reaches_id(img, geomatrix=None, show=True, title='Reach IDs', renderer='notebook'):
@@ -720,6 +899,9 @@ def visualize_reaches_id(img, geomatrix=None, show=True, title='Reach IDs', rend
     fig.update_layout(title=title,
                       xaxis_title='Easting (m)',
                       yaxis_title='Northing (m)')
+
+    fig.update_yaxes(scaleanchor="x",
+                     scaleratio= 1)
 
     if show:
         fig.show(renderer=renderer)
