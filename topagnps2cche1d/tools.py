@@ -249,7 +249,7 @@ def dfs_recursive_postorder(network, reach, postorder=None):
 
     return postorder
 
-def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, filepath_annagnps_reach_ids, filepath_netw, filepath_dednm, cross_sections):
+def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, filepath_annagnps_reach_ids, filepath_netw, cross_sections):
     # This script takes topagns reaches and changes the numbering according to the CCHE1D numbering
     # system for links
     # ASSUMPTIONS :
@@ -270,7 +270,7 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
     img_flovec = read_esri_asc_file(filepath_flovec)[0]
     img_reach_asc, geomatrix, _, _, _, _ = read_esri_asc_file(filepath_annagnps_reach_ids)
     img_netw_asc, _, _, _, _, _ = read_esri_asc_file(filepath_netw)
-    img_dednm_asc, _, _, _, _, _ = read_esri_asc_file(filepath_dednm)
+    # img_dednm_asc, _, _, _, _, _ = read_esri_asc_file(filepath_dednm)
     dfagflow = read_agflow_reach_data(filepath_agflow)
 
     # FUTURE:
@@ -285,7 +285,7 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
 
     reordered_network = reorder_network(network, cche1d_reordered_reaches)
 
-    df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach_reordered = create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, img_dednm_asc, cche1d_reordered_reaches, reordered_network, cross_sections)
+    df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach_reordered = create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, cche1d_reordered_reaches, reordered_network, cross_sections)
 
     return df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach_reordered
 
@@ -316,7 +316,7 @@ def apply_permutation_int_dfagflow(dfagflow, permutation_vect):
 
     return dfagflow_new
 
-def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, img_dednm_asc, permutation_vect, reordered_network, cross_sections):
+def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permutation_vect, reordered_network, cross_sections):
 
     # INPUTS:
     # - dfagflow: Original AgFlow dataframe
