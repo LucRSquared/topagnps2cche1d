@@ -1,11 +1,13 @@
 name: top2cche1d
 channels:
-  - conda-forge
+  - defaults
 dependencies:
   - python==3.9.1
   - ipykernel
   - numpy
   - pandas
+  - plotly_express
   - nbformat
   - gdal
   - affine
+prefix: C:\Users\Luc\anaconda3\envs\top2cche1d
