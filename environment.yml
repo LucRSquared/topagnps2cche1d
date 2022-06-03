@@ -1,0 +1,13 @@
+name: top2cche1d
+channels:
+  - defaults
+dependencies:
+  - python==3.9.1
+  - ipykernel
+  - numpy
+  - pandas
+  - plotly
+  - plotly_express
+  - nbformat
+  - gdal
+  - affine
