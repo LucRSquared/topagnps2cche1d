@@ -6,8 +6,6 @@ dependencies:
   - ipykernel
   - numpy
   - pandas
-  - plotly
-  - plotly_express
   - nbformat
   - gdal
   - affine
