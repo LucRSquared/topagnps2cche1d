@@ -1,6 +1,6 @@
 name: top2cche1d
 channels:
-  - defaults
+  - conda-forge
   - plotly
 dependencies:
   - python==3.9.1
