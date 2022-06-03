@@ -1,15 +1,12 @@
-name: fireflies
+name: top2cche1d
 channels:
-  - defaults
+  - conda-forge
 dependencies:
+  - python==3.9.1
+  - ipykernel
   - numpy
   - pandas
-  - python
-  - ipykernel
-  - scipy
-  - matplotlib
-  - plotly
+  - plotly_express
   - nbformat
-  - ipywidgets
-  - tqdm
-prefix: C:\Users\Luc\anaconda3\envs\fireflies
+  - gdal
+  - affine
