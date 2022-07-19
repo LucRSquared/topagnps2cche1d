@@ -259,9 +259,6 @@ def cleanup_merge_min_strahler(dfagflow, img_reach_asc, nodataval, img_netw_asc,
     # Removes reaches from dfagflow that have a Strahler number smaller than min_netw
     # Merge residual reaches that no longer have two inflows into a single one (the downstream one)
     # Cleans up img_reach_asc
-    if min_netw == 1:
-        # Do nothing
-        return dfagflow, img_reach_asc, img_netw_asc
     
     reaches_to_remove_strahler = np.unique(np.array(img_reach_asc[img_netw_asc < min_netw]))
 
@@ -282,7 +279,7 @@ def cleanup_merge_min_strahler(dfagflow, img_reach_asc, nodataval, img_netw_asc,
         r = reaches_with_single_inflow[0] # Get first element    
         us_reach_id = dfagflow.loc[dfagflow['Receiving_Reach']==r,'Reach_ID'].values[0]
 
-        print(f'us reach = {us_reach_id}, ds reach = {r}, number of reaches left: {len(dfagflow)} reaches left to process: {len(reaches_with_single_inflow)}')
+        # print(f'us reach = {us_reach_id}, ds reach = {r}, number of reaches left: {len(dfagflow)} reaches left to process: {len(reaches_with_single_inflow)}')
 
         dfagflow.loc[dfagflow['Reach_ID']==r,'Upstream_End_Row'] = dfagflow.loc[dfagflow['Reach_ID']==us_reach_id,'Upstream_End_Row'].astype("int").values[0]
         dfagflow.loc[dfagflow['Reach_ID']==r,'Upstream_End_Column'] = dfagflow.loc[dfagflow['Reach_ID']==us_reach_id,'Upstream_End_Column'].astype("int").values[0]
@@ -305,7 +302,10 @@ def cleanup_merge_min_strahler(dfagflow, img_reach_asc, nodataval, img_netw_asc,
         receiving_reaches = dfagflow['Receiving_Reach'].to_list()
         reaches_with_single_inflow = [reach for reach in receiving_reaches if receiving_reaches.count(reach)==1]
 
-    return dfagflow, img_reach_asc
+    img_netw_asc = img_netw_asc - min_netw + 1
+    img_netw_asc[img_netw_asc<0] = 0
+
+    return dfagflow, img_reach_asc, img_netw_asc
 
 
 
@@ -340,7 +340,7 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
     outlet_reach_id = dfagflow.loc[(dfagflow['Distance_Downstream_End_to_Outlet_[m]']==0) & (dfagflow['Reach_Length_[m]']!=0),'Reach_ID'].values[0]
 
     # Remove Reaches that have a Strahler Number smaller than min_netw
-    dfagflow, img_reach_asc = cleanup_merge_min_strahler(dfagflow, img_reach_asc, nodataval_reach_asc, img_netw_asc, min_netw)
+    dfagflow, img_reach_asc, img_netw_asc = cleanup_merge_min_strahler(dfagflow, img_reach_asc, nodataval_reach_asc, img_netw_asc, min_netw)
 
     # Build the flow network (each node points to the counterclock wise list of tributaries at the upstream junction)
     network = build_network(dfagflow, img_flovec, root=outlet_reach_id)
