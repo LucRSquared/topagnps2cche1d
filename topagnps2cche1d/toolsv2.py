@@ -123,6 +123,9 @@ def build_network(dfagflow, img_flovec, root=None):
 
 def reorder_network(network, permutation_vect):
 
+    if len(network)==0:
+        return {}
+
     reordered_network = {}
 
     for k in list(network):
@@ -199,6 +202,9 @@ def dfs_iterative_postorder(network, outlet_reach):
     # start = 0
     # postorder = dfs_iterative_postorder(network, start)
 
+    if len(network)==0:
+        return []
+
     if outlet_reach not in network:
         return []
 
@@ -255,7 +261,7 @@ def cleanup_merge_min_strahler(dfagflow, img_reach_asc, nodataval, img_netw_asc,
     # Cleans up img_reach_asc
     if min_netw == 1:
         # Do nothing
-        return dfagflow, img_reach_asc
+        return dfagflow, img_reach_asc, img_netw_asc
     
     reaches_to_remove_strahler = np.unique(np.array(img_reach_asc[img_netw_asc < min_netw]))
 
@@ -276,7 +282,7 @@ def cleanup_merge_min_strahler(dfagflow, img_reach_asc, nodataval, img_netw_asc,
         r = reaches_with_single_inflow[0] # Get first element    
         us_reach_id = dfagflow.loc[dfagflow['Receiving_Reach']==r,'Reach_ID'].values[0]
 
-        # print(f'us reach = {us_reach_id}, ds reach = {r}, reaches left to process: {len(reaches_with_single_inflow)}')
+        print(f'us reach = {us_reach_id}, ds reach = {r}, number of reaches left: {len(dfagflow)} reaches left to process: {len(reaches_with_single_inflow)}')
 
         dfagflow.loc[dfagflow['Reach_ID']==r,'Upstream_End_Row'] = dfagflow.loc[dfagflow['Reach_ID']==us_reach_id,'Upstream_End_Row'].astype("int").values[0]
         dfagflow.loc[dfagflow['Reach_ID']==r,'Upstream_End_Column'] = dfagflow.loc[dfagflow['Reach_ID']==us_reach_id,'Upstream_End_Column'].astype("int").values[0]
@@ -339,9 +345,12 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
     # Build the flow network (each node points to the counterclock wise list of tributaries at the upstream junction)
     network = build_network(dfagflow, img_flovec, root=outlet_reach_id)
 
-    cche1d_reordered_reaches = dfs_iterative_postorder(network, outlet_reach_id)
-
-    reordered_network = reorder_network(network, cche1d_reordered_reaches)
+    if network:
+        cche1d_reordered_reaches = dfs_iterative_postorder(network, outlet_reach_id)
+        reordered_network = reorder_network(network, cche1d_reordered_reaches)
+    else:
+        reordered_network = {}
+        cche1d_reordered_reaches = []
 
     df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach_reordered = create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, cche1d_reordered_reaches, reordered_network, cross_sections)
 
@@ -367,10 +376,15 @@ def apply_permutation_int_dfagflow(dfagflow, permutation_vect):
 
     # dfagflow_new = dfagflow.copy(deep=True)
     # Keep only the reaches present in the permutation vector
-    dfagflow_new = dfagflow[dfagflow['Reach_ID'].isin(permutation_vect)].copy()
 
-    dfagflow_new['New_Reach_ID'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Reach_ID']))+1, axis=1)
-    dfagflow_new['New_Receiving_Reach'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Receiving_Reach']))+1 if x['Receiving_Reach'] in permutation_vect else -1, axis=1)
+    if permutation_vect:
+        dfagflow_new = dfagflow[dfagflow['Reach_ID'].isin(permutation_vect)].copy()
+
+        dfagflow_new['New_Reach_ID'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Reach_ID']))+1, axis=1)
+        dfagflow_new['New_Receiving_Reach'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Receiving_Reach']))+1 if x['Receiving_Reach'] in permutation_vect else -1, axis=1)
+    else:
+        dfagflow_new = dfagflow.copy(deep=True)
+        dfagflow_new.rename(columns={"Reach_ID": "New_Reach_ID", "Receiving_Reach": "New_Receiving_Reach"}, inplace=True)
 
     return dfagflow_new
 
@@ -393,7 +407,11 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
 
     # Apply new numbering to AgFlow Dataframe and img_reach_asc
     dfagflow_new = apply_permutation_int_dfagflow(dfagflow, permutation_vect)
-    img_reach_asc_new = apply_permutation_int_array(img_reach_asc, permutation_vect)
+
+    if permutation_vect:
+        img_reach_asc_new = apply_permutation_int_array(img_reach_asc, permutation_vect)
+    else:
+        img_reach_asc_new = img_reach_asc
 
     # Initialize Nodes Arrays
     nd_ID = []
@@ -458,9 +476,14 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
 
     N_max_reach = dfagflow_new['New_Reach_ID'].max()
 
-    first_inflows = [e[0] for e in reordered_network.values()]
-    second_inflows = [e[1] for e in reordered_network.values()]
-    list_of_receiving_reaches = [k for k in reordered_network.keys()]
+    if reordered_network:
+        first_inflows = [e[0] for e in reordered_network.values()]
+        second_inflows = [e[1] for e in reordered_network.values()]
+        list_of_receiving_reaches = [k for k in reordered_network.keys()]
+    else:
+        first_inflows = []
+        second_inflows = []
+        list_of_receiving_reaches = []
 
     # outlet_reach = dfagflow_new.loc[dfagflow_new['Reach_Length_[m]']==0,['New_Reach_ID']]
     outlet_reach_id = dfagflow_new.loc[(dfagflow_new['Distance_Downstream_End_to_Outlet_[m]']==0) & (dfagflow_new['Reach_Length_[m]']!=0) ,'New_Reach_ID'].values[0]
