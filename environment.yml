@@ -10,3 +10,4 @@ dependencies:
   - nbformat
   - gdal
   - affine
+  - scipy
