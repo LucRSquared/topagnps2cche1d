@@ -123,6 +123,9 @@ def build_network(dfagflow, img_flovec, root=None):
 
 def reorder_network(network, permutation_vect):
 
+    if len(network)==0:
+        return {}
+
     reordered_network = {}
 
     for k in list(network):
@@ -199,6 +202,9 @@ def dfs_iterative_postorder(network, outlet_reach):
     # start = 0
     # postorder = dfs_iterative_postorder(network, start)
 
+    if len(network)==0:
+        return []
+
     if outlet_reach not in network:
         return []
 
@@ -249,12 +255,66 @@ def dfs_recursive_postorder(network, reach, postorder=None):
 
     return postorder
 
-def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, filepath_annagnps_reach_ids, filepath_netw, cross_sections):
+def cleanup_merge_min_strahler(dfagflow, img_reach_asc, nodataval, img_netw_asc, min_netw):
+    # Removes reaches from dfagflow that have a Strahler number smaller than min_netw
+    # Merge residual reaches that no longer have two inflows into a single one (the downstream one)
+    # Cleans up img_reach_asc
+    
+    reaches_to_remove_strahler = np.unique(np.array(img_reach_asc[img_netw_asc < min_netw]))
+
+    reaches_to_remove_strahler = reaches_to_remove_strahler[reaches_to_remove_strahler>0] # 0 is not a reach
+
+    # Remove from dfagflow
+    dfagflow = dfagflow.drop(dfagflow[dfagflow['Reach_ID'].isin(reaches_to_remove_strahler)].index)
+    # Remove from img_reach_asc
+    img_reach_asc[img_netw_asc<min_netw] = nodataval
+
+    receiving_reaches = dfagflow['Receiving_Reach'].to_list()
+    reaches_with_single_inflow = [reach for reach in receiving_reaches if receiving_reaches.count(reach)==1]
+
+    # for r in reaches_with_single_inflow:
+
+    while reaches_with_single_inflow:
+
+        r = reaches_with_single_inflow[0] # Get first element    
+        us_reach_id = dfagflow.loc[dfagflow['Receiving_Reach']==r,'Reach_ID'].values[0]
+
+        # print(f'us reach = {us_reach_id}, ds reach = {r}, number of reaches left: {len(dfagflow)} reaches left to process: {len(reaches_with_single_inflow)}')
+
+        dfagflow.loc[dfagflow['Reach_ID']==r,'Upstream_End_Row'] = dfagflow.loc[dfagflow['Reach_ID']==us_reach_id,'Upstream_End_Row'].astype("int").values[0]
+        dfagflow.loc[dfagflow['Reach_ID']==r,'Upstream_End_Column'] = dfagflow.loc[dfagflow['Reach_ID']==us_reach_id,'Upstream_End_Column'].astype("int").values[0]
+        dfagflow.loc[dfagflow['Reach_ID']==r,'Drainage_Area_[ha]'] = dfagflow.loc[dfagflow['Reach_ID']==r,'Drainage_Area_[ha]'].values[0]+dfagflow.loc[dfagflow['Reach_ID']==us_reach_id,'Drainage_Area_[ha]'].values[0]
+        dfagflow.loc[dfagflow['Reach_ID']==r,'Average_Elevation_[m]'] = 0.5*(dfagflow.loc[dfagflow['Reach_ID']==r,'Average_Elevation_[m]'].values[0]+dfagflow.loc[dfagflow['Reach_ID']==us_reach_id,'Average_Elevation_[m]'].values[0])
+        dfagflow.loc[dfagflow['Reach_ID']==r,'Reach_Length_[m]'] = dfagflow.loc[dfagflow['Reach_ID']==r,'Reach_Length_[m]'].values[0]+dfagflow.loc[dfagflow['Reach_ID']==us_reach_id,'Reach_Length_[m]'].values[0]
+        dfagflow.loc[dfagflow['Reach_ID']==r,'Distance_Upstream_End_to_Outlet_[m]'] = dfagflow.loc[dfagflow['Reach_ID']==us_reach_id,'Distance_Upstream_End_to_Outlet_[m]'].values[0]
+        dfagflow.loc[dfagflow['Reach_ID']==r,'Reach_Slope_[m/m]'] = np.nan
+        dfagflow.loc[dfagflow['Reach_ID']==r,'Contributing_Cell_ID_Source'] = np.nan
+        dfagflow.loc[dfagflow['Reach_ID']==r,'Contributing_Cell_ID_Left'] = np.nan
+        dfagflow.loc[dfagflow['Reach_ID']==r,'Contributing_Cell_ID_Right'] = np.nan
+
+        dfagflow.loc[dfagflow['Receiving_Reach']==us_reach_id,'Receiving_Reach'] = r
+        img_reach_asc[img_reach_asc==us_reach_id] = r
+
+        # Remove reach r from dfagflow
+        dfagflow.drop(dfagflow[dfagflow['Reach_ID']==us_reach_id].index, inplace=True)
+
+        # Recompute the list of reaches with single inflow
+        receiving_reaches = dfagflow['Receiving_Reach'].to_list()
+        reaches_with_single_inflow = [reach for reach in receiving_reaches if receiving_reaches.count(reach)==1]
+
+    img_netw_asc = img_netw_asc - min_netw + 1
+    img_netw_asc[img_netw_asc<0] = 0
+
+    return dfagflow, img_reach_asc, img_netw_asc
+
+
+
+def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, filepath_annagnps_reach_ids, filepath_netw, cross_sections, min_netw=1, distance=1):
     # This script takes topagns reaches and changes the numbering according to the CCHE1D numbering
     # system for links
     # ASSUMPTIONS :
     # - Only 2 inflows per junction (TopAGNPS guarantees it but AnnAGNPS is more liberal)
-    # - The Outlet "reach" is its own reach but has 0 length, potential problem !!!!
+    # - The Outlet "reach" is its own reach but has 0 length, potential problem (?)
 
     # Inputs : 
     # - FILEPATH to Agflow file
@@ -264,28 +324,41 @@ def convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, fi
     #    default_xsection = {'type' : 'default',
     #                        'CP_Ws': [-43, -35, -13, -10, 10, 13, 35, 43],
     #                        'CP_Zs': [6, 2, 2, 0, 0, 2, 2, 6]}
+    # - min_netw : Minimum Strahler Number (in development)
+    # - distance : distance in meters at which interval the reaches are sampled (for cross-sections)
 
 
     # Reading
     img_flovec = read_esri_asc_file(filepath_flovec)[0]
-    img_reach_asc, geomatrix, _, _, _, _ = read_esri_asc_file(filepath_annagnps_reach_ids)
+    img_reach_asc, geomatrix, _, _, nodataval_reach_asc, _ = read_esri_asc_file(filepath_annagnps_reach_ids)
     img_netw_asc, _, _, _, _, _ = read_esri_asc_file(filepath_netw)
     # img_dednm_asc, _, _, _, _, _ = read_esri_asc_file(filepath_dednm)
     dfagflow = read_agflow_reach_data(filepath_agflow)
 
+    # The raster is assumed to be a square, thus the raster size (in meters) is:
+    rsize = abs(geomatrix[1])
+
     # FUTURE:
-    # Test if cross_sections is non-default and read the cross-sections. I'm not sure in what format yet
+    # Test if cross_sections is non-default and read the cross-sections. I'm not sure in what format yet.
+    # Will have to think about when the cross-sections are pre-specified, the rsize/distance sampling of the reaches
+    # Will need to be adjusted so that the 
 
     outlet_reach_id = dfagflow.loc[(dfagflow['Distance_Downstream_End_to_Outlet_[m]']==0) & (dfagflow['Reach_Length_[m]']!=0),'Reach_ID'].values[0]
+
+    # Remove Reaches that have a Strahler Number smaller than min_netw
+    dfagflow, img_reach_asc, img_netw_asc = cleanup_merge_min_strahler(dfagflow, img_reach_asc, nodataval_reach_asc, img_netw_asc, min_netw)
 
     # Build the flow network (each node points to the counterclock wise list of tributaries at the upstream junction)
     network = build_network(dfagflow, img_flovec, root=outlet_reach_id)
 
-    cche1d_reordered_reaches = dfs_iterative_postorder(network, outlet_reach_id)
+    if network:
+        cche1d_reordered_reaches = dfs_iterative_postorder(network, outlet_reach_id)
+        reordered_network = reorder_network(network, cche1d_reordered_reaches)
+    else:
+        reordered_network = {}
+        cche1d_reordered_reaches = []
 
-    reordered_network = reorder_network(network, cche1d_reordered_reaches)
-
-    df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach_reordered = create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, cche1d_reordered_reaches, reordered_network, cross_sections)
+    df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach_reordered = create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, cche1d_reordered_reaches, reordered_network, cross_sections, rsize, distance)
 
     return df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach_reordered
 
@@ -309,14 +382,19 @@ def apply_permutation_int_dfagflow(dfagflow, permutation_vect):
 
     # dfagflow_new = dfagflow.copy(deep=True)
     # Keep only the reaches present in the permutation vector
-    dfagflow_new = dfagflow[dfagflow['Reach_ID'].isin(permutation_vect)].copy()
 
-    dfagflow_new['New_Reach_ID'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Reach_ID']))+1, axis=1)
-    dfagflow_new['New_Receiving_Reach'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Receiving_Reach']))+1 if x['Receiving_Reach'] in permutation_vect else -1, axis=1)
+    if permutation_vect:
+        dfagflow_new = dfagflow[dfagflow['Reach_ID'].isin(permutation_vect)].copy()
+
+        dfagflow_new['New_Reach_ID'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Reach_ID']))+1, axis=1)
+        dfagflow_new['New_Receiving_Reach'] = dfagflow_new.apply(lambda x: permutation_vect.index(int(x['Receiving_Reach']))+1 if x['Receiving_Reach'] in permutation_vect else -1, axis=1)
+    else:
+        dfagflow_new = dfagflow.copy(deep=True)
+        dfagflow_new.rename(columns={"Reach_ID": "New_Reach_ID", "Receiving_Reach": "New_Receiving_Reach"}, inplace=True)
 
     return dfagflow_new
 
-def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permutation_vect, reordered_network, cross_sections):
+def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permutation_vect, reordered_network, cross_sections, rsize, distance):
 
     # INPUTS:
     # - dfagflow: Original AgFlow dataframe
@@ -335,7 +413,11 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
 
     # Apply new numbering to AgFlow Dataframe and img_reach_asc
     dfagflow_new = apply_permutation_int_dfagflow(dfagflow, permutation_vect)
-    img_reach_asc_new = apply_permutation_int_array(img_reach_asc, permutation_vect)
+
+    if permutation_vect:
+        img_reach_asc_new = apply_permutation_int_array(img_reach_asc, permutation_vect)
+    else:
+        img_reach_asc_new = img_reach_asc
 
     # Initialize Nodes Arrays
     nd_ID = []
@@ -400,9 +482,14 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
 
     N_max_reach = dfagflow_new['New_Reach_ID'].max()
 
-    first_inflows = [e[0] for e in reordered_network.values()]
-    second_inflows = [e[1] for e in reordered_network.values()]
-    list_of_receiving_reaches = [k for k in reordered_network.keys()]
+    if reordered_network:
+        first_inflows = [e[0] for e in reordered_network.values()]
+        second_inflows = [e[1] for e in reordered_network.values()]
+        list_of_receiving_reaches = [k for k in reordered_network.keys()]
+    else:
+        first_inflows = []
+        second_inflows = []
+        list_of_receiving_reaches = []
 
     # outlet_reach = dfagflow_new.loc[dfagflow_new['Reach_Length_[m]']==0,['New_Reach_ID']]
     outlet_reach_id = dfagflow_new.loc[(dfagflow_new['Distance_Downstream_End_to_Outlet_[m]']==0) & (dfagflow_new['Reach_Length_[m]']!=0) ,'New_Reach_ID'].values[0]
@@ -423,7 +510,7 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
         curr_img_reach = np.where(img_reach_asc_new==reach_id,1,0)
 
         # Write function get_intermediate_nodes (-1 is added because the rows/cols in dfagflow are 1-indexed )
-        ordered_path = get_intermediate_nodes_img((us_row-1,us_col-1), (ds_row-1,ds_col-1), curr_img_reach)
+        ordered_path = get_intermediate_nodes_img((us_row-1,us_col-1), (ds_row-1,ds_col-1), curr_img_reach, rsize, distance)
 
         # Computing corresponding coordinates
         YCXC_tmp = [rowcol2latlon_esri_asc(geomatrix, rowcol[0], rowcol[1], oneindexed=False) for rowcol in ordered_path]
@@ -687,7 +774,7 @@ def write_cche1d_dat_file(filename, df):
 
     print(f'{filename} successfully written')
 
-def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach):
+def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach, rsize=1, distance=1):
     # This function returns the pixel coordinates in sequential order from usrowcol (tuple)
     # to dsrowcol (tuple) in a form of a list of tuples.
     #
@@ -705,6 +792,12 @@ def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach):
     visited_pixels = [usrowcol]
 
     current_pixel = usrowcol
+    cumulative_distance = [0]
+    
+    n_int_distance_traveled = 0 # Number of integer times "distance" was traveled        
+
+    if distance < rsize:
+        distance = rsize # Smallest resolution is the raster size
 
     # Possible directions. The order is important, the first four correspond to the immediate N,S,E,W to use before NE, NW, SW, SE...
     deltas = [(0,1), (0,-1), (1,0), (-1,0), (1,1), (-1,1), (-1,-1), (1,-1)]
@@ -723,18 +816,40 @@ def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach):
         if len(candidates_matches) == 0 and len(pixels_to_visit) != 0:
             raise Exception("Could not find the rest of intermediate pixels, this should not happen, if you get this error something serious is going on")
         elif len(candidates_matches) == 1:
-            # Expected behavior 
+            # Expected behavior
+
+            dl = np.subtract(candidates_matches[0], current_pixel)
+            if dl[0] != 0 and dl[1] !=0:
+                factor = np.sqrt(2) #Account for diagonal travel
+            else:
+                factor = 1
+
             current_pixel = candidates_matches[0]
-            visited_pixels.append(current_pixel)
+
+            # n_int_distance_traveled = np.floor(cumulative_distance[-1]/distance) # Update integer number of distances traveled
+            cumulative_distance.append(cumulative_distance[-1]+factor*rsize)
+
+            if np.floor(cumulative_distance[-1]/distance) == n_int_distance_traveled+1:
+                visited_pixels.append(current_pixel)
+                # print(f'Pixel kept,    cumdist = {cumulative_distance[-1]:.2f}, cumdist/dist = {cumulative_distance[-1]/distance:.2f}, n_int_distance_traveled+1 = {n_int_distance_traveled+1}, cumdist/dist int = {np.floor(cumulative_distance[-1]/distance)}, distance = {distance}, rsize = {rsize}')
+            # else:
+                # print(f'Pixel skipped, cumdist = {cumulative_distance[-1]:.2f}, cumdist/dist = {cumulative_distance[-1]/distance:.2f}, n_int_distance_traveled+1 = {n_int_distance_traveled+1}, cumdist/dist int = {np.floor(cumulative_distance[-1]/distance)}, distance = {distance}, rsize = {rsize}')
+            
+            n_int_distance_traveled = np.floor(cumulative_distance[-1]/distance)
             
         elif len(candidates_matches) > 1:
             # print("The shape of the path presents an ambiguous choice, the closest choice is taken")
             current_pixel = candidates_matches[0]
             visited_pixels.append(current_pixel)
+        
     
     # Test if last pixel is the same as the provided end pixel
     if current_pixel != dsrowcol:
         raise Exception('Mismatch with last found pixel and the expected end pixel, review data')
+
+    # Make sure dsrowcol is included in the visited_pixels
+    if visited_pixels[-1] != dsrowcol:
+        visited_pixels.append(dsrowcol)
 
     return visited_pixels
 
