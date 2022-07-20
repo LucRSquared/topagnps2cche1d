@@ -3,6 +3,7 @@ import os
 import csv
 import pandas as pd
 import numpy as np
+import scipy
 import plotly.express as px
 import plotly.graph_objects as go
 from osgeo import gdal
@@ -581,6 +582,23 @@ def create_cche1d_tables(dfagflow, geomatrix, img_reach_asc, img_netw_asc, permu
                 cp_RGH_tmp.extend(cross_sections['CP_RGHs'])
 
                 xs_nds_counter += npts # Increment cross-section nodes counter
+        elif cross_sections['type'] == 'cutdem': # DO THE CASE WHERE WE CUT THE DEM
+            width = cross_sections['width']
+            # x = np.array([23, 24, 24, 25, 25])
+            # y = np.array([13, 12, 13, 12, 13])
+
+            # # append the starting x,y coordinates
+            # # x = np.r_[x, x[0]]
+            # # y = np.r_[y, y[0]]
+
+            # # fit splines to x=f(u) and y=g(u), treating both as periodic. also note that s=0
+            # # is needed in order to force the spline fit to pass through all the input points.
+            # # tck, u = interpolate.splprep([x, y], per=True, s=0)
+            # tck, u = interpolate.splprep([x, y], s=0)
+
+            # # evaluate the spline fits for 1000 evenly spaced distance values
+            # xi, yi = interpolate.splev(np.linspace(0, 1, 1000), tck)
+
 
                
         nd_FRMNO_tmp = nd_ID_tmp.copy() # Those IDs are the same because this procedure is done in the computational order
