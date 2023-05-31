@@ -166,6 +166,6 @@ cython_debug/
 */goodwin_creek_1m/*.PRJ
 */goodwin_creek_1m/AgFlow_Reach_Data.csv
 
-*__pycache__
+*/__pycache__
 
 *.vscode
