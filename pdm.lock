@@ -103,12 +103,6 @@ summary = "Fastest Python implementation of JSON schema"
 [[package]]
 name = "gdal"
 version = "3.4.3"
-url = "https://github.com/girder/large_image_wheels/raw/wheelhouse/GDAL-3.4.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=6b98d9c0b17b99ceffe351de9d936facdc85991a9209f89e8b3add34dca495fa"
-summary = "GDAL: Geospatial Data Abstraction Library"
-
-[[package]]
-name = "gdal-windows"
-version = "3.4.3"
 requires_python = ">=3.6.0"
 url = "https://download.lfd.uci.edu/pythonlibs/archived/GDAL-3.4.3-cp311-cp311-win_amd64.whl"
 summary = "GDAL: Geospatial Data Abstraction Library"
@@ -446,7 +440,7 @@ summary = "Backport of pathlib-compatible object wrapper for zip files"
 lock_version = "4.2"
 cross_platform = true
 groups = ["default", "dev"]
-content_hash = "sha256:f396ff20efcd939893b8d2685a65bf71de86bf279c6998c15d6466e35f8a9ea8"
+content_hash = "sha256:165bbb04508c4ccff94f138a6c12c2de0e606635e16fed8432f4cdb97e289d7b"
 
 [metadata.files]
 "affine 2.4.0" = [
@@ -607,9 +601,6 @@ content_hash = "sha256:f396ff20efcd939893b8d2685a65bf71de86bf279c6998c15d6466e35
     {url = "https://files.pythonhosted.org/packages/d4/a1/b3816c7945742ee95e2fb68dd59aaa205c9ce53ffd90704f70c2207a7b4d/fastjsonschema-2.17.1-py3-none-any.whl", hash = "sha256:4b90b252628ca695280924d863fe37234eebadc29c5360d322571233dc9746e0"},
 ]
 "gdal 3.4.3" = [
-    {url = "https://github.com/girder/large_image_wheels/raw/wheelhouse/GDAL-3.4.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b98d9c0b17b99ceffe351de9d936facdc85991a9209f89e8b3add34dca495fa"},
-]
-"gdal-windows 3.4.3" = [
     {url = "https://download.lfd.uci.edu/pythonlibs/archived/GDAL-3.4.3-cp311-cp311-win_amd64.whl", hash = "sha256:f78861fb5115d5c2f8cf3c52a492ff548da9e1256dc84088947379f90e77e5b6"},
 ]
 "importlib-metadata 6.6.0" = [

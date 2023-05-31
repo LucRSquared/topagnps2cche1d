@@ -9,7 +9,7 @@ dependencies = [
     "nbformat>=5.8.0",
     "ipykernel>=6.23.1",
     "gdal @ https://github.com/girder/large_image_wheels/raw/wheelhouse/GDAL-3.4.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=6b98d9c0b17b99ceffe351de9d936facdc85991a9209f89e8b3add34dca495fa ; sys_platform=='linux'",
-    "gdal-windows @ https://download.lfd.uci.edu/pythonlibs/archived/GDAL-3.4.3-cp311-cp311-win_amd64.whl ; sys_platform=='win32'",
+    "gdal @ https://download.lfd.uci.edu/pythonlibs/archived/GDAL-3.4.3-cp311-cp311-win_amd64.whl ; sys_platform=='win32'",
     "plotly>=5.14.1",
     "numpy>=1.24.3",
     "pandas>=2.0.2",
