@@ -164,3 +164,7 @@ goodwin_creek_1m/*.asc
 goodwin_creek_1m/*.ASC
 goodwin_creek_1m/*.prj
 goodwin_creek_1m/*.PRJ
+
+*__pycache__
+
+*.vscode

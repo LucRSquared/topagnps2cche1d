@@ -1,7 +1,7 @@
 import topagnps2cche1d.tools as t2c
 
 # Location of all relevant files:
-srcfolder = 'topagnps_ohio_files/'
+srcfolder = 'input_data/topagnps_ohio_files/'
 filepath_annagnps_reach_ids = srcfolder + 'AnnAGNPS_Reach_IDs.asc'
 filepath_agflow = srcfolder + 'AgFlow_Reach_Data.csv'
 # filepath_flovec = srcfolder + 'FLOVEC.asc'
