@@ -160,11 +160,11 @@ cython_debug/
 #.idea/
 .pdm-python
 
-goodwin_creek_1m/*.asc
-goodwin_creek_1m/*.ASC
-goodwin_creek_1m/*.prj
-goodwin_creek_1m/*.PRJ
-goodwin_creek_1m/AgFlow_Reach_Data.csv
+*goodwin_creek_1m/*.asc
+*goodwin_creek_1m/*.ASC
+*goodwin_creek_1m/*.prj
+*goodwin_creek_1m/*.PRJ
+*goodwin_creek_1m/AgFlow_Reach_Data.csv
 
 *__pycache__
 
