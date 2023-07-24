@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pathlib import Path
 import os
 import csv
 import pandas as pd
@@ -18,13 +19,11 @@ def read_first_line(filename):
         num = int(num[0])
     return num
 
-
 def read_cche1d_dat_file(filename):
     numlines = read_first_line(filename)
     df = pd.read_csv(filename, skiprows=1, nrows=numlines, sep="\t", header="infer")
     df.reset_index(drop=True, inplace=True)
     return df
-
 
 def read_cche1d_channel_dat(filename):
     return read_cche1d_dat_file(filename)
@@ -45,7 +44,6 @@ def read_cche1d_link_dat(filename):
 def read_csec_dat(filename):
     return read_cche1d_dat_file(filename)
 
-
 def cche1d_annagnps_reach_eq(img_reach_old, img_reach_new, nodataval=None):
     # This function returns a dictionary of cche1d reaches and their old AnnAGNPS equivalent
     return {
@@ -55,7 +53,7 @@ def cche1d_annagnps_reach_eq(img_reach_old, img_reach_new, nodataval=None):
     }
 
 def dict_cche1d_annagnps_to_df(dico):
-    return pd.DataFrame(dico.items(), columns=['CCHE1D_Reach', 'TopAGNPS_Reach'])
+    return pd.DataFrame(dico.items(), columns=['CCHE1D_Channel', 'TopAGNPS_Reach'])
 
 # the nodes file is slightly different
 def read_cche1d_nodes_dat(filename):
@@ -76,6 +74,39 @@ def read_agflow_reach_data(filename):
     df.reset_index(drop=True, inplace=True)
     return df
 
+def augment_df_agflow_with_XY(df_agflow, geoMatrix):
+    df_agflow[['x_US', 'y_US']] = df_agflow.apply(lambda row: pd.Series(rowcol2latlon_esri_asc(geoMatrix, row['Upstream_End_Row'], row['Upstream_End_Column'])), axis=1)
+    df_agflow[['x_DS', 'y_DS']] = df_agflow.apply(lambda row: pd.Series(rowcol2latlon_esri_asc(geoMatrix, row['Downstream_End_Row'], row['Downstream_End_Column'])), axis=1)
+    return df_agflow
+
+def assemble_agflow_reach_cche1d(df_agflow, df_top_cche1d, geoMatrix):
+    '''
+    - df_top_cche1d contains two columns 'CCHE1D_Channel' and 'TopAGNPS_Reach'
+    - df_agflow is the final dataframe representing the df_agflow file    
+    '''
+
+    network = build_network(df_agflow)
+
+    combined = df_top_cche1d.copy(deep=True)
+
+    combined = combined.merge(df_agflow, left_on='TopAGNPS_Reach', right_on='Reach_ID')
+
+    combined[['Upstream_Reach_ID_1', 'Upstream_Reach_ID_2']] = combined.apply(lambda x: pd.Series((network[x['Reach_ID']][0], network[x['Reach_ID']][1]))
+                                                                                        if x['Reach_ID'] in network.keys() 
+                                                                                        else pd.Series((None,None)), axis=1)
+
+    # combined = combined.merge(df_agflow[['Reach_ID', 'Receiving_Reach']], left_on='Reach_ID', right_on='Receiving_Reach')
+    # combined.rename(columns={'Reach_ID_x': 'Reach_ID', 'Reach_ID_y': 'Upstream_Reach_ID'}, inplace=True)
+    # combined.drop(columns=['Receiving_Reach_x', 'Receiving_Reach_y', 'Receiving_Reach'], inplace=True)
+
+    combined = augment_df_agflow_with_XY(combined, geoMatrix)
+    combined.drop(columns=['TopAGNPS_Reach',
+                        'Upstream_End_Row', 'Downstream_End_Row',
+                        'Upstream_End_Column', 'Downstream_End_Column', 'Receiving_Reach',
+                        'Drainage_Area_[ha]', 'Average_Elevation_[m]', 'Reach_Length_[m]', 'Reach_Slope_[m/m]',
+                        'Distance_Upstream_End_to_Outlet_[m]', 'Distance_Downstream_End_to_Outlet_[m]'], inplace=True)
+
+    return combined
 
 def find_extremities_binary(img):
     # Find row and column locations that are non-zero
@@ -433,23 +464,23 @@ def convert_topagnps_output_to_cche1d_input(
     min_netw=1,
     distance=1,
 ):
-    # This script takes topagns reaches and changes the numbering according to the CCHE1D numbering
-    # system for links
-    # ASSUMPTIONS :
-    # - Only 2 inflows per junction (TopAGNPS guarantees it but AnnAGNPS is more liberal)
-    # - The Outlet "reach" is its own reach but has 0 length, potential problem (?)
-
-    # Inputs :
-    # - FILEPATH to Agflow file
-    # - FILEPATH to FLOVEC.ASC file
-    # - FILEPATH to DEDNM.ASC (DEM file)
-    # - cross_sections : dictionary containing the cross sections, for now it's just a default
-    #    default_xsection = {'type' : 'default',
-    #                        'CP_Ws': [-43, -35, -13, -10, 10, 13, 35, 43],
-    #                        'CP_Zs': [6, 2, 2, 0, 0, 2, 2, 6]}
-    # - min_netw : Minimum Strahler Number (in development)
-    # - distance : distance in meters at which interval the reaches are sampled (for cross-sections)
-
+    '''
+     This script takes topagns reaches and changes the numbering according to the CCHE1D numbering
+     system for links
+     ASSUMPTIONS :
+     - Only 2 inflows per junction (TopAGNPS guarantees it but AnnAGNPS is more liberal)
+     - The Outlet "reach" is its own reach but has 0 length, potential problem (?)
+     Inputs :
+     - FILEPATH to Agflow file
+     - FILEPATH to DEDNM.ASC (DEM file)
+     - cross_sections : dictionary containing the cross sections, for now it's just a default
+        default_xsection = {'type' : 'default',
+                            'CP_Ws': [-43, -35, -13, -10, 10, 13, 35, 43],
+                            'CP_Zs': [6, 2, 2, 0, 0, 2, 2, 6]}
+     - min_netw : Minimum Strahler Number (in development)
+     - distance : distance in meters at which interval the reaches are sampled (for cross-sections)
+    '''
+     
     # Reading
     # img_flovec = read_esri_asc_file(filepath_flovec)[0]
     img_reach_asc, geomatrix, _, _, nodataval_reach_asc, _ = read_esri_asc_file(
@@ -513,6 +544,8 @@ def convert_topagnps_output_to_cche1d_input(
     cche1d_to_annagnps_reaches = cche1d_annagnps_reach_eq(
         img_reach_asc, img_reach_reordered, nodataval=nodataval_reach_asc
     )
+
+    # Insert all functions for full package output for CCHE1D
 
     return (
         df_nodes,
@@ -1175,13 +1208,19 @@ def latlon2rowcol_esri_asc(geomatrix, lat, lon, oneindexed=False):
     return (int(row), int(col))
 
 
-def read_esri_asc_file(filename):
+def read_esri_asc_file(filename, read_array=True):
+    if isinstance(filename, Path):
+        filename = str(filename.absolute())
+
     dataset = gdal.Open(filename)
     ncols = dataset.RasterXSize  # int
     nrows = dataset.RasterYSize  # int
     nodataval = dataset.GetRasterBand(1).GetNoDataValue()
     geoMatrix = dataset.GetGeoTransform()
-    img = dataset.ReadAsArray()
+    if read_array:
+        img = dataset.ReadAsArray()
+    else:
+        img = None
     return img, geoMatrix, ncols, nrows, nodataval, dataset
 
 
