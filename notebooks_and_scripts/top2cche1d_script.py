@@ -1,7 +1,7 @@
 import topagnps2cche1d.tools as t2c
 
 # Location of all relevant files:
-srcfolder = 'input_data/topagnps_ohio_files/'
+srcfolder = 'data_inputs/topagnps_ohio_files/'
 filepath_annagnps_reach_ids = srcfolder + 'AnnAGNPS_Reach_IDs.asc'
 filepath_agflow = srcfolder + 'AgFlow_Reach_Data.csv'
 # filepath_flovec = srcfolder + 'FLOVEC.asc'
@@ -15,12 +15,10 @@ default_xsection = {'type' : 'default',
                     'CP_Zs': [6, 2, 2, 0, 0, 2, 2, 6],
                     'CP_RGHs': [0.025, 0.025, 0.025, 0.025, 0.025, 0.025, 0.025, 0.025]}
 
-outputfolder = 'topagnps_ohio_files/top2cche1d_outputs/' # Location to write the files
+outputfolder = 'data_outputs/topagnps_ohio_files/cche1d/' # Location to write the files
 casename = 'ohio' # Name of the case for these files
 
 img, geoMatrix, _, _, _, _ = t2c.read_esri_asc_file(filepath_annagnps_reach_ids)
-
-dfagflow = t2c.read_agflow_reach_data(filepath_agflow)
 
 # df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach, permutation_vect, reordered_network = t2c.convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_flovec, filepath_annagnps_reach_ids, filepath_netw, default_xsection, min_strahler, distance)
 df_nodes, df_channel, df_link, df_reach, df_csec, df_csprf, img_reach, cche1d_to_annagnps_reaches = t2c.convert_topagnps_output_to_cche1d_input(filepath_agflow, filepath_annagnps_reach_ids, filepath_netw, default_xsection, min_strahler, distance)

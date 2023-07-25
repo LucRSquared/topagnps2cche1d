@@ -75,17 +75,18 @@ def read_agflow_reach_data(filename):
     return df
 
 def augment_df_agflow_with_XY(df_agflow, geoMatrix):
-    df_agflow[['x_US', 'y_US']] = df_agflow.apply(lambda row: pd.Series(rowcol2latlon_esri_asc(geoMatrix, row['Upstream_End_Row'], row['Upstream_End_Column'])), axis=1)
-    df_agflow[['x_DS', 'y_DS']] = df_agflow.apply(lambda row: pd.Series(rowcol2latlon_esri_asc(geoMatrix, row['Downstream_End_Row'], row['Downstream_End_Column'])), axis=1)
+    df_agflow[['y_US', 'x_US']] = df_agflow.apply(lambda row: pd.Series(rowcol2latlon_esri_asc(geoMatrix, row['Upstream_End_Row'], row['Upstream_End_Column'], oneindexed=True)), axis=1)
+    df_agflow[['y_DS', 'x_DS']] = df_agflow.apply(lambda row: pd.Series(rowcol2latlon_esri_asc(geoMatrix, row['Downstream_End_Row'], row['Downstream_End_Column'], oneindexed=True)), axis=1)
     return df_agflow
 
-def assemble_agflow_reach_cche1d(df_agflow, df_top_cche1d, geoMatrix):
+def assemble_agflow_reach_cche1d(df_agflow, df_top_cche1d, geoMatrix, network=None):
     '''
     - df_top_cche1d contains two columns 'CCHE1D_Channel' and 'TopAGNPS_Reach'
-    - df_agflow is the final dataframe representing the df_agflow file    
+    - df_agflow is the final dataframe representing the original df_agflow file    
     '''
 
-    network = build_network(df_agflow)
+    if network is None:
+        network = build_network(df_agflow)
 
     combined = df_top_cche1d.copy(deep=True)
 
@@ -367,6 +368,8 @@ def cleanup_merge_min_strahler(
     # Merge residual reaches that no longer have two inflows into a single one (the downstream one)
     # Cleans up img_reach_asc
 
+    dfagflow = dfagflow.copy(deep=True)
+
     reaches_to_remove_strahler = np.unique(
         np.array(img_reach_asc[img_netw_asc < min_netw])
     )
@@ -472,12 +475,12 @@ def convert_topagnps_output_to_cche1d_input(
      - The Outlet "reach" is its own reach but has 0 length, potential problem (?)
      Inputs :
      - FILEPATH to Agflow file
-     - FILEPATH to DEDNM.ASC (DEM file)
+     - FILEPATH to AnnAGNPS_Reach_IDs.ASC (DEM file)
      - cross_sections : dictionary containing the cross sections, for now it's just a default
         default_xsection = {'type' : 'default',
                             'CP_Ws': [-43, -35, -13, -10, 10, 13, 35, 43],
                             'CP_Zs': [6, 2, 2, 0, 0, 2, 2, 6]}
-     - min_netw : Minimum Strahler Number (in development)
+     - min_netw : Minimum Strahler Number
      - distance : distance in meters at which interval the reaches are sampled (for cross-sections)
     '''
      
@@ -488,7 +491,7 @@ def convert_topagnps_output_to_cche1d_input(
     )
     img_netw_asc, _, _, _, _, _ = read_esri_asc_file(filepath_netw)
     # img_dednm_asc, _, _, _, _, _ = read_esri_asc_file(filepath_dednm)
-    dfagflow = read_agflow_reach_data(filepath_agflow)
+    dfagflow_original = read_agflow_reach_data(filepath_agflow)
 
     # The raster is assumed to be a square, thus the raster size (in meters) is:
     rsize = abs(geomatrix[1])
@@ -498,15 +501,15 @@ def convert_topagnps_output_to_cche1d_input(
     # Will have to think about when the cross-sections are pre-specified, the rsize/distance sampling of the reaches
     # Will need to be adjusted so that the
 
-    outlet_reach_id = dfagflow.loc[
-        (dfagflow["Distance_Downstream_End_to_Outlet_[m]"] == 0)
-        & (dfagflow["Reach_Length_[m]"] != 0),
+    outlet_reach_id = dfagflow_original.loc[
+        (dfagflow_original["Distance_Downstream_End_to_Outlet_[m]"] == 0)
+        & (dfagflow_original["Reach_Length_[m]"] != 0),
         "Reach_ID",
     ].values[0]
 
     # Remove Reaches that have a Strahler Number smaller than min_netw
     dfagflow, img_reach_asc, img_netw_asc = cleanup_merge_min_strahler(
-        dfagflow, img_reach_asc, nodataval_reach_asc, img_netw_asc, min_netw
+        dfagflow_original, img_reach_asc, nodataval_reach_asc, img_netw_asc, min_netw
     )
 
     # Build the flow network (each node points to the counterclock wise list of tributaries at the upstream junction)
@@ -546,6 +549,9 @@ def convert_topagnps_output_to_cche1d_input(
     )
 
     # Insert all functions for full package output for CCHE1D
+    df_cche1d_to_annagnps_reaches = dict_cche1d_annagnps_to_df(cche1d_to_annagnps_reaches)
+
+    df_cche1d_annagnps_conn = assemble_agflow_reach_cche1d(dfagflow_original, df_cche1d_to_annagnps_reaches, geomatrix)
 
     return (
         df_nodes,
@@ -555,7 +561,7 @@ def convert_topagnps_output_to_cche1d_input(
         df_csec,
         df_csprf,
         img_reach_reordered,
-        cche1d_to_annagnps_reaches,
+        df_cche1d_annagnps_conn,
     )
 
 def apply_permutation_int_array(original_arr, permutation_vect):
@@ -747,7 +753,7 @@ def create_cche1d_tables(
 
         # Computing corresponding coordinates
         YCXC_tmp = [
-            rowcol2latlon_esri_asc(geomatrix, rowcol[0], rowcol[1], oneindexed=False)
+            rowcol2latlon_esri_asc(geomatrix, rowcol[0], rowcol[1], oneindexed=False) # voluntary ondeindexed=False because row/col comes from the previous function that makes it 0 indexed
             for rowcol in ordered_path
         ]
         YC_tmp, XC_tmp = zip(*YCXC_tmp)
@@ -1182,7 +1188,8 @@ def compute_cche1d_reaches_length(x, y):
 
 
 def rowcol2latlon_esri_asc(geomatrix, row, col, oneindexed=False):
-    # The provided row col NEED to be in 0-index. If oneindexed is provided then an adjustment needs to be done
+    # The provided row col NEED to be in 0-index. If oneindexed is provided (i.e. input assumes that the first row is row = 1 
+    # then an adjustment needs to be done
     if oneindexed:
         row -= 1
         col -= 1
