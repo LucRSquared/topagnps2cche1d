@@ -1,0 +1,9 @@
+Description,Reach_ID,Reach_Location,Total_Load_by_Mass_kg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_kg_per_hectare_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_kg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
+Nitrogen_Soluble,OUTLET,,60.022,31,1,33.650,15.33,1.768,6.465,59.483,99.10,99.10
+Nitrogen_Soluble,OUTLET,,60.022,23,2,30.540,29.24,0.003,0.011,0.091,0.15,99.25
+Nitrogen_Soluble,OUTLET,,60.022,41,3,30.170,42.98,0.003,0.011,0.089,0.15,99.40
+Nitrogen_Soluble,OUTLET,,60.022,32,4,9.370,47.25,0.003,0.011,0.028,0.05,99.45
+Nitrogen_Soluble,OUTLET,,60.022,22,5,37.540,64.35,0.003,0.011,0.111,0.18,99.63
+Nitrogen_Soluble,OUTLET,,60.022,43,6,30.250,78.13,0.003,0.011,0.089,0.15,99.78
+Nitrogen_Soluble,OUTLET,,60.022,33,7,33.090,93.21,0.003,0.011,0.097,0.16,99.94
+Nitrogen_Soluble,OUTLET,,60.022,42,8,14.910,100.00,0.002,0.008,0.035,0.06,100.00

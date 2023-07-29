@@ -1,0 +1,9 @@
+Description,Reach_ID,Reach_Location,Total_Load_by_Mass_Mg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_Mg_per_hectare_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_Mg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
+Sediment_Total_Clay,OUTLET,,145.062,42,1,14.910,6.79,1.177,1.781,17.552,12.10,12.10
+Sediment_Total_Clay,OUTLET,,145.062,43,2,30.250,20.57,1.047,1.584,31.661,21.83,33.93
+Sediment_Total_Clay,OUTLET,,145.062,33,3,33.090,35.65,0.846,1.280,27.998,19.30,53.23
+Sediment_Total_Clay,OUTLET,,145.062,32,4,9.370,39.91,0.793,1.200,7.430,5.12,58.35
+Sediment_Total_Clay,OUTLET,,145.062,22,5,37.540,57.02,0.761,1.151,28.561,19.69,78.04
+Sediment_Total_Clay,OUTLET,,145.062,23,6,30.540,70.93,0.559,0.847,17.086,11.78,89.82
+Sediment_Total_Clay,OUTLET,,145.062,41,7,30.170,84.67,0.489,0.740,14.750,10.17,99.98
+Sediment_Total_Clay,OUTLET,,145.062,31,8,33.650,100.00,0.74E-03,0.001,0.025,0.02,100.00

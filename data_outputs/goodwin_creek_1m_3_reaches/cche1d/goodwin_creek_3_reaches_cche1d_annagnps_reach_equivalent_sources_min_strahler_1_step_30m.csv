@@ -1,0 +1,4 @@
+CCHE1D_Channel,Reach_ID,Contributing_Cell_ID_Source,Contributing_Cell_ID_Right,Contributing_Cell_ID_Left,Upstream_Reach_ID_1,Upstream_Reach_ID_2,y_US,x_US,y_DS,x_DS
+2,3,31,32,33,,,3792635.0,243615.0,3792215.0,243395.0
+3,2,0,22,23,4.0,3.0,3792205.0,243385.0,3792045.0,242815.0
+1,4,41,42,43,,,3791965.0,244235.0,3792205.0,243395.0

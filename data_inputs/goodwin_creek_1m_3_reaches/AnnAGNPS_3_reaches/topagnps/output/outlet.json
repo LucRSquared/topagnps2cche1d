@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "outlet",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::26916" } },
+"features": [
+{ "type": "Feature", "properties": { "X": "242547.7", "Y": " 3793143.9", "Z": " 115.99127960205078" }, "geometry": { "type": "Point", "coordinates": [ 242547.700000000011642, 3793143.9, 115.991279602050781 ] } }
+]
+}
