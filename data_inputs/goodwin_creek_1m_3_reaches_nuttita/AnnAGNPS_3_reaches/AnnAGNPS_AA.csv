@@ -1,0 +1,198 @@
+Date: 07/25/2023    AnnAGNPS: "v6.00.a.014_2022.03.08; 64-bit"    Time: 15:33:30
+Input File Version Nos.:  Watershed--"5.50"        Climate--"5.42"        Storm Type--"not read"
+PRIMARY CLIMATE FILE HEADER: 30  TN_Memphis
+WATERSHED ID: Five cell watershed
+WATERSHED DESCRIPTION: Five cell watershed
+WATERSHED LOCATION: Watershed Location not provided in "Watershed Data" sect     Lat: 34.2378    Long: -89.7924
+
+Simulation Start Month,Simulation Start Day,Simulation Start Year,Simulation End Month,Simulation End Day,Simulation End Year,Initialization Years,Simulation Years,Total Rainfall Events,Average Rainfall Events per Year,Surface Runoff Events Exceeding "0.0000" [mm] (Included as runoff events),Surface Runoff Events Exceeding "0.0000" [mm] (Met user-specified limits and written to user-requested output files)
+01,01,0001,12,31,0010,2,10.000,1087,108.70,1362,0,
+Corresponding sediment events were not requested.
+
+AVERAGE ANNUAL FILE: LANDSCAPE & WATERSHED WATER YIELD TO THE STREAM [Mass per Unit Area per Annum] 
+Watershed Average Annual Precipitation: 1416.60 [mm]           Watershed Average Annual Loading at Outlet: 611.915 [mm]
+Subsurface Direct Yield: 0.025 [mm]         Surface Direct Yield: 611.890 [mm]         Total Direct Yield: 611.916 [mm]
+
+Cell ID,Receiving Reach ID,Drainage Area [ha],Pond [mm/yr],Point Source [mm/yr],Irrigation [mm/yr],Base Flow [mm/yr],Subsurface Runoff [mm/yr],Surface Runoff [mm/yr],Total Runoff [mm/yr]
+22,2,37.540,0,0,0,0,0.92E-03,650.987,650.988,
+23,2,30.540,0,0,0,0,0.24E-03,650.265,650.266,
+31,3,33.650,0,0,0,0,0.160,395.318,395.478,
+32,3,9.370,0,0,0,0,0.52E-03,651.384,651.385,
+33,3,33.090,0,0,0,0,0.001,653.099,653.101,
+41,4,30.170,0,0,0,0,0.23E-03,655.539,655.540,
+42,4,14.910,0,0,0,0,0.002,635.959,635.962,
+43,4,30.250,0,0,0,0,0.81E-03,652.832,652.833,
+Watershed Totals,,219.520,0,0,0,0,0.025,611.890,611.915,
+Date: 07/25/2023    AnnAGNPS: "v6.00.a.014_2022.03.08; 64-bit"    Time: 15:33:30
+Input File Version Nos.:  Watershed--"5.50"        Climate--"5.42"        Storm Type--"not read"
+PRIMARY CLIMATE FILE HEADER: 30  TN_Memphis
+WATERSHED ID: Five cell watershed
+WATERSHED DESCRIPTION: Five cell watershed
+WATERSHED LOCATION: Watershed Location not provided in "Watershed Data" sect     Lat: 34.2378    Long: -89.7924
+
+Simulation Start Month,Simulation Start Day,Simulation Start Year,Simulation End Month,Simulation End Day,Simulation End Year,Initialization Years,Simulation Years,Total Rainfall Events,Average Rainfall Events per Year,Surface Runoff Events Exceeding "0.0000" [mm] (Included as runoff events),Surface Runoff Events Exceeding "0.0000" [mm] (Met user-specified limits and written to user-requested output files)
+01,01,0001,12,31,0010,2,10.000,1087,108.70,1362,0,
+Corresponding sediment events were not requested.
+
+AVERAGE ANNUAL FILE: LANDSCAPE & WATERSHED SEDIMENT EROSION [Unit Area per Annum] 
+
+Cell ID,Receiving Reach ID,Drainage Area [ha],Source,Clay [Mg/ha/yr],Silt [Mg/ha/yr],Sand [Mg/ha/yr],Small Aggregate [Mg/ha/yr],Large Aggregate [Mg/ha/yr],Subtotals [Mg/ha/yr]
+22,2,     37.54,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+22,2,     37.54,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+22,2,     37.54,Sheet & Rill,       0.382,       4.917,       3.756,       2.644,       3.560,      15.259,
+22,2,     37.54,Subtotal,       0.382,       4.917,       3.756,       2.644,       3.560,      15.259,
+23,2,     30.54,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+23,2,     30.54,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+23,2,     30.54,Sheet & Rill,       0.288,       3.709,       2.833,       1.994,       2.686,      11.509,
+23,2,     30.54,Subtotal,       0.288,       3.709,       2.833,       1.994,       2.686,      11.509,
+31,3,     33.65,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+31,3,     33.65,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+31,3,     33.65,Sheet & Rill,       0.000,       0.006,       0.003,       0.003,       0.003,       0.015,
+31,3,     33.65,Subtotal,       0.000,       0.006,       0.003,       0.003,       0.003,       0.015,
+32,3,      9.37,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+32,3,      9.37,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+32,3,      9.37,Sheet & Rill,       0.338,       4.350,       3.323,       2.339,       3.150,      13.500,
+32,3,      9.37,Subtotal,       0.338,       4.350,       3.323,       2.339,       3.150,      13.500,
+33,3,     33.09,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+33,3,     33.09,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+33,3,     33.09,Sheet & Rill,       0.418,       5.381,       4.110,       2.893,       3.896,      16.697,
+33,3,     33.09,Subtotal,       0.418,       5.381,       4.110,       2.893,       3.896,      16.697,
+41,4,     30.17,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+41,4,     30.17,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+41,4,     30.17,Sheet & Rill,       0.292,       3.765,       2.876,       2.024,       2.726,      11.684,
+41,4,     30.17,Subtotal,       0.292,       3.765,       2.876,       2.024,       2.726,      11.684,
+42,4,     14.91,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+42,4,     14.91,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+42,4,     14.91,Sheet & Rill,       0.650,      10.213,       2.454,       4.498,       3.915,      21.731,
+42,4,     14.91,Subtotal,       0.650,      10.213,       2.454,       4.498,       3.915,      21.731,
+43,4,     30.25,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+43,4,     30.25,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+43,4,     30.25,Sheet & Rill,       0.391,       5.029,       3.841,       2.704,       3.642,      15.607,
+43,4,     30.25,Subtotal,       0.391,       5.029,       3.841,       2.704,       3.642,      15.607,
+Landscape,Total,    219.52,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+Landscape,Total,    219.52,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+Landscape,Total,    219.52,Sheet & Rill,       0.321,       4.259,       2.889,       2.222,       2.847,      12.538,
+Landscape,Total,    219.52,Subtotal,       0.321,       4.259,       2.889,       2.222,       2.847,      12.538,
+Bed & Bank,All reaches,,,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+Watershed,Totals,,,       0.321,       4.259,       2.889,       2.222,       2.847,      12.538,
+Date: 07/25/2023    AnnAGNPS: "v6.00.a.014_2022.03.08; 64-bit"    Time: 15:33:30
+Input File Version Nos.:  Watershed--"5.50"        Climate--"5.42"        Storm Type--"not read"
+PRIMARY CLIMATE FILE HEADER: 30  TN_Memphis
+WATERSHED ID: Five cell watershed
+WATERSHED DESCRIPTION: Five cell watershed
+WATERSHED LOCATION: Watershed Location not provided in "Watershed Data" sect     Lat: 34.2378    Long: -89.7924
+
+Simulation Start Month,Simulation Start Day,Simulation Start Year,Simulation End Month,Simulation End Day,Simulation End Year,Initialization Years,Simulation Years,Total Rainfall Events,Average Rainfall Events per Year,Surface Runoff Events Exceeding "0.0000" [mm] (Included as runoff events),Surface Runoff Events Exceeding "0.0000" [mm] (Met user-specified limits and written to user-requested output files)
+01,01,0001,12,31,0010,2,10.000,1087,108.70,1362,0,
+Corresponding sediment events were not requested.
+
+AVERAGE ANNUAL FILE: LANDSCAPE & WATERSHED SEDIMENT YIELD TO THE STREAM [Mass per Unit Area per Annum] 
+
+Cell ID,Receiving Reach ID,Drainage Area [ha],Source,Clay [Mg/ha/yr],Silt [Mg/ha/yr],Sand [Mg/ha/yr],Small Aggregate [Mg/ha/yr],Large Aggregate [Mg/ha/yr],Subtotals [Mg/ha/yr]
+22,2,     37.54,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+22,2,     37.54,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+22,2,     37.54,Sheet & Rill,       0.761,       6.657,       0.039,       0.000,       0.000,       7.457,
+22,2,     37.54,Subtotal,       0.761,       6.657,       0.039,       0.000,       0.000,       7.457,
+23,2,     30.54,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+23,2,     30.54,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+23,2,     30.54,Sheet & Rill,       0.559,       4.897,       0.030,       0.000,       0.000,       5.486,
+23,2,     30.54,Subtotal,       0.559,       4.897,       0.030,       0.000,       0.000,       5.486,
+31,3,     33.65,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+31,3,     33.65,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+31,3,     33.65,Sheet & Rill,       0.001,       0.008,       0.000,       0.000,       0.000,       0.008,
+31,3,     33.65,Subtotal,       0.001,       0.008,       0.000,       0.000,       0.000,       0.008,
+32,3,      9.37,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+32,3,      9.37,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+32,3,      9.37,Sheet & Rill,       0.793,       6.268,       0.344,       0.000,       0.000,       7.405,
+32,3,      9.37,Subtotal,       0.793,       6.268,       0.344,       0.000,       0.000,       7.405,
+33,3,     33.09,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+33,3,     33.09,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+33,3,     33.09,Sheet & Rill,       0.846,       7.401,       0.042,       0.000,       0.000,       8.290,
+33,3,     33.09,Subtotal,       0.846,       7.401,       0.042,       0.000,       0.000,       8.290,
+41,4,     30.17,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+41,4,     30.17,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+41,4,     30.17,Sheet & Rill,       0.489,       4.293,       0.028,       0.000,       0.000,       4.810,
+41,4,     30.17,Subtotal,       0.489,       4.293,       0.028,       0.000,       0.000,       4.810,
+42,4,     14.91,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+42,4,     14.91,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+42,4,     14.91,Sheet & Rill,       1.177,      12.650,       0.028,       0.000,       0.000,      13.855,
+42,4,     14.91,Subtotal,       1.177,      12.650,       0.028,       0.000,       0.000,      13.855,
+43,4,     30.25,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+43,4,     30.25,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+43,4,     30.25,Sheet & Rill,       1.047,       7.365,       0.871,       0.000,       0.000,       9.283,
+43,4,     30.25,Subtotal,       1.047,       7.365,       0.871,       0.000,       0.000,       9.283,
+Landscape,Total,    219.52,Gully,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+Landscape,Total,    219.52,Pond,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+Landscape,Total,    219.52,Sheet & Rill,       0.661,       5.668,       0.158,       0.000,       0.000,       6.487,
+Landscape,Total,    219.52,Subtotal,       0.661,       5.668,       0.158,       0.000,       0.000,       6.487,
+Bed & Bank,All reaches,,,       0.000,       0.000,       0.000,       0.000,       0.000,       0.000,
+Watershed,Totals,,,       0.661,       5.668,       0.158,       0.000,       0.000,       6.487,
+Date: 07/25/2023    AnnAGNPS: "v6.00.a.014_2022.03.08; 64-bit"    Time: 15:33:30
+Input File Version Nos.:  Watershed--"5.50"        Climate--"5.42"        Storm Type--"not read"
+PRIMARY CLIMATE FILE HEADER: 30  TN_Memphis
+WATERSHED ID: Five cell watershed
+WATERSHED DESCRIPTION: Five cell watershed
+WATERSHED LOCATION: Watershed Location not provided in "Watershed Data" sect     Lat: 34.2378    Long: -89.7924
+
+Simulation Start Month,Simulation Start Day,Simulation Start Year,Simulation End Month,Simulation End Day,Simulation End Year,Initialization Years,Simulation Years,Total Rainfall Events,Average Rainfall Events per Year,Surface Runoff Events Exceeding "0.0000" [mm] (Included as runoff events),Surface Runoff Events Exceeding "0.0000" [mm] (Met user-specified limits and written to user-requested output files)
+01,01,0001,12,31,0010,2,10.000,1087,108.70,1362,0,
+Corresponding nitrogen events were not requested.
+
+AVERAGE ANNUAL FILE: NITROGEN YIELD TO THE STREAM SYSTEM [unit-area] 
+
+Cell ID,Receiving Reach ID,Drainage Area [ha],Attached N [kg/ha/yr  ],Dissolved N [kg/ha/yr  ],Subtotal N [kg/ha/yr  ]
+22,2,     37.54,      10.806,       0.003,      10.809,
+23,2,     30.54,       7.993,       0.003,       7.996,
+31,3,     33.65,       0.013,       1.768,       1.781,
+32,3,      9.37,      11.294,       0.003,      11.297,
+33,3,     33.09,      11.991,       0.003,      11.994,
+41,4,     30.17,       6.983,       0.003,       6.986,
+42,4,     14.91,      11.069,       0.002,      11.072,
+43,4,     30.25,      14.858,       0.003,      14.861,
+Watershed,Totals,    219.52,       9.011,       0.273,       9.284,
+Date: 07/25/2023    AnnAGNPS: "v6.00.a.014_2022.03.08; 64-bit"    Time: 15:33:30
+Input File Version Nos.:  Watershed--"5.50"        Climate--"5.42"        Storm Type--"not read"
+PRIMARY CLIMATE FILE HEADER: 30  TN_Memphis
+WATERSHED ID: Five cell watershed
+WATERSHED DESCRIPTION: Five cell watershed
+WATERSHED LOCATION: Watershed Location not provided in "Watershed Data" sect     Lat: 34.2378    Long: -89.7924
+
+Simulation Start Month,Simulation Start Day,Simulation Start Year,Simulation End Month,Simulation End Day,Simulation End Year,Initialization Years,Simulation Years,Total Rainfall Events,Average Rainfall Events per Year,Surface Runoff Events Exceeding "0.0000" [mm] (Included as runoff events),Surface Runoff Events Exceeding "0.0000" [mm] (Met user-specified limits and written to user-requested output files)
+01,01,0001,12,31,0010,2,10.000,1087,108.70,1362,0,
+Corresponding organic carbon events were not requested.
+
+AVERAGE ANNUAL FILE: ORGANIC CARBON YIELD TO THE STREAM SYSTEM [unit-area] 
+
+Cell ID,Receiving Reach ID,Drainage Area [ha],Attached OC [kg/ha/yr  ],Dissolved OC [kg/ha/yr  ],Subtotal OC [kg/ha/yr  ]
+22,2,     37.54,      69.792,       0.000,      69.792,
+23,2,     30.54,      51.623,       0.000,      51.623,
+31,3,     33.65,       0.083,       0.000,       0.083,
+32,3,      9.37,      72.942,       0.000,      72.942,
+33,3,     33.09,      77.443,       0.000,      77.443,
+41,4,     30.17,      45.101,       0.000,      45.101,
+42,4,     14.91,      71.495,       0.000,      71.495,
+43,4,     30.25,      95.957,       0.000,      95.957,
+Watershed,Totals,    219.52,      58.194,       0.000,      58.194,
+Date: 07/25/2023    AnnAGNPS: "v6.00.a.014_2022.03.08; 64-bit"    Time: 15:33:30
+Input File Version Nos.:  Watershed--"5.50"        Climate--"5.42"        Storm Type--"not read"
+PRIMARY CLIMATE FILE HEADER: 30  TN_Memphis
+WATERSHED ID: Five cell watershed
+WATERSHED DESCRIPTION: Five cell watershed
+WATERSHED LOCATION: Watershed Location not provided in "Watershed Data" sect     Lat: 34.2378    Long: -89.7924
+
+Simulation Start Month,Simulation Start Day,Simulation Start Year,Simulation End Month,Simulation End Day,Simulation End Year,Initialization Years,Simulation Years,Total Rainfall Events,Average Rainfall Events per Year,Surface Runoff Events Exceeding "0.0000" [mm] (Included as runoff events),Surface Runoff Events Exceeding "0.0000" [mm] (Met user-specified limits and written to user-requested output files)
+01,01,0001,12,31,0010,2,10.000,1087,108.70,1362,0,
+Corresponding phosphorus events were not requested.
+
+AVERAGE ANNUAL FILE: PHOSPHORUS YIELD TO THE STREAM SYSTEM [unit-area]
+
+Cell ID,Receiving Reach ID,Drainage Area [ha],Attached P [kg/ha/yr  ],Dissolved P [kg/ha/yr  ],Subtotal P [kg/ha/yr  ]
+22,2,     37.54,       2.603,       0.000,       2.603,
+23,2,     30.54,       1.925,       0.000,       1.926,
+31,3,     33.65,       0.003,       1.653,       1.656,
+32,3,      9.37,       2.720,       0.000,       2.721,
+33,3,     33.09,       2.888,       0.000,       2.889,
+41,4,     30.17,       1.682,       0.000,       1.682,
+42,4,     14.91,       2.665,       0.000,       2.665,
+43,4,     30.25,       3.579,       0.000,       3.579,
+Watershed,Totals,    219.52,       2.170,       0.254,       2.424,

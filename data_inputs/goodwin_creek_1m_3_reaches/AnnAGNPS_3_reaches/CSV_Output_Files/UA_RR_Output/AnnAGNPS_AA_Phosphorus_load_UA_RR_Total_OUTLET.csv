@@ -1,9 +1,0 @@
-Description,Reach_ID,Reach_Location,Total_Load_by_Mass_kg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_kg_per_hectare_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_kg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
-Phosphorus_Total,OUTLET,,531.905,43,1,30.250,13.78,3.579,1.477,108.268,20.35,20.35
-Phosphorus_Total,OUTLET,,531.905,33,2,33.090,28.85,2.889,1.192,95.586,17.97,38.33
-Phosphorus_Total,OUTLET,,531.905,32,3,9.370,33.12,2.721,1.123,25.493,4.79,43.12
-Phosphorus_Total,OUTLET,,531.905,42,4,14.910,39.91,2.665,1.100,39.736,7.47,50.59
-Phosphorus_Total,OUTLET,,531.905,22,5,37.540,57.02,2.603,1.074,97.726,18.37,68.96
-Phosphorus_Total,OUTLET,,531.905,23,6,30.540,70.93,1.926,0.795,58.808,11.06,80.02
-Phosphorus_Total,OUTLET,,531.905,41,7,30.170,84.67,1.682,0.694,50.758,9.54,89.56
-Phosphorus_Total,OUTLET,,531.905,31,8,33.650,100.00,1.650,0.681,55.531,10.44,100.00

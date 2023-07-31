@@ -1,0 +1,20 @@
+AgFlow Version 3.11.h.15_08/02/2016: AnnAGNPS cell, reach, & subarea data are calculated from DEM-related parameters.
+Example                                                                                                                 
+verification dataset for AGNPS                                                                                          
+Using default values for LS-factor parameters                                                                           
+    Cell  Drain.    Avg.    Avg.    Land  --Sheet Flow-- --Shallow Flow- - Concentrated-  --LS--  Aspect  Orphan    Cell
+      ID    Area   Elev.  Aspect   Slope   Slope  Length   Slope  Length   Slope  Length  Factor  Correl  Raster     ID 
+       3    [h])     [m]   [deg]   [m/m]   [m/m]     [m]   [m/m]     [m]   [m/m]     [m]     [-]     [-]  [code]        
+      21 11.5290     123     280  .06366  .02800      50  .03286      50  .01722     491    .276   .2946       F      21
+      22   .0325     117     235  .04756  .03358      27  .00001       0  .00001       0    .195   .7430       F      22
+      23   .0479     118     344  .05004  .02654      34  .00001       0  .00001       0    .206   .7089       F      23
+ws avg.: 11.6094     123         0.06356                                                   0.276
+Each raster's flow vector slope was used to calculate the raster's LS-factor prior to determining its respective
+ cell's average LS-factor.
+Each raster along its respective cell's hydraulically most distant path used the raster's flow vector slope to
+ calculate the cell's TC profile segment slope & lengths.
+Each raster's terrain slope was used to calculate its respective cell's average land slope.
+Orphan raster code:  F-means that no orphan channel raster(s) are involved for this cell ID;
+Orphan raster code:  T-means that orphan channel raster(s) make up this cell.  The entire subarea for this new cell ID
+                       is made up of reassigned channel raster(s) to a rightside cell whose subarea did not previously
+                       have any rasters that were assigned to any related source, right-, or leftside cells.

@@ -1,9 +1,0 @@
-Description,Reach_ID,Reach_Location,Total_Load_by_Mass_Mg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_mm_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_Mg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
-Water_Total,OUTLET,,1343276.8,41,1,30.170,13.74,655.540,1.071,197776.328,14.72,14.72
-Water_Total,OUTLET,,1343276.8,33,2,33.090,28.82,653.101,1.067,216111.094,16.09,30.81
-Water_Total,OUTLET,,1343276.8,43,3,30.250,42.60,652.833,1.067,197482.094,14.70,45.51
-Water_Total,OUTLET,,1343276.8,32,4,9.370,46.87,651.385,1.065,61034.770,4.54,50.06
-Water_Total,OUTLET,,1343276.8,22,5,37.540,63.97,650.988,1.064,244381.031,18.19,68.25
-Water_Total,OUTLET,,1343276.8,23,6,30.540,77.88,650.266,1.063,198591.109,14.78,83.03
-Water_Total,OUTLET,,1343276.8,42,7,14.910,84.67,635.962,1.039,94821.922,7.06,90.09
-Water_Total,OUTLET,,1343276.8,31,8,33.650,100.00,395.478,0.646,133078.359,9.91,100.00

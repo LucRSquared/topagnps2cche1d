@@ -1,7 +1,0 @@
-<OGRVRTDataSource>
-   <OGRVRTLayer name="outlet">
-        <SrcDataSource>/home/np/Desktop/AIMS_TopAGNPS_AnnAGNPS/run1/outlet.csv</SrcDataSource>
-   <GeometryType>wkbPoint</GeometryType>
-   <GeometryField encoding="PointFromColumns" x="X" y="Y" z="Z"/>
-   </OGRVRTLayer>
-</OGRVRTDataSource>

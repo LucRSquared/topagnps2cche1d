@@ -1,0 +1,31 @@
+Soil_ID,Hydrologic_Soil_Group,K_Factor,Albedo,Time_to_Consolidation,Impervious_Depth,Specific_Gravity,Initial_Soil_Conditions_ID,Soil_Name,Soil_Texture,Number_of_Soil_Layers,Input_Units_Code
+CaA,C,0.05663659,.3,7.,,,,Unnamed hydric soils (134de),Silt loam,6,1
+CaB,D,0.05663659,.3,7.,,,,Unnamed hydric soils (134de),Silt loam,6,1
+Cm,B,0.06453937,.3,7.,,,,Collins,Silt loam,5,1
+Co,B,0.06453937,.3,7.,,,,Collins,Silt loam,5,1
+Fa,B,0.05663659,.3,7.,1000.,,,Unnamed hydric soils (134fp),Silt loam,4,1
+Fl,B,0.05663659,.3,7.,1000.,,,Unnamed hydric soils (134fp),Silt loam,4,1
+GrB2,C,0.06453937,.3,7.,610.,,,Grenada,Silt loam,5,1
+GrB3,C,0.06453937,.3,7.,690.,,,Grenada,Silt loam,5,1
+GrC2,C,0.06453937,.3,7.,690.,,,Grenada,Silt loam,6,1
+GrC3,D,0.06453937,.3,7.,690.,,,Grenada,Silt loam,7,1
+GrD2,B,0.05663659,.3,7.,690.,,,Unnamed hydric soils (134dr),Silt loam,6,1
+GrD3,B,0.05663659,.3,7.,690.,,,Unnamed hydric soils (134dr),Silt loam,6,1
+Gs,D,0.05663659,.3,7.,,,,Unnamed hydric soils (133dr),Silt loam,5,1
+Gu,B,0.05663659,.3,7.,,,,Unnamed hydric soils (134dr),Silt loam,5,1
+He,C,0.06453937,.3,7.,710.,,,Henry,Silt loam,4,1
+LoB2,D,0.06453937,.3,7.,630.,,,Loring,Silt loam,4,1
+LoB3,D,0.07244215,.3,7.,630.,,,Loring,Silt loam,4,1
+LoC,B,0.05663659,.3,7.,,,,Unnamed hydric soils (134dr),Silt loam,6,1
+LoC2,B,0.05663659,.3,7.,,,,Unnamed hydric soils (134dr),Silt loam,5,1
+LoC3,D,0.07244215,.3,7.,630.,,,Loring,Silt loam,6,1
+LoD,B,0.05663659,.3,7.,,,,Unnamed hydric soils (134dr),Silt loam,6,1
+LoD2,B,0.05663659,.3,7.,,,,Unnamed hydric soils (134dr),Silt loam,5,1
+LoD3,D,0.07244215,.3,7.,630.,,,Loring,Silt loam,6,1
+LoE2,D,0.06453937,.3,7.,630.,,,Loring,Silt loam,5,1
+LoE3,D,0.07244215,.3,7.,630.,,,Loring,Silt loam,6,1
+MlF2,B,0.05663659,.3,7.,,,,Memphis,Silt loam,8,1
+MlF3,D,0.07244215,.3,7.,630.,,,Loring,Silt loam,8,1
+MnF2,B,0.05663659,.3,7.,,,,Unnamed hydric soils (134dr),Silt loam,10,1
+Mx,A,0.03161112,.3,7.,,,,Bruno,Fine sandy loam,7,1
+RpF2,A,0.02239121,.3,7.,,,,Eustis,Loamy fine sand,11,1

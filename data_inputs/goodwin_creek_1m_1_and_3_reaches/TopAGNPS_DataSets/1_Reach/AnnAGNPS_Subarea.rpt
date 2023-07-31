@@ -1,0 +1,14 @@
+                    SUBAREA REPORT
+Run Date:  7/31/2023                                  Run Time: 10:16:39        
+Example                                                                         
+verification dataset for AGNPS                                                  
+Using default values for LS-factor parameters                                   
+ SubArea  Drainage  ------ Number of Rasters within ------   ----- LS-Factor -----
+   ID         Area  Source   Right    Left Subarea Channel   Slope   Calc.    Read
+              (ha)     '1'     '2'     '3'             '4'   (m/m)     (-)     (-)
+     1         .00       0       1       0       0       0           OUTLET
+     2       11.61  115290     325     479  116094      35  .07155    .276    .000
+----------------------------------------------------------------------------------
+     2       11.61  115290     479     326  116094      35           0.276   0.000
+
+Note:  source, left, and right cells include the reassigned channel rasters.

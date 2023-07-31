@@ -1,9 +1,0 @@
-Cell_ID,Soil_ID,Mgmt_Field_ID,Reach_ID,Reach_Location_Code,Cell_Area,Time_of_Conc,Avg_Elevation,RCN_Calib_ID,Avg_Land_Slope,Aspect,RUSLE_ls_Fctr,RCN_Rtn_Calib_Fctr,Secondary_Climate_File_ID,Sheet_Flow_Mannings_n,Geology_ID,Conc_Flow_Slope,Conc_Flow_Length,Hydraulic_Geom_ID,Conc_Flow_Hydraulic_Depth,Conc_Flow_Mannings_n,Sheet_Flow_Slope,Sheet_Flow_Length,Shallow_Conc_Flow_Slope,Shallow_Conc_Flow_Length,Delivery_Ratio,Constant_USLE_C_Fctr,Constant_USLE_P_Fctr,All_OC_Calib_Fctr,All_N_Calib_Fctr,All_P_Calib_Fctr,Sheet_and_Rill_Erosion_Calib_Fctr,Gullies_Erosion_Calib_Fctr,Input_Units_Code
-22,,,2,1,37.5400,,112.90,,0.06913,172.54,1.050,,,,,0.01592,1017.90,,,,0.01606,50.00,0.06885,50.00,,,,,,,,,1
-23,,,2,1,30.5400,,111.30,,0.05313,309.06,0.792,,,,,0.01585,878.26,,,,0.01151,50.00,0.00849,50.00,,,,,,,,,1
-31,,,3,0,33.6500,,125.08,,0.08370,229.73,1.340,,,,,0.03050,863.41,,,,0.05115,50.00,0.15254,50.00,,,,,,,,,1
-32,,,3,1,9.3700,,113.88,,0.06237,144.10,0.929,,,,,0.03116,351.98,,,,0.01234,50.00,0.05233,50.00,,,,,,,,,1
-33,,,3,1,33.0900,,118.28,,0.07293,241.82,1.149,,,,,0.01647,1174.83,,,,0.02643,50.00,0.05686,50.00,,,,,,,,,1
-41,,,4,0,30.1700,,124.38,,0.05263,352.31,0.804,,,,,0.01615,817.90,,,,0.00366,50.00,0.00824,50.00,,,,,,,,,1
-42,,,4,1,14.9100,,115.29,,0.08105,209.73,1.312,,,,,0.04882,206.78,,,,0.02885,50.00,0.08526,50.00,,,,,,,,,1
-43,,,4,1,30.2500,,117.59,,0.06905,352.83,1.074,,,,,0.02643,561.27,,,,0.03164,50.00,0.05979,50.00,,,,,,,,,1

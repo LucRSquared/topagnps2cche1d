@@ -1,9 +1,0 @@
-Cell_ID,Soil_ID,Mgmt_Field_ID,Reach_ID,Reach_Location_Code,Cell_Area,Time_of_Conc,Avg_Elevation,RCN_Calib_ID,Avg_Land_Slope,Aspect,RUSLE_ls_Fctr,RCN_Rtn_Calib_Fctr,Secondary_Climate_File_ID,Sheet_Flow_Mannings_n,Geology_ID,Conc_Flow_Slope,Conc_Flow_Length,Hydraulic_Geom_ID,Conc_Flow_Hydraulic_Depth,Conc_Flow_Mannings_n,Sheet_Flow_Slope,Sheet_Flow_Length,Shallow_Conc_Flow_Slope,Shallow_Conc_Flow_Length,Delivery_Ratio,Constant_USLE_C_Fctr,Constant_USLE_P_Fctr,All_OC_Calib_Fctr,All_N_Calib_Fctr,All_P_Calib_Fctr,Sheet_and_Rill_Erosion_Calib_Fctr,Gullies_Erosion_Calib_Fctr,Input_Units_Code
-22,Gs,LU_176,2,1,38.41,,112.79,,0.06935,172.13,1.055,,,,,0.01592,1017.9,,,,0.01606,50,0.06885,50,,,,,,,,,1
-23,Gs,LU_176,2,1,31.2,,111.13,,0.05252,308.65,0.782,,,,,0.01585,878.26,,,,0.01151,50,0.00849,50,,,,,,,,,1
-31,RpF2,LU_141,3,0,33.65,,125.08,,0.0837,229.73,1.34,,,,,0.0305,863.41,,,,0.05115,50,0.15254,50,,,,,,,,,1
-32,Gs,LU_176,3,1,9.37,,113.88,,0.06237,144.1,0.929,,,,,0.03116,351.98,,,,0.01234,50,0.05233,50,,,,,,,,,1
-33,Gs,LU_176,3,1,33.09,,118.28,,0.07293,241.82,1.149,,,,,0.01647,1174.83,,,,0.02643,50,0.05686,50,,,,,,,,,1
-41,Gs,LU_176,4,0,30.17,,124.38,,0.05263,352.31,0.804,,,,,0.01615,817.9,,,,0.00366,50,0.00824,50,,,,,,,,,1
-42,Co,LU_152,4,1,14.91,,115.29,,0.08105,209.73,1.312,,,,,0.04882,206.78,,,,0.02885,50,0.08526,50,,,,,,,,,1
-43,Gs,LU_176,4,1,30.25,,117.59,,0.06905,352.83,1.074,,,,,0.02643,561.27,,,,0.03164,50,0.05979,50,,,,,,,,,1

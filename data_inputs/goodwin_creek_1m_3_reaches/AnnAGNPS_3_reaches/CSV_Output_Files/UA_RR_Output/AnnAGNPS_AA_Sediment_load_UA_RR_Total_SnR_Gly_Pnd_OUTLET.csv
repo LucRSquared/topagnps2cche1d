@@ -1,9 +1,0 @@
-Description,Reach_ID,Reach_Location,Total_Load_by_Mass_Mg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_Mg_per_hectare_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_Mg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
-Sediment_Total_SnR_and_Gully_and_Pond,OUTLET,,1418.565,42,1,14.910,6.79,13.795,2.135,205.683,14.50,14.50
-Sediment_Total_SnR_and_Gully_and_Pond,OUTLET,,1418.565,43,2,30.250,20.57,9.236,1.429,279.397,19.70,34.20
-Sediment_Total_SnR_and_Gully_and_Pond,OUTLET,,1418.565,33,3,33.090,35.65,8.241,1.275,272.682,19.22,53.42
-Sediment_Total_SnR_and_Gully_and_Pond,OUTLET,,1418.565,22,4,37.540,52.75,7.457,1.154,279.920,19.73,73.15
-Sediment_Total_SnR_and_Gully_and_Pond,OUTLET,,1418.565,32,5,9.370,57.02,7.365,1.140,69.008,4.86,78.01
-Sediment_Total_SnR_and_Gully_and_Pond,OUTLET,,1418.565,23,6,30.540,70.93,5.486,0.849,167.546,11.81,89.83
-Sediment_Total_SnR_and_Gully_and_Pond,OUTLET,,1418.565,41,7,30.170,84.67,4.775,0.739,144.048,10.15,99.98
-Sediment_Total_SnR_and_Gully_and_Pond,OUTLET,,1418.565,31,8,33.650,100.00,0.008,0.001,0.281,0.02,100.00

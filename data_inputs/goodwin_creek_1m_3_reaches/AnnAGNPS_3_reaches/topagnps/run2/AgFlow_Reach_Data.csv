@@ -1,5 +1,0 @@
-Reach_ID,Upstream_End_Row,Upstream_End_Column,Downstream_End_Row,Downstream_End_Column,Receiving_Reach,Drainage_Area_[ha],Average_Elevation_[m],Reach_Length_[m],Distance_Upstream_End_to_Outlet_[m],Distance_Downstream_End_to_Outlet_[m],Reach_Slope_[m/m],Contributing_Cell_ID_Source,Contributing_Cell_ID_Right,Contributing_Cell_ID_Left
-1,167,41,167,41,1,219.52,102.46,0.00,0.00,0.00,0.00511,0,0,0,
-2,151,98,167,41,1,219.52,102.46,646.27,646.27,0.00,0.00511,0,22,23,
-3,108,121,150,99,2,76.11,107.27,531.13,1177.40,646.27,0.01111,31,32,33,
-4,175,183,151,99,2,75.33,109.10,1199.12,1845.39,646.27,0.00859,41,42,43,

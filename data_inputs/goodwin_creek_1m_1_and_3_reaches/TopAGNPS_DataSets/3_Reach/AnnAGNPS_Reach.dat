@@ -1,0 +1,14 @@
+AgFlow Version 3.11.h.15_08/02/2016: AnnAGNPS cell, reach, & subarea data are calculated from DEM-related parameters.
+Example                                                                         
+verification dataset for AGNPS                                                  
+Using default values for LS-factor parameters                                   
+   Reach    Rec.  Drain.   Avg.   --- Channel --  - Contributing Local -   Reach
+      ID   Reach    Area   Elev.  Length   Slope  ------ Cell's ID -----      ID
+       4      ID    (ha)     (m)     (m)   (m/m)  Source    Left   Right        
+       1       1 11.6094117.1686       0  .01716  -- WATERSHED OUTLET --       1
+       2       1 11.6094117.1686      41  .01716    none      22      23       2
+       3       2  3.0687118.0933     102  .01082      31      32      33       3
+       4       2  8.4602119.0606     323  .01332      41      42      43       4
+--------------------------------------------------------------------------------
+Number of cells (source, left, right, & total):        2       3       3       8
+The channel raster's flow vector slopes within each reach were used to calculate the respective reach slope.

@@ -1,9 +1,0 @@
-Description,Reach_ID,Reach_Location,Total_Load_by_Mass_kg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_kg_per_hectare_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_kg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
-Phosphorus_Attached_Inorganic,OUTLET,,146.765,43,1,30.250,13.78,1.103,1.649,33.352,22.72,22.72
-Phosphorus_Attached_Inorganic,OUTLET,,146.765,33,2,33.090,28.85,0.890,1.331,29.445,20.06,42.79
-Phosphorus_Attached_Inorganic,OUTLET,,146.765,32,3,9.370,33.12,0.838,1.254,7.853,5.35,48.14
-Phosphorus_Attached_Inorganic,OUTLET,,146.765,42,4,14.910,39.91,0.820,1.227,12.229,8.33,56.47
-Phosphorus_Attached_Inorganic,OUTLET,,146.765,22,5,37.540,57.02,0.802,1.199,30.102,20.51,76.98
-Phosphorus_Attached_Inorganic,OUTLET,,146.765,23,6,30.540,70.93,0.593,0.887,18.113,12.34,89.32
-Phosphorus_Attached_Inorganic,OUTLET,,146.765,41,7,30.170,84.67,0.518,0.775,15.636,10.65,99.98
-Phosphorus_Attached_Inorganic,OUTLET,,146.765,31,8,33.650,100.00,0.001,0.002,0.036,0.02,100.00

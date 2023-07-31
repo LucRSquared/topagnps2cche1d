@@ -1,0 +1,265 @@
+Crop_Growth_ID,Root_Mass,Canopy_Cover,Rain_Fall_Height,Input_Units_Code
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,62.82,0.05,0.009144,1
+corn; 125 bu,226.6,0.1,0.04572,1
+corn; 125 bu,440.9,0.5,0.09144,1
+corn; 125 bu,667.5,0.8,0.1585,1
+corn; 125 bu,1057.9,1.,0.231648,1
+corn; 125 bu,1334.9,1.,0.2774,1
+corn; 125 bu,1334.9,1.,0.2774,1
+corn; 125 bu,1334.9,1.,0.2774,1
+corn; 125 bu,1334.9,1.,0.2774,1
+corn; 125 bu,1334.9,0.9,0.2774,1
+corn; 125 bu,1334.9,0.7,0.2774,1
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,0.,0.,0.,1
+corn; 125 bu,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,56.1,0.05,0.03048,1
+sorghum,201.924,0.1,0.1524,1
+sorghum,392.63,0.5,0.3048,1
+sorghum,594.554,0.8,0.4572,1
+sorghum,897.44,1.,0.6096,1
+sorghum,1189.1,1.,0.6706,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,56.09,0.05,0.03048,1
+sorghum; silage,201.924,0.15,0.18288,1
+sorghum; silage,392.63,0.6,0.36576,1
+sorghum; silage,594.554,0.9,0.57912,1
+sorghum; silage,897.44,1.,0.762,1
+sorghum; silage,1189.108,1.,0.85344,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+sorghum; silage,0.,0.,0.,1
+wheat; winter se,0.,0.,0.,1
+wheat; winter se,84.135,0.05,0.03048,1
+wheat; winter se,336.54,0.2,0.06096,1
+wheat; winter se,673.08,0.3,0.09144,1
+wheat; winter se,875.,0.4,0.1524,1
+wheat; winter se,942.312,0.5,0.1524,1
+wheat; winter se,1009.62,0.65,0.1524,1
+wheat; winter se,1099.364,0.75,0.1524,1
+wheat; winter se,1099.364,0.85,0.1524,1
+wheat; winter se,1177.9,1.,0.2134,1
+wheat; winter se,1234.,1.,0.3048,1
+wheat; winter se,1290.07,1.,0.39624,1
+wheat; winter se,1290.07,1.,0.4572,1
+wheat; winter se,1290.07,1.,0.4572,1
+wheat; winter se,1290.07,0.9,0.4572,1
+wheat; winter se,0.,0.,0.,1
+wheat; winter se,0.,0.,0.,1
+wheat; winter se,0.,0.,0.,1
+wheat; winter se,0.,0.,0.,1
+wheat; winter se,0.,0.,0.,1
+wheat; winter se,0.,0.,0.,1
+wheat; winter se,0.,0.,0.,1
+wheat; winter se,0.,0.,0.,1
+wheat; winter se,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,44.872,0.05,0.03048,1
+corn; 112 bu,179.488,0.1,0.1524,1
+corn; 112 bu,358.98,0.5,0.3048,1
+corn; 112 bu,538.464,0.75,0.51816,1
+corn; 112 bu,852.568,0.95,0.73152,1
+corn; 112 bu,1065.71,0.95,0.88392,1
+corn; 112 bu,1065.71,0.95,0.88392,1
+corn; 112 bu,1065.71,0.95,0.88392,1
+corn; 112 bu,1065.71,0.95,0.88392,1
+corn; 112 bu,1065.71,0.85,0.88392,1
+corn; 112 bu,1065.71,0.65,0.88392,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+corn; 112 bu,0.,0.,0.,1
+weeds,673.08,0.6,0.03048,1
+weeds,673.08,0.6,0.03048,1
+weeds,673.08,0.6,0.03048,1
+weeds,673.08,0.6,0.03048,1
+weeds,673.08,0.6,0.03048,1
+weeds,673.08,0.6,0.03048,1
+weeds,673.08,0.6,0.03048,1
+weeds,673.08,0.6,0.03048,1
+weeds,673.08,0.6,0.03048,1
+weeds,841.35,0.8,0.03048,1
+weeds,841.35,0.95,0.03048,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+weeds,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,25.128,0.05,0.0929,1
+Soybeans,62.82,0.2,0.01859,1
+Soybeans,113.3018,0.4,0.04572,1
+Soybeans,226.6036,0.7,0.092903,1
+Soybeans,453.2072,1.,0.12192,1
+Soybeans,453.2072,1.,0.149352,1
+Soybeans,453.2072,0.9,0.149352,1
+Soybeans,453.2072,0.5,0.149352,1
+Soybeans,453.2072,0.35,0.149352,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Soybeans,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,37.69248,0.05,0.009296,1
+Cotton,75.1606,0.15,0.018593,1
+Cotton,113.3018,0.3,0.037186,1
+Cotton,226.6036,0.5,0.083515,1
+Cotton,389.2646,0.8,0.12192,1
+Cotton,453.2072,0.95,0.158496,1
+Cotton,453.2072,1.,0.158496,1
+Cotton,453.2072,0.6,0.158496,1
+Cotton,453.2072,0.2,0.158496,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+Cotton,0.,0.,0.,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+pasture_bromegrass,4483.2,1.,0.03048,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Urban_Rotation,672.,1.,0.61,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1
+Forest_Rotation,4483.2,1.,12.2,1

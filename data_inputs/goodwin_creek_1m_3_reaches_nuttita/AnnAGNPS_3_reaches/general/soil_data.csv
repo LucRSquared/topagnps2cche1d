@@ -1,0 +1,26 @@
+Soil_ID,Hydrologic_Soil_Group,K_Factor,Albedo,Time_to_Consolidation,Impervious_Depth,Specific_Gravity,Initial_Soil_Conditions_ID,Soil_Name,Soil_Texture,Number_of_Soil_Layers,Input_Units_Code
+CaA,C,    0.4300,    0.3000,,,,,Unnamed hydric soils (134de),Silt loam,     6,0
+CaB,D,    0.4300,    0.3000,,,,,Unnamed hydric soils (134de),Silt loam,     6,0
+Cm,B,    0.4900,    0.3000,,,,,Collins,Silt loam,     5,0
+Co,C,    0.4900,    0.3000,,,,,Collins,Silt loam,     5,0
+Fa,B,    0.4300,    0.3000,,,,,Unnamed hydric soils (134fp),Silt loam,     4,0
+Fl,B,    0.4300,    0.3000,,,,,Unnamed hydric soils (134fp),Silt loam,     4,0
+GrB2,C,    0.4900,    0.3000,,   24.0157,,,Grenada,Silt loam,     5,0
+GrB3,C,    0.4900,    0.3000,,   27.1653,,,Grenada,Silt loam,     5,0
+GrC3,C,    0.4900,    0.3000,,,,,Grenada,Silt loam,     6,0
+GrD3,C,    0.4900,    0.3000,,,,,Grenada,Silt loam,     5,0
+Gs,D,    0.4300,    0.3000,,,,,Unnamed hydric soils (133dr),Silt loam,     5,0
+Gu,B,    0.4300,    0.3000,,,,,Unnamed hydric soils (134dr),Silt loam,     5,0
+LoB2,C,    0.4900,    0.3000,,   24.8031,,,Loring,Silt loam,     4,0
+LoB3,C,    0.5500,    0.3000,,   24.8031,,,Loring,Silt loam,     4,0
+LoC3,C,    0.5500,    0.3000,,,,,Loring,Silt loam,     6,0
+LoD,B,    0.4300,    0.3000,,,,,Unnamed hydric soils (134dr),Silt loam,     6,0
+LoD2,C,    0.4900,    0.3000,,,,,Loring,Silt loam,     5,0
+LoD3,C,    0.5500,    0.3000,,,,,Loring,Silt loam,     6,0
+LoE2,C,    0.4900,    0.3000,,,,,Loring,Silt loam,     5,0
+LoE3,C,    0.5500,    0.3000,,,,,Loring,Silt loam,     6,0
+MlF2,C,    0.4900,    0.3000,,,,,Loring,Silt loam,     7,0
+MnF2,B,    0.4300,    0.3000,,,,,Memphis,Silt loam,    10,0
+Mx,A,    0.2400,    0.3000,,,,,Bruno,Fine sandy loam,     7,0
+RpE2,D,    0.4300,    0.3000,,,,,Unnamed hydric soils (133dr),Silt loam,    11,0
+RpF2,D,    0.4300,    0.3000,,,,,Unnamed hydric soils (133dr),Silt loam,    11,0

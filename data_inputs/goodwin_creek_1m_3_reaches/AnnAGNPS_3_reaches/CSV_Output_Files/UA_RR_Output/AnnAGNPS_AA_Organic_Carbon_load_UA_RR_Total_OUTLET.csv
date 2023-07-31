@@ -1,9 +1,0 @@
-Description,Reach_ID,Reach_Location,Total_Load_by_Mass_kg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_kg_per_hectare_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_kg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
-Organic_Carbon_Total,OUTLET,,12774.521,43,1,30.250,13.78,95.956,1.649,2902.670,22.72,22.72
-Organic_Carbon_Total,OUTLET,,12774.521,33,2,33.090,28.85,77.443,1.331,2562.575,20.06,42.78
-Organic_Carbon_Total,OUTLET,,12774.521,32,3,9.370,33.12,72.942,1.253,683.465,5.35,48.13
-Organic_Carbon_Total,OUTLET,,12774.521,42,4,14.910,39.91,71.483,1.228,1065.806,8.34,56.48
-Organic_Carbon_Total,OUTLET,,12774.521,22,5,37.540,57.02,69.792,1.199,2620.004,20.51,76.99
-Organic_Carbon_Total,OUTLET,,12774.521,23,6,30.540,70.93,51.623,0.887,1576.565,12.34,89.33
-Organic_Carbon_Total,OUTLET,,12774.521,41,7,30.170,84.67,45.099,0.775,1360.631,10.65,99.98
-Organic_Carbon_Total,OUTLET,,12774.521,31,8,33.650,100.00,0.083,0.001,2.804,0.02,100.00

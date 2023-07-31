@@ -1,0 +1,9 @@
+Description,Reach_ID,Reach_Location,Total_Load_by_Mass_Mg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_Mg_per_hectare_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_Mg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
+Sediment_Total_Silt,OUTLET,,1241.403,42,1,14.910,6.79,12.605,2.229,187.938,15.14,15.14
+Sediment_Total_Silt,OUTLET,,1241.403,33,2,33.090,21.87,7.377,1.305,244.120,19.66,34.80
+Sediment_Total_Silt,OUTLET,,1241.403,43,3,30.250,35.65,7.343,1.298,222.126,17.89,52.70
+Sediment_Total_Silt,OUTLET,,1241.403,22,4,37.540,52.75,6.657,1.177,249.886,20.13,72.83
+Sediment_Total_Silt,OUTLET,,1241.403,32,5,9.370,57.02,6.249,1.105,58.550,4.72,77.54
+Sediment_Total_Silt,OUTLET,,1241.403,23,6,30.540,70.93,4.897,0.866,149.554,12.05,89.59
+Sediment_Total_Silt,OUTLET,,1241.403,41,7,30.170,84.67,4.275,0.756,128.978,10.39,99.98
+Sediment_Total_Silt,OUTLET,,1241.403,31,8,33.650,100.00,0.008,0.001,0.253,0.02,100.00

@@ -1,0 +1,13 @@
+Non-Crop_ID,Non-Crop_Description,Annual_Root_Mass,Annual_Cover_Ratio,Annual_Rain_Fall_Height,Surface_Cover_Residue,USLE_C-Fctr,Basal_Crop_Coef_Mid,Growing_Season_Start_Month,Growing_Season_Start_Day,Growing_Season_End_Month,Growing_Season_End_Day,Basal_Crop_Coef_Climate_Adjust,Input_Units_Code
+bromegrass; past hi,4/21/94  Bromegrass pasture.High productivity due to highfer,4371.12,1.,0.03048,,,,,,,,,1
+bromegrass; past low,3/19/94  Bromegrass pasture.Low productivity due to lowferti,2689.92,0.8,0.03048,,,,,,,,,1
+fallow,Master Default Set;1;0;0;0;0;0;0;0;0;0;0,0.,0.,0.,,,,,,,,,1
+Forest,Conifer Forest/Woodland,1000.,0.7,12.2,80.,,,,,,,,1
+Forest_HW,Hardwood Forest/Woodland,11208.,0.7,9.1,85.,,,,,,,,1
+kblue-mix; past high,4/21/94 Kentucky Bluegrass mixgrass pasture. High productiv.,5379.84,1.,0.03048,,,,,,,,,1
+kblue-mix; past low,4/21/94 Kentucky Bluegrass mixgrass pasture. Low productiv-i,3922.8,0.8,0.03048,,,,,,,,,1
+pasture,4/21/94 Kentucky Bluegrass mixgrass pasture. Low productiv-i,3922.8,0.8,0.03048,,,,,,,,,1
+orchardgrass;past hi,4/21/94  Orchardgrass pasture.High productivity due to highf,6612.72,1.,0.03048,,,,,,,,,1
+orchardgrass;past lo,4/21/94  Orchardgrass PastureLow productivity due to lowfert,4371.12,0.8,0.03048,,,,,,,,,1
+tall fescue;past  hi,4/21/94  Tall Fescue Pasture.High productivity due to highfe,7845.6,1.,0.06096,,,,,,,,,1
+Urban,Urban,672.,0.4,0.61,40.,,,,,,,,1

@@ -104,7 +104,8 @@ def assemble_agflow_reach_cche1d(df_agflow, df_top_cche1d, geoMatrix, network=No
     combined.drop(columns=['TopAGNPS_Reach',
                         'Upstream_End_Row', 'Downstream_End_Row',
                         'Upstream_End_Column', 'Downstream_End_Column', 'Receiving_Reach',
-                        'Drainage_Area_[ha]', 'Average_Elevation_[m]', 'Reach_Length_[m]', 'Reach_Slope_[m/m]',
+                        'Average_Elevation_[m]', 'Reach_Length_[m]', 'Reach_Slope_[m/m]',
+                        'Upstream_End_UTMx', 'Upstream_End_UTMy', 'Downstream_End_UTMx', 'Downstream_End_UTMy',
                         'Distance_Upstream_End_to_Outlet_[m]', 'Distance_Downstream_End_to_Outlet_[m]'], inplace=True)
 
     return combined

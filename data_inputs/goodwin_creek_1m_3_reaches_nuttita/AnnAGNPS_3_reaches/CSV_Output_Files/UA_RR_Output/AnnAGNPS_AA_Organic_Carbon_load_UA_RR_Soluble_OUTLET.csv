@@ -1,0 +1,9 @@
+Description,Reach_ID,Reach_Location,Total_Load_by_Mass_kg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_kg_per_hectare_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_kg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
+Organic_Carbon_Soluble,OUTLET,,0,22,1,37.540,17.10,0,0,0,0,0
+Organic_Carbon_Soluble,OUTLET,,0,23,2,30.540,31.01,0,0,0,0,0
+Organic_Carbon_Soluble,OUTLET,,0,31,3,33.650,46.34,0,0,0,0,0
+Organic_Carbon_Soluble,OUTLET,,0,32,4,9.370,50.61,0,0,0,0,0
+Organic_Carbon_Soluble,OUTLET,,0,33,5,33.090,65.68,0,0,0,0,0
+Organic_Carbon_Soluble,OUTLET,,0,41,6,30.170,79.43,0,0,0,0,0
+Organic_Carbon_Soluble,OUTLET,,0,42,7,14.910,86.22,0,0,0,0,0
+Organic_Carbon_Soluble,OUTLET,,0,43,8,30.250,100.00,0,0,0,0,0

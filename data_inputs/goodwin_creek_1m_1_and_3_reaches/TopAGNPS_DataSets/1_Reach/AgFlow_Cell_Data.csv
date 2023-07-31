@@ -1,0 +1,9 @@
+Cell_ID,Receiving_Reach_ID,Receiving_Reach_Location_[0=up;1=dn],Drainage_Area_[ha],Average_Elevation_[m],Average_Aspect_[deg],Land_Slope_[m/m],Sheet_Flow_Slope_[m/m],Sheet_Flow_Length_[m],Shallow_Concentrated_Flow_Slope_[m/m],Shallow_Concentrated_Flow_Length_[m],Concentrated_Flow_Slope_[m/m],Concentrated_Flow_Length_[m],LS_Factor,Aspect_Correlation,Orphan_Raster_Code_[T/F]
+21,2,0,11.5290,123.10,280.28,0.06366,0.02800,50.00,0.03286,50.00,0.01722,491.19,0.276,0.2946,F
+22,2,1,0.0325,117.41,234.72,0.04756,0.03358,27.06,0.00001,0.00,0.00001,0.00,0.195,0.7430,F
+23,2,1,0.0479,117.65,343.94,0.05004,0.02654,33.92,0.00001,0.00,0.00001,0.00,0.206,0.7089,F
+
+Orphan raster code:  F-means that no orphan channel raster(s) are involved for this cell ID;
+Orphan raster code:  T-means that orphan channel raster(s) make up this cell.  The entire subarea for this new cell ID
+                       is made up of reassigned channel raster(s) to a rightside cell whose subarea did not previously
+                       have any rasters that were assigned to any related source; right-; or leftside cells.

@@ -1,0 +1,3 @@
+Reach_ID,Receiving_Reach,Vegetation_Code,Elevation,Slope,Mannings_n,Infiltration_Rate,Hydraulic_Geom_ID,Length,Top_Width,Flow_Depth,Valley_Width,Valley_Mannings_n,Start_Diversion,Stop_Diversion,Travel_Time,Clay_Scour_Code,Silt_Scour_Code,Sand_Scour_Code,Small_Agg_Scour_Code,Large_Agg_Scour_Code,Valley_Clay_Scour_Code,Valley_Silt_Scour_Code,Valley_Sand_Scour_Code,Valley_Small_Agg_Scour_Code,Valley_Large_Agg_Scour_Code,Delivery_Ratio,Input_Units_Code
+1,OUTLET,,117.17,0.01716,,,,0.00,,,,,,,,,,,,,,,,,,,1
+2,1,,117.17,0.01716,,,,40.80,,,,,,,,,,,,,,,,,,,1

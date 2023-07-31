@@ -1,0 +1,3 @@
+Contour_ID,Ridge_Height_Code,Furrow_Slope,Disturbed_Cover,Consolated_Cover,Input_Units_Code
+no_contour,1,.1,1,5,1
+contour,4,.005,5,3,1

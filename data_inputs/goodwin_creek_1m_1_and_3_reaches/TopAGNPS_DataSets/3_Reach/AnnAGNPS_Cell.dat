@@ -1,0 +1,25 @@
+AgFlow Version 3.11.h.15_08/02/2016: AnnAGNPS cell, reach, & subarea data are calculated from DEM-related parameters.
+Example                                                                                                                 
+verification dataset for AGNPS                                                                                          
+Using default values for LS-factor parameters                                                                           
+    Cell  Drain.    Avg.    Avg.    Land  --Sheet Flow-- --Shallow Flow- - Concentrated-  --LS--  Aspect  Orphan    Cell
+      ID    Area   Elev.  Aspect   Slope   Slope  Length   Slope  Length   Slope  Length  Factor  Correl  Raster     ID 
+       8    [h])     [m]   [deg]   [m/m]   [m/m]     [m]   [m/m]     [m]   [m/m]     [m]     [-]     [-]  [code]        
+      22   .0326     117     234  .04769  .03358      27  .00001       0  .00001       0    .195   .7414       F      22
+      23   .0479     118     344  .05004  .02654      34  .00001       0  .00001       0    .206   .7089       F      23
+      31  2.5010     123     245  .06545  .03301      50  .02099      50  .02813     201    .284   .3346       F      31
+      32   .4248     120     187  .05859  .04509      50  .04691      50  .03876      44    .254   .7909       F      32
+      33   .1429     118     283  .03196  .01433      50  .02622       5  .00001       0    .138   .6664       F      33
+      41  2.5002     126     313  .04626  .02800      50  .03286      50  .02469     168    .194   .5390       F      41
+      42  3.4881     123     224  .07325  .05540      50  .03060      50  .02326     198    .318   .5197       F      42
+      43  2.4719     122     353  .06861  .03800      50  .06357      50  .02502     105    .305   .6771       F      43
+ws avg.: 11.6094     123         0.06356                                                   0.276
+Each raster's flow vector slope was used to calculate the raster's LS-factor prior to determining its respective
+ cell's average LS-factor.
+Each raster along its respective cell's hydraulically most distant path used the raster's flow vector slope to
+ calculate the cell's TC profile segment slope & lengths.
+Each raster's terrain slope was used to calculate its respective cell's average land slope.
+Orphan raster code:  F-means that no orphan channel raster(s) are involved for this cell ID;
+Orphan raster code:  T-means that orphan channel raster(s) make up this cell.  The entire subarea for this new cell ID
+                       is made up of reassigned channel raster(s) to a rightside cell whose subarea did not previously
+                       have any rasters that were assigned to any related source, right-, or leftside cells.

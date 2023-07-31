@@ -1,9 +1,0 @@
-Description,Reach_ID,Reach_Location,Total_Load_by_Mass_kg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_kg_per_hectare_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_kg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
-Phosphorus_Soluble_Inorganic,OUTLET,,55.480,31,1,33.650,15.33,1.647,6.517,55.423,99.90,99.90
-Phosphorus_Soluble_Inorganic,OUTLET,,55.480,23,2,30.540,29.24,0.32E-03,0.001,0.010,0.02,99.91
-Phosphorus_Soluble_Inorganic,OUTLET,,55.480,32,3,9.370,33.51,0.31E-03,0.001,0.003,0.01,99.92
-Phosphorus_Soluble_Inorganic,OUTLET,,55.480,22,4,37.540,50.61,0.31E-03,0.001,0.012,0.02,99.94
-Phosphorus_Soluble_Inorganic,OUTLET,,55.480,41,5,30.170,64.35,0.31E-03,0.001,0.009,0.02,99.96
-Phosphorus_Soluble_Inorganic,OUTLET,,55.480,43,6,30.250,78.13,0.31E-03,0.001,0.009,0.02,99.97
-Phosphorus_Soluble_Inorganic,OUTLET,,55.480,33,7,33.090,93.21,0.31E-03,0.001,0.010,0.02,99.99
-Phosphorus_Soluble_Inorganic,OUTLET,,55.480,42,8,14.910,100.00,0.25E-03,0.001,0.004,0.01,100.00

@@ -1,9 +1,0 @@
-Description,Reach_ID,Reach_Location,Total_Load_by_Mass_kg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_kg_per_hectare_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_kg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
-Nitrogen_Attached,OUTLET,,1977.956,43,1,30.250,13.78,14.858,1.649,449.440,22.72,22.72
-Nitrogen_Attached,OUTLET,,1977.956,33,2,33.090,28.85,11.991,1.331,396.783,20.06,42.78
-Nitrogen_Attached,OUTLET,,1977.956,32,3,9.370,33.12,11.294,1.253,105.825,5.35,48.13
-Nitrogen_Attached,OUTLET,,1977.956,42,4,14.910,39.91,11.067,1.228,165.016,8.34,56.48
-Nitrogen_Attached,OUTLET,,1977.956,22,5,37.540,57.02,10.806,1.199,405.673,20.51,76.99
-Nitrogen_Attached,OUTLET,,1977.956,23,6,30.540,70.93,7.993,0.887,244.109,12.34,89.33
-Nitrogen_Attached,OUTLET,,1977.956,41,7,30.170,84.67,6.983,0.775,210.677,10.65,99.98
-Nitrogen_Attached,OUTLET,,1977.956,31,8,33.650,100.00,0.013,0.001,0.433,0.02,100.00

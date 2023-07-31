@@ -1,0 +1,674 @@
+TopAGNPS,INFO   , 1000,Opened message file: TopAGNPS_log.CSV
+TopAGNPS,INFO   , 1000,Opened message file: TopAGNPS_wrn.CSV
+TopAGNPS,INFO   , 1000,Opened message file: TopAGNPS_err.CSV
+TopAGNPS,INFO   ,    0,EXECUTION START DATE: 07/31/2023
+TopAGNPS,INFO   ,    0,EXECUTION START TIME: 10:17:04 - Module: TopAGNPS
+TopAGNPS,INFO   , 1003,*** BEGIN EXECUTION: TopAGNPS v6.00.a.024_2023.07.17  64-bit execution ***
+TopAGNPS,INFO   , 1008,No command line arguments were detected; all modules will be executed in sequence unless superceded by a "MODULE" keyword in the control file.
+TopAGNPS,INFO   , 1000,Control file "TOPAGNPS.CSV" exists and will be processed.
+TopAGNPS,INFO   , 1000,Opened control file: TOPAGNPS.CSV
+TopAGNPS,INFO   , 1001,Keyword "FILENAME" was found with a value of "Good_DEM_Clipped.asc".
+TopAGNPS,INFO   , 1001,Keyword "FORMAT" was found with a value of "0".
+TopAGNPS,INFO   , 1001,Keyword "DEMPROC" was found with a value of "0".
+TopAGNPS,INFO   , 1001,Keyword "OUTROW" was found with a value of "221". Note: A blank field is allowable when "DEMPROC" > 0 because the outlet row is not used.
+TopAGNPS,INFO   , 1001,Keyword "OUTCOL" was found with a value of "135". Note: A blank field is allowable when "DEMPROC" > 0 because the outlet col is not used.
+TopAGNPS,INFO   , 1001,Keyword "OUTFORMAT" was found with a value of "0".
+TopAGNPS,INFO   , 1001,Keyword "CSA" was found with a value of "     2.500".
+TopAGNPS,INFO   , 1001,Keyword "MSCL" was found with a value of "    50.000".
+TopAGNPS,WARNING, 2028,The keyword "UTME" was read from "TOPAGNPS.CSV". This keyword will be ignored because its value will be read from the input data file header records.
+TopAGNPS,WARNING, 2028,The keyword "UTMN" was read from "TOPAGNPS.CSV". This keyword will be ignored because its value will be read from the input data file header records.
+TopAGNPS,WARNING, 2028,The keyword "ROWS" was read from "TOPAGNPS.CSV". This keyword will be ignored because its value will be read from the input data file header records.
+TopAGNPS,WARNING, 2028,The keyword "COLS" was read from "TOPAGNPS.CSV". This keyword will be ignored because its value will be read from the input data file header records.
+TopAGNPS,WARNING, 2028,The keyword "CELLSIZE" was read from "TOPAGNPS.CSV". This keyword will be ignored because its value will be read from the input data file header records.
+TopAGNPS,WARNING, 2028,The keyword "NODATA" was read from "TOPAGNPS.CSV". This keyword will be ignored because its value will be read from the input data file header records.
+TopAGNPS,WARNING, 2002,Keyword "OUTSNAP" was found with no value specified. The default value of "2" will be assumed.
+TopAGNPS,INFO   , 1001,Keyword "DNMCNT" was found with a value of "0".
+TopAGNPS,INFO   , 1001,Keyword "DEMEDGE" was found with a value of "0".
+TopAGNPS,INFO   , 1001,Keyword "VERBOSE" was found with a value of "0".
+TopAGNPS,INFO   , 1001,Keyword "KEEPFILES" was found with a value of "0".
+TopAGNPS,INFO   , 1001,Keyword "OPTIMIZE" was found with a value of "0".
+TopAGNPS,WARNING, 2002,Keyword "READOUT" was not found in "TOPAGNPS.CSV". The default value of "0" (do not read intermediate files) will be assumed.
+TopAGNPS,INFO   ,    0,Opened projection input file: Good_DEM_Clipped.prj
+TopAGNPS,INFO   , 1007,Completed reading "  2" records from the projection file "Good_DEM_Clipped.prj".
+TopAGNPS,INFO   ,    0,Opened DEM file: Good_DEM_Clipped.asc
+TopAGNPS,INFO   ,    0,Read header line: NCOLS 1001
+TopAGNPS,INFO   ,    0,Read header line: NROWS 500
+TopAGNPS,INFO   ,    0,Read header line: XLLCENTER 240000.114013
+TopAGNPS,INFO   ,    0,Read header line: YLLCENTER 3795000.620724
+TopAGNPS,INFO   ,    0,Read header line: DX 1
+TopAGNPS,INFO   ,    0,Read header line: DY 1
+TopAGNPS,INFO   ,    0,Read header line: NODATA_VALUE -9999
+TopAGNPS,INFO   ,    0,The yllcorner (lower-left) value in the DEM header has been converted to the "UTM Northing" (upper-left) for processing. The DEM value of "   3795001" has been converted to "   3795501".
+DEDNM,INFO   , 1003,Executing module "DEDNM"
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:04 - Module: DEDNM: Start
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          0  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,DEDNM control parameter values:
+DEDNM,INFO   ,    0,TITLE 1:, TopAGNPS v6.00.a.024_2023.07.17
+DEDNM,INFO   ,    0,TITLE 2:, DNMCNT.INP" not selected for use with this execution
+DEDNM,INFO   ,    0,TITLE 3:, Parameter values are set by user or internal defaults.
+DEDNM,INFO   ,    0,UTM Zone:,   0
+DEDNM,INFO   ,    0,UTM Easting:,     240000
+DEDNM,INFO   ,    0,UTM Northing:,    3795501
+DEDNM,INFO   ,    0,Rows:,   500
+DEDNM,INFO   ,    0,Columns:,  1001
+DEDNM,INFO   ,    0,Minimum elevation:,    110.000
+DEDNM,INFO   ,    0,Maximum elevation:,    130.000
+DEDNM,INFO   ,    0,Indeterminate elevation:,  -9999.000
+DEDNM,INFO   ,    0,Length of cell (resolution):,   1.0
+DEDNM,INFO   ,    0,DEM orientation:,    0
+DEDNM,INFO   ,    0,Outlet row:,   221
+DEDNM,INFO   ,    0,Outlet column:,   135
+DEDNM,INFO   ,    0,Aggregation/Resampling option:,  0
+DEDNM,INFO   ,    0,Aggregation/Resampling level:,   1
+DEDNM,INFO   ,    0,Smoothing option:,  0
+DEDNM,INFO   ,    0,Number of smoothing passes:,    1
+DEDNM,INFO   ,    0,1st weighting record:,    1
+DEDNM,INFO   ,    0,2nd weighting record:,    1
+DEDNM,INFO   ,    0,3rd weighting record:,    1
+DEDNM,INFO   ,    0,Depression outlet analysis option:,  1
+DEDNM,INFO   ,    0,DEM processing option:,  0
+DEDNM,INFO   ,    0,Spatial variable option:,  0
+DEDNM,INFO   ,    0,CSA & MSCL #1:,      2.500,    50.000
+DEDNM,INFO   ,    0,CSA & MSCL #2:,     -1.000,    -1.000
+DEDNM,INFO   ,    0,CSA & MSCL #3:,     -1.000,    -1.000
+DEDNM,INFO   ,    0,CSA & MSCL #4:,     -1.000,    -1.000
+DEDNM,INFO   ,    0,CSA & MSCL #5:,     -1.000,    -1.000
+DEDNM,INFO   ,    0,CSA & MSCL #6:,     -1.000,    -1.000
+DEDNM,INFO   ,    0,CSA & MSCL #7:,     -1.000,    -1.000
+DEDNM,INFO   ,    0,CSA & MSCL #8:,     -1.000,    -1.000
+DEDNM,INFO   ,    0,CSA & MSCL #9:,     -1.000,    -1.000
+DEDNM,INFO   ,    0,Calibration option:,  0
+DEDNM,INFO   ,    0,Raster checking option:,  1
+DEDNM,INFO   ,    0,Program capabilities to "DEDNM.RPT" option:,  1
+DEDNM,INFO   ,    0,Input data report to "DEDNM.RPT" option:,  1
+DEDNM,INFO   ,    0,Drainage network table "NETW.TAB" option:,  0
+DEDNM,INFO   ,    0,Subcatchment area table "SBCT.TAB" option:,  0
+DEDNM,INFO   ,    0,Subcatchment window table "CATWIN.TAB" option:,  0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:04 - Module: DEDNM: START INDEM
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          0  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   , 1002,Final number of rows is "  500" and columns is " 1001". This reflects aggregation/resampling that may have been applied.
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:04 - Module: DEDNM: END INDEM
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          0  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:04 - Module: DEDNM: START INDTAR
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          0  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:04 - Module: DEDNM: END INDTAR
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          0  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:04 - Module: DEDNM: START FILDEP
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          0  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:04 - Module: DEDNM: END FILDEP
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          0  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:04 - Module: DEDNM: START RELIEF
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          0  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,Opened projection output file: RELIEF_INP.PRJ
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: END RELIEF
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          1
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: START FLOVEC
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: END FLOVEC
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: START FLOPAT
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: END FLOPAT
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: START UPAREA
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: END UPAREA
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: START NETFUL
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: END NETFUL
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: START PRUNE
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: END PRUNE
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: START PRUNE1
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: END PRUNE1
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:05 - Module: DEDNM: START OUTLET
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          1  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,The selected outlet cell is currently defined by row "  221" and column "  135".
+DEDNM,INFO   ,    0,,       125,       126,       127,       128,       129,       130,       131,       132,       133,       134,       135,       136,       137,       138,       139,       140,       141,       142,       143,       144,       145,
+DEDNM,INFO   ,    0,       211,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       212,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       213,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       214,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       215,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       216,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       217,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       218,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       219,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       220,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       221,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       222,    116227,    116224,    116221,    116140,    116139,    116138,    116116,    116115,    116094,    116093,    116092,         0,         0,         0,         0,         0,         0,    115979,    115955,    115954,    115953,
+DEDNM,INFO   ,    0,       223,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,    116069,    116055,    116054,    116041,    116040,    116028,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       224,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       225,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       226,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       227,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       228,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       229,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       230,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,INFO   ,    0,       231,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
+DEDNM,WARNING, 2013,The selected outlet cell defined by row "  221" and column "  135" is not a channel cell. Will attempt to snap to a nearest neighbor cell and try to continue.
+DEDNM,WARNING, 2014,A valid adjacent raster was found and will be used as a substitute outlet location. The new outlet cell is located on row "  222" and column "  134".
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM: END OUTLET
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          2
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM: START BOUND
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+DEDNM,WARNING, 2021,The watershed boundary touches the North edge of the DEM along the first row. Location: row "1" and column "  226". Processing will continue!
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM: END BOUND
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM: START MAPBOD
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM: END MAPBOD
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM: START NETNUM
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM: END NETNUM
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM: START SUBWT1
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM: END SUBWT1
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM: START SUBWTA
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM: END SUBWTA
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+DEDNM,INFO   , 1003,Completed module "DEDNM"
+DEDNM,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: DEDNM
+DEDNM,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+RASPRO,INFO   , 1003,Executing module "RASPRO"
+RASPRO,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:07 - Module: RASPRO: Start
+RASPRO,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          3  ---  Incremental lapse time (seconds):          0
+RASPRO,INFO   ,    0,RASPRO control parameter values:
+RASPRO,INFO   ,    0,Input data report to "RASPRO.RPT" option:,  1
+RASPRO,INFO   ,    0,Process network and subcatchment option:,  0
+RASPRO,INFO   ,    0,Process elevation data option:,  1
+RASPRO,INFO   ,    0,Number of elevation bands:,   30
+RASPRO,INFO   ,    0,Compute local slope and aspect option:,  1
+RASPRO,INFO   ,    0,Compute flow path distances option:,  1
+RASPRO,INFO   , 1003,Completed module "RASPRO"
+RASPRO,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:08 - Module: RASPRO: End
+RASPRO,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          4  ---  Incremental lapse time (seconds):          1
+RASFOR,INFO   , 1003,Executing module "RASFOR"
+RASFOR,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:08 - Module: RASFOR: Start
+RASFOR,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          4  ---  Incremental lapse time (seconds):          0
+RASFOR,INFO   ,    0,RASFOR control parameter values:
+RASFOR,INFO   ,    0,Input data report to "RASFOR.RPT" option:,  1
+RASFOR,INFO   ,    0,Reformat "INELEV.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "SMOOTH.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "FILDEP.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "RELIEF.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "FLOVEC.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "FLOPAT.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "INDTAR.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "UPAREA.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "NTGCOD.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "NTGCSA.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "NTGSCL.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "NETFUL.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "BOUND.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "NETW.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "SUBWTA.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "DEPFLT.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "ELVCLA.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "FVASPE.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "TASPEC.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "FVSLOP.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "HSLOPE.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "TSLOPE.OUT" option:,  1
+RASFOR,INFO   ,    0,Reformat "NETWE.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "SUBBDA.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "SUBWTB.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "SUBBDB.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "DISCHA.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "DISOUT.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "ELDCHA.OUT" option:,  0
+RASFOR,INFO   ,    0,Reformat "ELDOUT.OUT" option:,  0
+RASFOR,INFO   ,    0,Opened projection output file: RELIEF.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: FLOVEC.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: UPAREA.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: NTGCOD.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: NETFUL.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: BOUND.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: NETW.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: SUBWTA.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: DEPFLT.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: FVASPE.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: FVSLOP.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: HSLOPE.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: TSLOPE.PRJ
+RASFOR,INFO   ,    0,Opened projection output file: TASPEC.PRJ
+RASFOR,INFO   , 1003,Completed module "RASFOR"
+RASFOR,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:09 - Module: RASFOR: End
+RASFOR,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          5  ---  Incremental lapse time (seconds):          1
+AgFlow,INFO   , 1003,Executing module "AgFlow"
+AgFlow,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:09 - Module: AgFlow: Start
+AgFlow,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          5  ---  Incremental lapse time (seconds):          0
+AgFlow,INFO   ,    0,Checking existence of AgFlow input files:
+AgFlow,WARNING, 2001,The optional input file "AGFLOW.CSV" nor "AGFLOW.XML" was not found in the executable path. Default parameters will be used.
+AgFlow,INFO   ,    0,AgFlow control parameter values:
+AgFlow,INFO   ,    0,AGFCNT.INP: Record # 1,'VERSION 3.10 - 18 February 2003
+AgFlow,INFO   ,    0,AGFCNT.INP: Record # 2,'Example
+AgFlow,INFO   ,    0,AGFCNT.INP: Record # 3,'verification dataset for AGNPS
+AgFlow,INFO   ,    0,AGFCNT.INP: Record # 4,'Using default values for LS-factor parameters
+AgFlow,INFO   ,    0,AGFCNT.INP: Record # 5,'
+AgFlow,INFO   ,    0,AGFCNT.INP: Record # 6,'
+AgFlow,INFO   ,    0,AGFCNT.INP: Record # 7,'
+AgFlow,INFO   ,    0,AGFCNT.INP: Record # 8,'---------------- LS Factor ------------------ -Sub_Wta- Optimize Internal
+AgFlow,INFO   ,    0,AGFCNT.INP: Record # 9,'Slope ---------- Maximum ---------- - Files - - Files - Storage
+AgFlow,INFO   ,    0,AGFCNT.INP: Record #10,' Code      Area    Length     Slope Read Writ  ASC  DAT Acc.
+AgFlow,INFO   ,    0,AGFCNT.INP: Record #11,'    1       .99      300.              F    F    T    F    F
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: Open_TopAGNPS_Files
+AgFlow,INFO   ,    0,Opening ASCII raster grid (.ASC) input files.
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec  12 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec  19 ms
+AgFlow,INFO   ,    0,Reading TopAGNPS files for raster attribute data.
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: Read_ASC_Files
+AgFlow,INFO   ,    0,Reading input file: FLOVEC.ASC
+AgFlow,INFO   ,    0,Read header line: ncols 1001
+AgFlow,INFO   ,    0,Read header line: nrows 500
+AgFlow,INFO   ,    0,Read header line: xllcenter 240000.114013
+AgFlow,INFO   ,    0,Read header line: yllcenter 3795000.620724
+AgFlow,INFO   ,    0,Read header line: DX 1.00
+AgFlow,INFO   ,    0,Read header line: DY 1.00
+AgFlow,INFO   ,    0,Read header line: nodata_value 0
+AgFlow,INFO   ,    0,allocating DEM_raster_aspect bytes:        2002000; total bytes:        2002000
+AgFlow,INFO   ,    0,allocating DEM_raster_subarea_id bytes:        2002000; total bytes:        4004000
+AgFlow,INFO   ,    0,allocating DEM_raster_flow_vector bytes:        2002000; total bytes:        8008000
+AgFlow,INFO   ,    0,allocating DEM_raster_uparea_rasters bytes:        2002000; total bytes:       10010000
+AgFlow,INFO   ,    0,allocating DEM_raster_relief bytes:        2002000; total bytes:       12012000
+AgFlow,INFO   ,    0,allocating DEM_raster_slope_hyd bytes:        2002000; total bytes:       14014000
+AgFlow,INFO   ,    0,allocating DEM_raster_slope_terrain bytes:        2002000; total bytes:       16016000
+AgFlow,INFO   ,    0,allocating DEM_raster_slope_vector bytes:        2002000; total bytes:       18018000
+AgFlow,INFO   ,    0,Raster horizontal resolution:  1.0 meters
+AgFlow,INFO   ,    0,Number of DEM rows:    500
+AgFlow,INFO   ,    0,Number of DEM cols:   1001
+AgFlow,INFO   ,    0,raster distance along flow vector
+AgFlow,INFO   ,    0,Reading input file: FVSLOP.ASC
+AgFlow,INFO   ,    0,Read header line: ncols 1001
+AgFlow,INFO   ,    0,Read header line: nrows 500
+AgFlow,INFO   ,    0,Read header line: xllcenter 240000.114013
+AgFlow,INFO   ,    0,Read header line: yllcenter 3795000.620724
+AgFlow,INFO   ,    0,Read header line: DX 1.00
+AgFlow,INFO   ,    0,Read header line: DY 1.00
+AgFlow,INFO   ,    0,Read header line: nodata_value -1.00000
+AgFlow,INFO   ,    0,raster distance along slope vector
+AgFlow,INFO   ,    0,Reading input file: HSLOPE.ASC
+AgFlow,INFO   ,    0,Read header line: ncols 1001
+AgFlow,INFO   ,    0,Read header line: nrows 500
+AgFlow,INFO   ,    0,Read header line: xllcenter 240000.114013
+AgFlow,INFO   ,    0,Read header line: yllcenter 3795000.620724
+AgFlow,INFO   ,    0,Read header line: DX 1.00
+AgFlow,INFO   ,    0,Read header line: DY 1.00
+AgFlow,INFO   ,    0,Read header line: nodata_value -1.00000
+AgFlow,INFO   ,    0,raster hydraulic distance
+AgFlow,INFO   ,    0,Reading input file: RELIEF.ASC
+AgFlow,INFO   ,    0,Read header line: ncols 1001
+AgFlow,INFO   ,    0,Read header line: nrows 500
+AgFlow,INFO   ,    0,Read header line: xllcenter 240000.114013
+AgFlow,INFO   ,    0,Read header line: yllcenter 3795000.620724
+AgFlow,INFO   ,    0,Read header line: DX 1.00
+AgFlow,INFO   ,    0,Read header line: DY 1.00
+AgFlow,INFO   ,    0,Read header line: nodata_value -9999.00000
+AgFlow,INFO   ,    0,raster relief elevation
+AgFlow,INFO   ,    0,Reading input file: SUBWTA.ASC
+AgFlow,INFO   ,    0,Read header line: ncols 1001
+AgFlow,INFO   ,    0,Read header line: nrows 500
+AgFlow,INFO   ,    0,Read header line: xllcenter 240000.114013
+AgFlow,INFO   ,    0,Read header line: yllcenter 3795000.620724
+AgFlow,INFO   ,    0,Read header line: DX 1.00
+AgFlow,INFO   ,    0,Read header line: DY 1.00
+AgFlow,INFO   ,    0,Read header line: nodata_value 0
+AgFlow,INFO   ,    0,raster cell IDs
+AgFlow,INFO   ,    0,Reading input file: TASPEC.ASC
+AgFlow,INFO   ,    0,Read header line: ncols 1001
+AgFlow,INFO   ,    0,Read header line: nrows 500
+AgFlow,INFO   ,    0,Read header line: xllcenter 240000.114013
+AgFlow,INFO   ,    0,Read header line: yllcenter 3795000.620724
+AgFlow,INFO   ,    0,Read header line: DX 1.00
+AgFlow,INFO   ,    0,Read header line: DY 1.00
+AgFlow,INFO   ,    0,Read header line: nodata_value -1
+AgFlow,INFO   ,    0,raster aspects
+AgFlow,INFO   ,    0,Reading input file: TSLOPE.ASC
+AgFlow,INFO   ,    0,Read header line: ncols 1001
+AgFlow,INFO   ,    0,Read header line: nrows 500
+AgFlow,INFO   ,    0,Read header line: xllcenter 240000.114013
+AgFlow,INFO   ,    0,Read header line: yllcenter 3795000.620724
+AgFlow,INFO   ,    0,Read header line: DX 1.00
+AgFlow,INFO   ,    0,Read header line: DY 1.00
+AgFlow,INFO   ,    0,Read header line: nodata_value -1.00000
+AgFlow,INFO   ,    0,raster terrain slope
+AgFlow,INFO   ,    0,Reading input file: UPAREA.ASC
+AgFlow,INFO   ,    0,Read header line: ncols 1001
+AgFlow,INFO   ,    0,Read header line: nrows 500
+AgFlow,INFO   ,    0,Read header line: xllcenter 240000.114013
+AgFlow,INFO   ,    0,Read header line: yllcenter 3795000.620724
+AgFlow,INFO   ,    0,Read header line: DX 1.00
+AgFlow,INFO   ,    0,Read header line: DY 1.00
+AgFlow,INFO   ,    0,Read header line: nodata_value -1
+AgFlow,INFO   ,    0,number of upstream rasters
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: Read_ASC_Files
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec 278 ms
+AgFlow,INFO   ,    0,number of DEM rasters within the watershed are :   116094
+AgFlow,INFO   ,    0,number of DEM rasters outside the watershed are:   384406
+AgFlow,INFO   ,    0,total number of DEM rasters are                :    500500
+AgFlow,INFO   ,    0,Finding watershed outlet raster
+AgFlow,INFO   ,    0,watershed outlet raster found and its cell ID is:     24
+AgFlow,INFO   ,    0,outlet row number =    222
+AgFlow,INFO   ,    0,outlet col number =    134
+AgFlow,INFO   ,    0,Finished reading TopAGNPS files for raster attribute data.
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec 280 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 299 ms
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: Watershed_Rasters
+AgFlow,WARNING, 2021,The watershed's northern boundary touches the North edge of the DEM along the first row. Location: row "1" and column "  226". Processing will continue!
+AgFlow,INFO   ,    0,DEM ws_northing row number is  :       1
+AgFlow,INFO   ,    0,DEM ws_westing column number is:     133
+AgFlow,INFO   ,    0,DEM ws_southing row number is  :     455
+AgFlow,INFO   ,    0,DEM ws_easting column number is:     688
+AgFlow,INFO   ,    0,number of circumscribed watershed rows is   :     455
+AgFlow,INFO   ,    0,number of circumscribed watershed colums is :     556
+AgFlow,INFO   ,    0,outlet row of circumscribed watershed is    :     222
+AgFlow,INFO   ,    0,outlet column of circumscribed watershed is :       2
+AgFlow,INFO   ,    0,allocating ws_raster_aspect bytes:        1011920; total bytes:       19029920
+AgFlow,INFO   ,    0,allocating ws_raster_cell_id bytes:        1011920; total bytes:       20041840
+AgFlow,INFO   ,    0,allocating ws_raster_cell_index bytes:        1011920; total bytes:       21053760
+AgFlow,INFO   ,    0,allocating ws_raster_elev bytes:        1011920; total bytes:       22065680
+AgFlow,INFO   ,    0,allocating ws_raster_flag_LS bytes:         252980; total bytes:       22318660
+AgFlow,INFO   ,    0,allocating ws_raster_flag_orphan bytes:         252980; total bytes:       22571640
+AgFlow,INFO   ,    0,allocating ws_raster_flag_outlet bytes:         252980; total bytes:       22824620
+AgFlow,INFO   ,    0,allocating ws_raster_flag_sink bytes:         252980; total bytes:       23077600
+AgFlow,INFO   ,    0,allocating ws_raster_flag_source bytes:         252980; total bytes:       23330580
+AgFlow,INFO   ,    0,allocating ws_raster_flag_thalweg bytes:         252980; total bytes:       23583560
+AgFlow,INFO   ,    0,allocating ws_raster_flag_watershed bytes:         252980; total bytes:       23836540
+AgFlow,INFO   ,    0,allocating ws_raster_flow_vector bytes:         252980; total bytes:       24089520
+AgFlow,INFO   ,    0,allocating ws_raster_LS_factor bytes:        1011920; total bytes:       25101440
+AgFlow,INFO   ,    0,allocating ws_raster_num_flow_paths bytes:         252980; total bytes:       25354420
+AgFlow,INFO   ,    0,allocating ws_raster_num_LS_sums bytes:         252980; total bytes:       25607400
+AgFlow,INFO   ,    0,allocating ws_raster_num_current_uparea_rasters bytes:        1011920; total bytes:       26619320
+AgFlow,INFO   ,    0,allocating ws_raster_num_uparea_rasters bytes:        1011920; total bytes:       27631240
+AgFlow,INFO   ,    0,allocating ws_raster_rec_col bytes:        1011920; total bytes:       28643160
+AgFlow,INFO   ,    0,allocating ws_raster_rec_row bytes:        1011920; total bytes:       29655080
+AgFlow,INFO   ,    0,allocating ws_raster_slope_land bytes:        1011920; total bytes:       30667000
+AgFlow,INFO   ,    0,allocating ws_raster_slope_LS bytes:        1011920; total bytes:       31678920
+AgFlow,INFO   ,    0,allocating ws_raster_slope_thalweg bytes:        1011920; total bytes:       32690840
+AgFlow,INFO   ,    0,allocating ws_raster_subarea_id bytes:        1011920; total bytes:       33702760
+AgFlow,INFO   ,    0,allocating ws_raster_sum_upstream_LS bytes:        1011920; total bytes:       34714680
+AgFlow,INFO   ,    0,initializing watershed arrays
+AgFlow,INFO   ,    0,The raster with a cell ID of: 24 at row number: 222 & column number: 2
+AgFlow,INFO   ,    0,has the watershed outlet as its receiving raster.
+AgFlow,INFO   ,    0,done transferring DEM attributes to circumscribed watershed array
+AgFlow,INFO   ,    0,number watershed rasters within circumscribed watershed are:             116094
+AgFlow,INFO   ,    0,number non-watershed rasters within circumscribed watershed are:         136886
+AgFlow,INFO   ,    0,total number rasters within circumscribed watershed are:                 252980
+AgFlow,INFO   ,    0,number of rasters within the watershed are:                116094
+AgFlow,INFO   ,    0,number of outlet rasters within the watershed are:              1
+AgFlow,INFO   ,    0,number of sink rasters within the watershed are:                0
+AgFlow,INFO   ,    0,number of source rasters within the watershed are:          34025
+AgFlow,INFO   ,    0,number of rasters with 1 flow paths into it are:            54551
+AgFlow,INFO   ,    0,number of rasters with 2 flow paths into it are:            21514
+AgFlow,INFO   ,    0,number of rasters with 3 flow paths into it are:             5604
+AgFlow,INFO   ,    0,number of rasters with 4 flow paths into it are:              297
+AgFlow,INFO   ,    0,number of rasters with 5 flow paths into it are:              103
+AgFlow,INFO   ,    0,number of rasters with 6 flow paths into it are:                0
+AgFlow,INFO   ,    0,number of rasters with 7 flow paths into it are:                0
+AgFlow,INFO   ,    0,number of rasters with 8 flow paths into it are:                0
+AgFlow,INFO   ,    0,number of rasters with 9 flow paths into it are:                0
+AgFlow,INFO   ,    0,number of nonsource watershed rasters are:                  82069
+AgFlow,INFO   ,    0,number of circumscribed non-watershed rasters are:         136886
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: Watershed_Rasters
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec  21 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 320 ms
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: Watershed_Subareas
+AgFlow,INFO   ,    0,Determining number of subareas in the watershed
+AgFlow,INFO   ,    0,maximum possible number of subareas is      :      4
+AgFlow,INFO   ,    0,++++ determining the existence of source, leftside, rightside, &
+AgFlow,INFO   ,    0,total number of rasters in the watershed is :         116094
+AgFlow,INFO   ,    0,total number of cells in the watershed is   :        8
+AgFlow,INFO   ,    0,total number of reaches in the watershed is :        4
+AgFlow,INFO   ,    0,total number of subareas in the watershed is:        4
+AgFlow,INFO   ,    0,reassigning channel raster cell IDs to same subarea, upland cell IDs
+AgFlow,INFO   ,    0,Opened projection output file: AnnAGNPS_Cell_IDs.PRJ
+AgFlow,INFO   ,    0,Opened projection output file: AnnAGNPS_Reach_IDs.PRJ
+AgFlow,INFO   ,    0,total number of channel rasters     :            423
+AgFlow,INFO   ,    0,number of channel rasters reassigned:            423
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: Watershed_Subareas
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec  28 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 348 ms
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: LS_Factor_Raster
+AgFlow,INFO   ,    0,Calculating the LS-factor for each raster
+AgFlow,INFO   ,    0,Number of rasters within the watershed are:                                  116094
+AgFlow,INFO   ,    0,Number of watershed outlet rasters within the watershed are:                      1
+AgFlow,INFO   ,    0,Number of source rasters within the watershed are:                            34025
+AgFlow,INFO   ,    0,Number of nonsource watershed rasters within the watershed are:               82069
+AgFlow,INFO   ,    0,Number of rasters upstream of the watershed outlet are:                      116093
+AgFlow,INFO   ,    0,Number of upstream rasters summed at the watershed outlet are:               116093
+AgFlow,INFO   ,    0,Opened projection output file: AgFlow_LS_Factor.PRJ
+AgFlow,INFO   ,    0,Finished calculating the LS-factor for each raster
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: LS_Factor_file_dat
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec  54 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 402 ms
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: Watershed_Cells
+AgFlow,INFO   ,    0,Creating the cell ID array and cells' average elevation, land slope, LS-Factor, and aspect
+AgFlow,INFO   ,    0,Creating watershed's cell ID array
+AgFlow,INFO   ,    0,Locating cell ID index for each raster
+AgFlow,INFO   ,    0,total number watershed rasters is:         116094
+AgFlow,INFO   ,    0,total drainage area is:     11.61
+AgFlow,INFO   ,    0,Determining cells' average elevation, land slope, LS-factor, and aspect
+AgFlow,INFO   ,    0,Determining cells' aspect correlation
+AgFlow,INFO   ,    0,Finished creating the cell ID array and cells' average elevation, land slope, LS-Factor, and aspect
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: Watershed_Cells
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   8 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 410 ms
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: Tc_Flow_Path
+AgFlow,INFO   ,    0,Calculating the hydraulically most distant flow path for each cell.
+AgFlow,INFO   ,    0,Finding each cell's hydraulic most distant raster
+AgFlow,INFO   ,    0,Opened projection output file: AgFlow_Cell_Longest_Flow_Path.PRJ
+AgFlow,INFO   ,    0,Finished finding each cell's hydraulic most distant raster
+AgFlow,INFO   ,    0,Determining the slope & length of each Tc profile segment
+AgFlow,INFO   ,    0,Finished determining the slope & length of each Tc profile segment
+AgFlow,INFO   ,    0,Finished calculating the hydraulically most distant flow path for each cell.
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: Tc_Flow_Path
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec  33 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 443 ms
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: Watershed_Reaches
+AgFlow,INFO   ,    0,Determining up- & downstream reach rasters
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   0 ms
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   0 ms
+AgFlow,INFO   ,    0,total number of channel rasters is:            423
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   1 ms
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   1 ms
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   1 ms
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   1 ms
+AgFlow,INFO   ,    0,Finished determining up- & downstream reach rasters
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: Watershed_Reaches
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   1 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 444 ms
+AgFlow,INFO   ,    0,***********  Executing 'AnnAGNPS_Subarea_Report'
+AgFlow,INFO   ,    0,Calculating subarea statistics
+AgFlow,INFO   ,    0,Calculating each subarea's average LS-factors & its slope
+AgFlow,INFO   ,    0,Setting flags for presence of source, left, & right side cells
+AgFlow,INFO   ,    0,Writing subarea report
+AgFlow,INFO   ,    0,Finished calculating subarea statistics
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: AnnAGNPS_Subarea_Report
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   2 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 446 ms
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: AnnAGNPS_Cell_Data
+AgFlow,INFO   ,    0,Writing AnnAGNPS cell data output in fixed-format.
+AgFlow,INFO   ,    0,Each raster's flow vector slope was used to calculate the raster's LS-factor prior to determining its respective cell's average LS-factor.
+AgFlow,INFO   ,    0,Each raster along its respective cell's hydraulically most distant path used the raster's flow vector slope to calculate the cell's TC profile segment slope & lengths.
+AgFlow,INFO   ,    0,Each raster's terrain slope was used to calculate its respective cell's average land slope.
+AgFlow,INFO   ,    0,Orphan raster code:  F-means that no orphan channel raster(s) are involved for this cell ID;
+AgFlow,INFO   ,    0,Orphan raster code:  T-means that orphan channel raster(s) make up this cell.  The entire subarea for this new cell ID is made up of reassigned channel raster(s) to a rightside cell whose subarea did not previously have any rasters that were assigned to any related source, right-, or leftside cells.
+AgFlow,INFO   ,    0,Finished writing AnnAGNPS cell data output in fixed-format.
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: AnnAGNPS_Cell_Data
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   3 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 449 ms
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: AnnAGNPS_Cell_Data_csv
+AgFlow,INFO   ,    0,Writing AnnAGNPS cell data output in csv-format.
+AgFlow,INFO   ,    0,Finished writing AnnAGNPS cell data output in csv-format.
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: AnnAGNPS_Cell_Data_csv
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   0 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 449 ms
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: AnnAGNPS_Reach_Data
+AgFlow,INFO   ,    0,Writing AnnAGNPS reach data output in fixed-format.
+AgFlow,INFO   ,    0,The channel raster's flow vector slopes within each reach were used to calculate the respective reach slope.
+AgFlow,INFO   ,    0,Finished writing AnnAGNPS reach data output in fixed-format.
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: AnnAGNPS_Reach_Data
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   2 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 451 ms
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: AnnAGNPS_Reach_Data_csv
+AgFlow,INFO   ,    0,Writing AnnAGNPS reach data output in csv-format.
+AgFlow,INFO   ,    0,Finished writing AnnAGNPS reach data output in csv-format.
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: AnnAGNPS_Reach_Data_csv
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   1 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 452 ms
+AgFlow,INFO   ,    0,*** BEGIN SUBROUTINE: AgFlow_Cell-Reach_Coordinates
+AgFlow,INFO   ,    0,Finished AgFlow_Cell-Reach_Coordinates
+AgFlow,INFO   ,    0,*** FINISHED SUBROUTINE: AgFlow_Cell-Reach_Coordinates
+AgFlow,INFO   ,    0,Incremental Lapse Time :   0 hr    0 min   0 sec   0 ms
+AgFlow,INFO   ,    0,Accumulative Lapse Time:   0 hr    0 min   0 sec 452 ms
+AgFlow,INFO   , 1003,Completed module "AgFlow"
+AgFlow,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:09 - Module: AgFlow: End
+AgFlow,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          5  ---  Incremental lapse time (seconds):          0
+CONCEPTS,INFO   , 1003,Executing module "CONCEPTS"
+CONCEPTS,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:09 - Module: CONCEPTS: Start
+CONCEPTS,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          5  ---  Incremental lapse time (seconds):          0
+CONCEPTS,INFO   ,    0,Beginning Module Execution:  CONCEPTS             64-bit execution
+CONCEPTS,INFO   ,    0,Checking existence of CONCEPTS input files:
+CONCEPTS,WARNING, 2001,The required input file "CONCEPTS.CSV" nor "CONCEPTS.XML" was not found in the executable path. Skipping execution of CONCEPTS.
+CONCEPTS,INFO   ,    0,Closing all files...
+CONCEPTS,INFO   ,    0,Finished closing all input and output CONCEPTS files.
+CONCEPTS,INFO   ,    0,Completed Module Execution:  CONCEPTS             64-bit execution
+CONCEPTS,INFO   , 1003,Completed module "CONCEPTS"
+CONCEPTS,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:10 - Module: CONCEPTS: End
+CONCEPTS,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          6  ---  Incremental lapse time (seconds):          1
+PEG,INFO   , 1003,Executing module "PEG"
+PEG,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:10 - Module: PEG: Start
+PEG,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          6  ---  Incremental lapse time (seconds):          0
+PEG,INFO   ,    0,Beginning Module Execution:  PEG             64-bit execution
+PEG,INFO   ,    0,Checking existence of input files:
+PEG,WARNING, 2001,The required input file "PEG.CSV" nor "PEG.XML" was not found in the executable path. Skipping execution of PEG.
+PEG,INFO   ,    0,Closing all PEG files...
+PEG,INFO   ,    0,Finished closing all input and output PEG files.
+PEG,INFO   ,    0,Completed Module Execution:  PEG             64-bit execution
+PEG,INFO   , 1003,Completed module "PEG"
+PEG,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:11 - Module: PEG: End
+PEG,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          7  ---  Incremental lapse time (seconds):          1
+AgBuf,INFO   , 1003,Executing module "AgBuf"
+AgBuf,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:11 - Module: AgBuf: Start
+AgBuf,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          7  ---  Incremental lapse time (seconds):          0
+AgBuf,INFO   ,    0,Beginning Module Execution:  AgBuf             64-bit execution
+AgBuf,INFO   ,    0,Checking existence of AgBuf input files:
+AgBuf,WARNING, 2001,The required input file "AGBUF.CSV" nor "AGBUF.XML" was not found in the executable path. Skipping execution of AgBuf.
+AgBuf,INFO   ,    0,Closing all files...
+AgBuf,INFO   ,    0,Finished closing all input and output AgBuf files.
+AgBuf,INFO   ,    0,Completed Module Execution:  AgBuf             64-bit execution
+AgBuf,INFO   , 1003,Completed module "AgBuf"
+AgBuf,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:12 - Module: AgBuf: End
+AgBuf,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          8  ---  Incremental lapse time (seconds):          1
+AgWet,INFO   , 1003,Executing module "AgWet"
+AgWet,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:12 - Module: AgWet: Start
+AgWet,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          8  ---  Incremental lapse time (seconds):          0
+AgWet,INFO   ,    0,Beginning Module Execution:  AgWet             64-bit execution
+AgWet,INFO   ,    0,Checking existence of AgWet input files:
+AgWet,WARNING, 2001,The required input file "AGWET.CSV" nor "AGWET.XML" was not found in the executable path. Skipping execution of AgWet.
+AgWet,INFO   ,    0,Closing all files...
+AgWet,INFO   ,    0,Finished closing all input and output files.
+AgWet,INFO   ,    0,Completed Module Execution:  AgWet             64-bit execution
+AgWet,INFO   , 1003,Completed module "AgWet"
+AgWet,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:13 - Module: AgWet: End
+AgWet,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          9  ---  Incremental lapse time (seconds):          1
+Pothole,INFO   , 1003,Executing module "Pothole"
+Pothole,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:13 - Module: Pothole: Start
+Pothole,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):          9  ---  Incremental lapse time (seconds):          0
+Pothole,INFO   ,    0,Beginning Module Execution:  Pothole             64-bit execution
+Pothole,INFO   ,    0,Checking existence of Pothole input files:
+Pothole,WARNING, 2001,The required input file "POTHOLE.CSV" nor "POTHOLE.XML" was not found in the executable path. Skipping execution of Pothole.
+Pothole,INFO   ,    0,Closing all files...
+Pothole,INFO   ,    0,Finished closing all input and output files.
+Pothole,INFO   ,    0,Completed Module Execution:  Pothole             64-bit execution
+Pothole,INFO   , 1003,Completed module "Pothole"
+Pothole,INFO   ,    0,EXECUTION LAPSE TIME: 10:17:14 - Module: Pothole: End
+Pothole,INFO   ,    0,Accumulative lapse time from beginning of execution (seconds):         10  ---  Incremental lapse time (seconds):          1
+TopAGNPS,INFO   ,    0,Completed TopAGNPS Execution:
+TopAGNPS,INFO   ,    0,EXECUTION END DATE: 07/31/2023
+TopAGNPS,INFO   ,    0,EXECUTION END TIME: 10:17:14 - Module: TopAGNPS
+TopAGNPS,INFO   ,    0,Total time in execution (seconds):      10
+TopAGNPS,INFO   , 1003,Executing module "TopAGNPS_Clean_Up"
+TopAGNPS,INFO   ,    0,File "NTWINT.FIL" reports a filesize of "             2003000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "NTWINT.FIL"
+TopAGNPS,INFO   ,    0,File "BOUND.OUT" reports a filesize of "             1002000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "BOUND.OUT"
+TopAGNPS,INFO   ,    0,File "DEPFLT.OUT" reports a filesize of "             1002000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "DEPFLT.OUT"
+TopAGNPS,INFO   ,    0,File "DISCHA.OUT" reports a filesize of "             2003000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "DISCHA.OUT"
+TopAGNPS,INFO   ,    0,File "DISOUT.OUT" reports a filesize of "             2003000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "DISOUT.OUT"
+TopAGNPS,INFO   ,    0,File "ELDCHA.OUT" reports a filesize of "             3504500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "ELDCHA.OUT"
+TopAGNPS,INFO   ,    0,File "ELDOUT.OUT" reports a filesize of "             4005000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "ELDOUT.OUT"
+TopAGNPS,INFO   ,    0,File "ELVCLA.OUT" reports a filesize of "             4505500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "ELVCLA.OUT"
+TopAGNPS,INFO   ,    0,File "FILDEP.OUT" reports a filesize of "             4505500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "FILDEP.OUT"
+TopAGNPS,INFO   ,    0,File "FLOPAT.OUT" reports a filesize of "             1002000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "FLOPAT.OUT"
+TopAGNPS,INFO   ,    0,File "FLOVEC.OUT" reports a filesize of "             1002000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "FLOVEC.OUT"
+TopAGNPS,INFO   ,    0,File "FVASPE.OUT" reports a filesize of "             2003000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "FVASPE.OUT"
+TopAGNPS,INFO   ,    0,File "FVSLOP.OUT" reports a filesize of "             3504500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "FVSLOP.OUT"
+TopAGNPS,INFO   ,    0,File "HSLOPE.OUT" reports a filesize of "             3504500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "HSLOPE.OUT"
+TopAGNPS,INFO   ,    0,File "INDTAR.OUT" reports a filesize of "             1002000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "INDTAR.OUT"
+TopAGNPS,INFO   ,    0,File "INELEV.OUT" reports a filesize of "             4505500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "INELEV.OUT"
+TopAGNPS,INFO   ,    0,File "NETFUL.OUT" reports a filesize of "             1002000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "NETFUL.OUT"
+TopAGNPS,INFO   ,    0,File "NETW.OUT" reports a filesize of "             1002000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "NETW.OUT"
+TopAGNPS,INFO   ,    0,File "NTGCOD.OUT" reports a filesize of "             1002000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "NTGCOD.OUT"
+TopAGNPS,INFO   ,    0,File "NTGCSA.OUT" reports a filesize of "             2503500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "NTGCSA.OUT"
+TopAGNPS,INFO   ,    0,File "NTGSCL.OUT" reports a filesize of "             2503500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "NTGSCL.OUT"
+TopAGNPS,INFO   ,    0,File "RELIEF.OUT" reports a filesize of "             4505500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "RELIEF.OUT"
+TopAGNPS,INFO   ,    0,File "SMOOTH.OUT" reports a filesize of "                   0" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "SMOOTH.OUT"
+TopAGNPS,INFO   ,    0,File "SUBWTA.OUT" reports a filesize of "             1502500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "SUBWTA.OUT"
+TopAGNPS,INFO   ,    0,File "TASPEC.OUT" reports a filesize of "             2003000" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "TASPEC.OUT"
+TopAGNPS,INFO   ,    0,File "TSLOPE.OUT" reports a filesize of "             3504500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "TSLOPE.OUT"
+TopAGNPS,INFO   ,    0,File "UPAREA.OUT" reports a filesize of "             3504500" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "UPAREA.OUT"
+TopAGNPS,INFO   ,    0,File "CATWIN.TAB" reports a filesize of "                   0" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "CATWIN.TAB"
+TopAGNPS,INFO   ,    0,File "ELVBND.TAB" reports a filesize of "                2379" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "ELVBND.TAB"
+TopAGNPS,INFO   ,    0,File "NETW.TAB" reports a filesize of "                   0" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "NETW.TAB"
+TopAGNPS,INFO   ,    0,File "SBCT.TAB" reports a filesize of "                   0" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "SBCT.TAB"
+TopAGNPS,INFO   ,    0,File "OUTCAT.UNF" reports a filesize of "                4720" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "OUTCAT.UNF"
+TopAGNPS,INFO   ,    0,File "OUTCHA.UNF" reports a filesize of "                1092" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "OUTCHA.UNF"
+TopAGNPS,INFO   ,    0,File "OUTCNT.UNF" reports a filesize of "                 804" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "OUTCNT.UNF"
+TopAGNPS,INFO   ,    0,File "FlowGraf.rpt" reports a filesize of "                  14" bytes.
+TopAGNPS,INFO   ,    0,Successfully deleted file "FlowGraf.rpt"
+TopAGNPS,INFO   , 1003,Completed module "TopAGNPS_Clean_Up"
+TopAGNPS,INFO   ,    0,Opened status file: TopAGNPS_status.CSV
+TopAGNPS,INFO   ,    0,Status reported as: Normal; Warnings
+TopAGNPS,INFO   , 1003,*** ENDING EXECUTION: TopAGNPS v6.00.a.024_2023.07.17  64-bit execution ***

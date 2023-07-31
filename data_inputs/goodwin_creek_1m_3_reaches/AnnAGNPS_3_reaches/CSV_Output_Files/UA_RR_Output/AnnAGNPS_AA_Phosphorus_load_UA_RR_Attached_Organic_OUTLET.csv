@@ -1,9 +1,0 @@
-Description,Reach_ID,Reach_Location,Total_Load_by_Mass_kg_per_yr,Cell_ID,Rank,Cell_Drainage_Area_hectare,Accumulated_Contributing_Cell_Area_percent,Cell_Load_by_Unit_Area_kg_per_hectare_per_year,Load_Unit_Area_Ranking_Ratio,Cell_Load_by_Mass_kg_per_yr,Cell_Load_by_Mass_percent,Accumulated_Contributing_Cell_Load_percent
-Phosphorus_Attached_Organic,OUTLET,,329.660,43,1,30.250,13.78,2.476,1.649,74.907,22.72,22.72
-Phosphorus_Attached_Organic,OUTLET,,329.660,33,2,33.090,28.85,1.999,1.331,66.131,20.06,42.78
-Phosphorus_Attached_Organic,OUTLET,,329.660,32,3,9.370,33.12,1.882,1.253,17.638,5.35,48.13
-Phosphorus_Attached_Organic,OUTLET,,329.660,42,4,14.910,39.91,1.845,1.228,27.503,8.34,56.48
-Phosphorus_Attached_Organic,OUTLET,,329.660,22,5,37.540,57.02,1.801,1.199,67.612,20.51,76.99
-Phosphorus_Attached_Organic,OUTLET,,329.660,23,6,30.540,70.93,1.332,0.887,40.685,12.34,89.33
-Phosphorus_Attached_Organic,OUTLET,,329.660,41,7,30.170,84.67,1.164,0.775,35.113,10.65,99.98
-Phosphorus_Attached_Organic,OUTLET,,329.660,31,8,33.650,100.00,0.002,0.001,0.072,0.02,100.00
