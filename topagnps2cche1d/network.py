@@ -1,4 +1,4 @@
-from tools import dfs_iterative_postorder
+from topagnps2cche1d.tools import dfs_iterative_postorder
 import pandas as pd
 
 class Node:
@@ -62,6 +62,14 @@ class System:
             else:
                 connectivity_dict[receiving_reach_id].append(reach_id)
 
+        del connectivity_dict[None] # delete the "None" downtream reach of root
+
+        # # Remove reaches that are ignored 
+        # # (they are kept if they are upstream of a reach that is not ignored)
+        # for id, reach in self.reaches.items():
+        #     if reach.ignore:
+        #         del connectivity_dict[id]
+
         self.connectivity_dict = connectivity_dict
 
     def find_root_reach(self):
@@ -75,12 +83,24 @@ class System:
         for reach_id in self.reaches.keys():
             if reach_id not in all_upstream_reaches:
                 return reach_id
+            
+    def get_ignored_reaches_id(self):
+        reaches = self.reaches
+        ignored_reaches = []
+        for id, reach in reaches.items():
+            if reach.ignore:
+                ignored_reaches.append(id)
 
+        return ignored_reaches
+    
+    def keep_all_reaches(self):
+        reaches = self.reaches
+        for reach in reaches.values():
+            reach.ignore = True
 
     def assign_strahler_number_to_reaches(self):
-        # def compute_
 
-        reaches = self.reaches()
+        reaches = self.reaches
 
         connectivity_dict = self.connectivity_dict
         
