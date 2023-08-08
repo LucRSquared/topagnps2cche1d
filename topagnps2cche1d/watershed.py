@@ -29,13 +29,11 @@ class Watershed:
                 reach_id = int(row['Reach_ID'])
             except:
                 reach_id = row['Reach_ID']
-                print('create_reaches_from_df', 'reach_id:', reach_id)
 
             try:
                 receiving_reach_id = int(row['Receiving_Reach'])
             except:
                 receiving_reach_id = row['Receiving_Reach']
-                print('create_reaches_from_df', 'receiving_reach_id:', receiving_reach_id)
 
             try:
                 slope = row['Slope']
