@@ -25,13 +25,23 @@ class Watershed:
         containing a "Reach_ID" and "Receiving_Reach" column 
         """
         for _, row in df.iterrows():
-            reach_id           = row['Reach_ID']
-            receiving_reach_id = row['Receiving_Reach']
+            try:
+                reach_id = int(row['Reach_ID'])
+            except:
+                reach_id = row['Reach_ID']
+                print('create_reaches_from_df', 'reach_id:', reach_id)
+
+            try:
+                receiving_reach_id = int(row['Receiving_Reach'])
+            except:
+                receiving_reach_id = row['Receiving_Reach']
+                print('create_reaches_from_df', 'receiving_reach_id:', receiving_reach_id)
+
             try:
                 slope = row['Slope']
             except:
                 slope = None
-                
+
             self.add_reach(Reach(id=reach_id,
                                  receiving_reach_id=receiving_reach_id,
                                  slope=slope))
