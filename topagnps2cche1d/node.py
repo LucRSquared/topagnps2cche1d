@@ -1,4 +1,7 @@
-class Node:
+from topagnps2cche1d.reach import Reach
+
+
+class Node(Reach):
     def __init__(
         self,
         id,
@@ -9,6 +12,8 @@ class Node:
         computeid=None,
         x=None,
         y=None,
+        row=None,
+        col=None,
     ):
         self.id = id
         self.type = type
@@ -18,3 +23,5 @@ class Node:
         self.computeid = computeid
         self.x = x
         self.y = y
+        self.row = row
+        self.col = col

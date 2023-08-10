@@ -1,14 +1,16 @@
 import warnings
-import copy
 import networkx as nx
 from topagnps2cche1d.tools import (
     custom_dfs_traversal_sorted_predecessors,
     read_esri_asc_file,
     read_agflow_reach_data,
     read_reach_data_section,
+    find_extremities_binary,
+    get_intermediate_nodes_img,
 )
-from topagnps2cche1d import Reach
+from topagnps2cche1d import Reach, Node
 import pandas as pd
+import numpy as np
 
 
 class Watershed:
@@ -18,7 +20,204 @@ class Watershed:
         self.current_graph = None
 
     def add_reach(self, reach):
+        """
+        Add a reach to the watershed
+        """
         self.reaches[reach.id] = reach
+
+    def import_topagnps_reaches_network(self, path_reach_data_section):
+        """
+        Imports information from "AnnAGNPS_Reach_Data_Section.csv" file produced by TopAGNPS
+        and adds to Watershed
+        """
+        df = read_reach_data_section(path_reach_data_section)
+
+        self._create_reaches_from_df(df)
+
+        self.update_graph()
+
+        self.assign_strahler_number_to_reaches()
+
+    def update_graph(self):
+        """Replaces the connectivity dict by a NetworkX DiGraph
+        Creates a fully connected graph from all the reaches that are in the watershed
+        And then creates a subgraph -- current_graph from the reaches that are not ignored
+        """
+        reaches = self.reaches
+
+        full_graph = nx.DiGraph()
+
+        edges_full = []
+        for reach_id, reach in reaches.items():
+            if reach.receiving_reach_id is None:
+                continue
+            edges_full.append((reach_id, reach.receiving_reach_id))
+
+        full_graph.add_edges_from(edges_full)
+
+        ignored_reaches = set()
+        for reach_id, reach in reaches.items():
+            if reach.ignore:
+                # set all upstream reaches to ignore
+                for ancestor_reach_id in nx.ancestors(full_graph, reach_id):
+                    reaches[ancestor_reach_id].ignore_reach()
+                    ignored_reaches.add(ancestor_reach_id)
+
+        kept_reaches = set(full_graph.nodes) - ignored_reaches
+        current_graph = full_graph.subgraph(kept_reaches)
+
+        self.full_graph = full_graph
+        self.current_graph = current_graph
+
+    def keep_all_reaches(self):
+        """
+        This function sets all the reaches in the watershed to non ignored
+        """
+        reaches = self.reaches
+        for reach in reaches.values():
+            reach.ignore = False
+
+    def ignore_reaches_with_strahler_leq(self, strahler_threshold=0):
+        """
+        Ignore reaches with Strahler Number less than a given threshold
+        """
+        self.keep_all_reaches()
+        for reach in self.reaches.values():
+            if reach.strahler_number <= strahler_threshold:
+                reach.ignore_reach()
+
+    def assign_strahler_number_to_reaches(self, mode="fully_connected"):
+        """
+        Assign Strahler number to reaches in the system according to the connectivity dict.
+        mode: 'fully_connected' (mode) -> Uses the fully connected network
+              'current' -> Uses the current connectivity dict taking into account ignored reaches
+        """
+
+        reaches = self.reaches
+
+        if mode == "fully_connected":
+            graph = self.full_graph
+        elif mode == "current":
+            graph = self.current_graph
+        else:
+            warnings.warn(
+                "Invalid mode to assign strahler number -> Using 'fully_connected' by default"
+            )
+            graph = self.full_graph
+
+        # optimizing the order of reaches processed by using DFS algorithm
+        queue = custom_dfs_traversal_sorted_predecessors(
+            graph, start=None, visit_descending_order=True, postorder=True
+        )
+
+        # Process the queue
+        while queue:
+            current_id = queue.pop(0)  # take the first element
+            current_reach = reaches[current_id]
+
+            if graph.in_degree(current_id) == 0:
+                # reach is at the most upstream end
+                current_reach.strahler_number = 1
+                continue
+
+            # get list of upstream reaches
+            upstream_reaches_strahler = [
+                reaches[id].strahler_number for id in graph.predecessors(current_id)
+            ]
+
+            if None in upstream_reaches_strahler:
+                # undetermined case, keep current_reach in queue
+                queue.append(current_id)
+                continue
+            else:
+                max_strahler = max(upstream_reaches_strahler)
+                count_max_strahler = upstream_reaches_strahler.count(max_strahler)
+
+                if count_max_strahler >= 2:
+                    current_reach.strahler_number = max_strahler + 1
+                else:
+                    current_reach.strahler_number = max_strahler
+
+    def read_reaches_geometry_from_topagnps_asc_file(self, path_to_asc_file):
+        """
+        - This function takes as input the "AnnAGNPS_Reach_IDs.asc" file and adds to the watershed
+          the gdal geomatrix
+        - For every raster being a part of a reach it adds a node to the corresponding reach
+        """
+        img_reach_asc, geomatrix, _, _, nodataval_reach_asc, _ = read_esri_asc_file(
+            path_to_asc_file
+        )
+        # raster_size = abs(geomatrix[1])
+
+        self.geomatrix = geomatrix
+
+        reaches = self.reaches
+
+        nd_counter = 0
+
+        # Get list of reach ids (excluding nodataval_reach_asc = 0 typically)
+        mask_no_data = img_reach_asc == nodataval_reach_asc
+        list_of_reaches_in_raster = np.unique(img_reach_asc[~mask_no_data]).astype(int)
+
+        for reach_id in list_of_reaches_in_raster:
+            reach_img = np.where(img_reach_asc == reach_id, 1, 0)
+            # at this point we don't know if the start and end are the upstream and downstream
+            extremities = find_extremities_binary(
+                reach_img, output_index_starts_one=False
+            )
+            if len(extremities) == 1:
+                # Case where the reach is only one pixel
+                rowcol = extremities[0]
+                nd_counter += 1
+                reaches[reach_id].add_node(
+                    Node(id=nd_counter, row=rowcol[0], col=rowcol[1])
+                )
+                continue
+            elif len(extremities) == 2:
+                startrowcol, endrowcol = extremities
+            else:
+                raise Exception(
+                    f"Invalid reach {reach_id} in raster, more than 2 extremities"
+                )
+
+            reach_skel_rowcols = get_intermediate_nodes_img(
+                startrowcol, endrowcol, reach_img
+            )
+
+            for k, pixel_rowcol in enumerate(reach_skel_rowcols, 1):
+                nd_counter += 1
+                if k == 1:
+                    # start node
+                    reaches[reach_id].add_node(
+                        Node(
+                            id=nd_counter,
+                            usid=None,
+                            dsid=nd_counter + 1,
+                            row=pixel_rowcol[0],
+                            col=pixel_rowcol[1],
+                        )
+                    )
+                elif k == len(reach_skel_rowcols):
+                    # end node
+                    reaches[reach_id].add_node(
+                        Node(
+                            id=nd_counter,
+                            usid=nd_counter - 1,
+                            dsid=None,
+                            row=pixel_rowcol[0],
+                            col=pixel_rowcol[1],
+                        )
+                    )
+                else:  # middle nodes
+                    reaches[reach_id].add_node(
+                        Node(
+                            id=nd_counter,
+                            usid=nd_counter - 1,
+                            dsid=nd_counter + 1,
+                            row=pixel_rowcol[0],
+                            col=pixel_rowcol[1],
+                        )
+                    )
 
     def _create_reaches_from_df(self, df):
         """
@@ -57,124 +256,3 @@ class Watershed:
         )
         for only_receiving_reach in only_receiving_reaches:
             self.add_reach(Reach(id=only_receiving_reach))
-
-    def import_topagnps_reaches_network(self, path_reach_data_section):
-        """
-        Imports information from "AnnAGNPS_Reach_Data_Section.csv" file produced by TopAGNPS
-        and adds to Watershed
-        """
-        df = read_reach_data_section(path_reach_data_section)
-
-        self._create_reaches_from_df(df)
-
-        self.update_graph()
-
-        self.assign_strahler_number_to_reaches()
-
-    def update_graph(self):
-        """Replaces the connectivity dict by a NetworkX DiGraph
-        Creates a fully connected graph from all the reaches that are in the watershed
-        And then creates a subgraph -- current_graph from the reaches that are not ignored
-        """
-        reaches = self.reaches
-
-        full_graph = nx.DiGraph()
-
-        edges_full = []
-        for reach_id, reach in reaches.items():
-            if reach.receiving_reach_id is None:
-                continue
-            edges_full.append((reach_id, reach.receiving_reach_id))
-
-        full_graph.add_edges_from(edges_full)
-
-        # current_graph = full_graph.copy()
-        ignored_reaches = set()
-        for reach_id, reach in reaches.items():
-            if reach.ignore:
-                # set all upstream reaches to ignore
-                for ancestor_reach_id in nx.ancestors(full_graph, reach_id):
-                    reaches[ancestor_reach_id].ignore_reach()
-                    ignored_reaches.add(ancestor_reach_id)
-
-        kept_reaches = set(full_graph.nodes) - ignored_reaches
-        current_graph = full_graph.subgraph(kept_reaches)
-
-        self.full_graph = full_graph
-        self.current_graph = current_graph
-
-    def get_ignored_reaches_id(self):
-        reaches = self.reaches
-        ignored_reaches = []
-        for id, reach in reaches.items():
-            if reach.ignore:
-                ignored_reaches.append(id)
-
-        return ignored_reaches
-
-    def keep_all_reaches(self):
-        reaches = self.reaches
-        for reach in reaches.values():
-            reach.ignore = False
-
-    def ignore_reaches_with_strahler_leq(self, strahler_threshold=0):
-        """
-        Ignore reaches with Strahler Number less than a given threshold
-        """
-        self.keep_all_reaches()
-        for reach in self.reaches.values():
-            if reach.strahler_number <= strahler_threshold:
-                reach.ignore_reach()
-
-    def assign_strahler_number_to_reaches(self, mode="fully_connected"):
-        """
-        Assign Strahler number to reaches in the system according to the connectivity dict.
-        mode: 'fully_connected' (mode) -> Uses the fully connected network
-              'current' -> Uses the current connectivity dict taking into account ignored reaches
-        """
-
-        reaches = self.reaches
-
-        if mode == "fully_connected":
-            graph = self.full_graph
-        elif mode == "current":
-            graph = self.current_graph
-        else:
-            warnings.warn(
-                "Invalid mode to assign strahler number -> Using 'fully_connected' by default"
-            )
-            graph = self.full_graph
-
-        # optimizing the order of reaches processed by using DFS algorithm
-        queue = custom_dfs_traversal_sorted_predecessors(
-            graph, start=None, visit_descending_order=True, postorder=True
-        )
-        # queue = list(connectivity_dict.keys())
-
-        # Process the queue
-        while queue:
-            current_id = queue.pop(0)  # take the first element
-            current_reach = reaches[current_id]
-
-            if graph.in_degree(current_id) == 0:
-                # reach is at the most upstream end
-                current_reach.strahler_number = 1
-                continue
-
-            # get list of upstream reaches
-            upstream_reaches_strahler = [
-                reaches[id].strahler_number for id in graph.predecessors(current_id)
-            ]
-
-            if None in upstream_reaches_strahler:
-                # undetermined case, keep current_reach in queue
-                queue.append(current_id)
-                continue
-            else:
-                max_strahler = max(upstream_reaches_strahler)
-                count_max_strahler = upstream_reaches_strahler.count(max_strahler)
-
-                if count_max_strahler >= 2:
-                    current_reach.strahler_number = max_strahler + 1
-                else:
-                    current_reach.strahler_number = max_strahler

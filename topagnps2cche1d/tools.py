@@ -174,38 +174,35 @@ def assemble_agflow_reach_cche1d(df_agflow, df_top_cche1d, geoMatrix, network=No
     return combined
 
 
-def find_extremities_binary(img):
+def find_extremities_binary(img, output_index_starts_one=False):
     # Find row and column locations that are non-zero
     (rows, cols) = np.nonzero(img)
 
-    # Get length of the path by counting the pixels
-    skel_length = len(rows)
-
-    # Initialize empty list of co-ordinates
-    skel_coords = []
+    # Initialize empty list of coordinates
+    extremities = []
 
     # For each non-zero pixel...
     for r, c in zip(rows, cols):
-        # Extract an 8-connected neighbourhood
-        (col_neigh, row_neigh) = np.meshgrid(
-            np.array([c - 1, c, c + 1]), np.array([r - 1, r, r + 1])
-        )
+        # Check if the current pixel is nonzero
+        if img[r, c] == 1:
+            # Extract an 8-connected neighborhood
+            neighborhood = img[
+                max(r - 1, 0) : min(r + 2, img.shape[0]),
+                max(c - 1, 0) : min(c + 2, img.shape[1]),
+            ]
 
-        # Cast to int to index into image
-        col_neigh = col_neigh.astype("int")
-        row_neigh = row_neigh.astype("int")
+            # Count the nonzero pixels in the neighborhood
+            num_nonzero = np.sum(neighborhood)
 
-        # Convert into a single 1D array and check for non-zero locations
-        pix_neighbourhood = img[row_neigh, col_neigh].ravel() != 0
+            # If the reach is a single pixel or more we append
+            if output_index_starts_one:
+                r += 1
+                c += 1
 
-        # If the number of non-zero locations equals 2, add this to
-        # our list of co-ordinates
-        if np.sum(pix_neighbourhood) == 2:
-            skel_coords.append((r, c))
-        elif np.sum(pix_neighbourhood) == 1:  # this is a one node reach
-            skel_coords.append((r, c))
+            if num_nonzero <= 2:
+                extremities.append((r, c))
 
-    return skel_coords, skel_length
+    return extremities
 
 
 def build_network(dfagflow, root=None):
@@ -1147,13 +1144,13 @@ def write_cche1d_dat_file(filename, df):
 
 
 def get_intermediate_nodes_img(usrowcol, dsrowcol, img_reach, rsize=1, distance=1):
-    # This function returns the pixel coordinates in sequential order from usrowcol (tuple)
-    # to dsrowcol (tuple) in a form of a list of tuples.
-    #
-    # It is assumed that the path does not contain loops or branches, just an 8-connected path
-    # It is also assumed that all data provided is 0-indexed
-    #
-    # The returned path also includes the beginning and end nodes
+    """
+    This function returns the pixel coordinates in sequential order from usrowcol (tuple)
+    to dsrowcol (tuple) in a form of a list of tuples.
+        It is assumed that the path does not contain loops or branches, just an 8-connected path
+    It is also assumed that all data provided is 0-indexed
+        The returned path also includes the beginning and end nodes
+    """
 
     img = np.copy(img_reach)
 
