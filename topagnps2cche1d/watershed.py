@@ -1,6 +1,7 @@
 import warnings
 import copy
-from topagnps2cche1d.tools import dfs_iterative_postorder
+import networkx as nx
+from topagnps2cche1d.tools import custom_dfs_traversal_sorted_predecessors
 from topagnps2cche1d import Reach
 import pandas as pd
 
@@ -9,6 +10,8 @@ class Watershed:
         self.reaches = {}
         self.all_reaches_connectivity_dict = {}
         self.current_connectivity_dict = {}
+        self.full_graph = None
+        self.current_graph = None
 
     def add_reach(self, reach):
         self.reaches[reach.id] = reach
@@ -17,23 +20,38 @@ class Watershed:
         """
         This function reads an "AnnAGNPS_Reach_Data_Section.csv" file produced by TopAGNPS
         """
-        return pd.read_csv(path_reach_data_section)
+        return pd.read_csv(path_reach_data_section, index_col=False)
+    
+    def _read_agflow_reach_data(self, path_agflow_reach_data):
+        """
+        This function reads an "AgFlow_Reach_Data.csv" file produced by TopAGNPS
+        """
+        return pd.read_csv(path_agflow_reach_data, index_col=False)
+    
+    def _read_cell_data_section(self, path_cell_data_section):
+        """
+        This function reads an "AnnAGNPS_Cell_Data_Section.csv" file produced by TopAGNPS
+        """
+        return pd.read_csv(path_cell_data_section, index_col=False)
     
     def _create_reaches_from_df(self, df):
         """
         This function add reaches to the watershed based on a DataFrame
         containing a "Reach_ID" and "Receiving_Reach" column 
         """
-        for _, row in df.iterrows():
+        def convert_to_int_when_possible(x):
             try:
-                reach_id = int(row['Reach_ID'])
+                return int(x)
             except:
-                reach_id = row['Reach_ID']
+                return x
+            
+        df['Reach_ID'] = df['Reach_ID'].apply(convert_to_int_when_possible)
+        df['Receiving_Reach'] = df['Receiving_Reach'].apply(convert_to_int_when_possible)
 
-            try:
-                receiving_reach_id = int(row['Receiving_Reach'])
-            except:
-                receiving_reach_id = row['Receiving_Reach']
+        for _, row in df.iterrows():
+
+            reach_id = row['Reach_ID']
+            receiving_reach_id = row['Receiving_Reach']
 
             try:
                 slope = row['Slope']
@@ -44,95 +62,56 @@ class Watershed:
                                  receiving_reach_id=receiving_reach_id,
                                  slope=slope))
             
+        # Find reaches that are in the Receiving_Reach column but not in the Reach_ID column
+        # and add them to the collection
+        only_receiving_reaches = set(df['Receiving_Reach'].to_list()) - set(df['Reach_ID'].to_list())
+        for only_receiving_reach in only_receiving_reaches:
+            self.add_reach(Reach(id=only_receiving_reach))
+            
     def import_topagnps_reaches_network(self, path_reach_data_section):
         """
         Imports information from "AnnAGNPS_Reach_Data_Section.csv" file produced by TopAGNPS
         and adds to Watershed
         """
         df = self._read_reach_data_section(path_reach_data_section)
+
         self._create_reaches_from_df(df)
-        self.update_connectivity()
 
-        # Find root_id because that reach is missing when importing df
-        root_id = self._find_root_reach(self.all_reaches_connectivity_dict)
+        self.update_graph()
 
-        if root_id not in self.reaches:
-            self.add_reach(Reach(id=root_id))
+        self.assign_strahler_number_to_reaches()    
 
-        self.assign_strahler_number_to_reaches()
+    def update_graph(self):
+        """ Replaces the connectivity dict by a NetworkX DiGraph
+        Creates a fully connected graph from all the reaches that are in the watershed
+        And then creates a subgraph -- current_graph from the reaches that are not ignored
+        """
+        reaches = self.reaches
 
+        full_graph = nx.DiGraph()
 
-    def _create_connectivity_dict(self):
-        connectivity_dict = {}
-
-        for reach_id, reach in self.reaches.items():
-            receiving_reach_id = reach.receiving_reach_id
-
-            if receiving_reach_id not in connectivity_dict:
-                connectivity_dict[receiving_reach_id] = [reach_id]
-            else:
-                connectivity_dict[receiving_reach_id].append(reach_id)
-        try:
-            del connectivity_dict[None]
-        except:
-            pass
-        
-        return connectivity_dict
-
-    def _find_ignored_reaches(self, connectivity_dict):
-        ignored_reaches = set()
-        for reach_id, reach in self.reaches.items():
-            if reach.ignore:
-                ignored_reaches.add(reach_id)
-
-        upstream_of_ignored_reaches = set()
-        if ignored_reaches:
-            for elem in ignored_reaches:
-                if elem in connectivity_dict:
-                    upstream_of_ignored_reaches.update(connectivity_dict[elem])
-
-        return ignored_reaches, upstream_of_ignored_reaches
-
-    def _set_ignored_reaches(self, connectivity_dict, ignored_reaches, upstream_of_ignored_reaches):
-        all_ignored_reaches = ignored_reaches.union(upstream_of_ignored_reaches)
-
-        for reach_id, reach in self.reaches.items():
-            if reach_id in all_ignored_reaches:
-                reach.ignore = True
-                if reach_id in connectivity_dict:
-                    del connectivity_dict[reach_id]
-                for dict_reach_id, dict_reaches_upstream in connectivity_dict.items():
-                    if reach_id in dict_reaches_upstream:
-                        dict_reaches_upstream.remove(reach_id)
-
-    def _find_root_reach(self, connectivity_dict):
-
-        all_upstream_reaches = []
-
-        for upstream_reaches in connectivity_dict.values():
-            all_upstream_reaches.extend(upstream_reaches)
-
-        for reach_id in connectivity_dict:
-            if reach_id not in all_upstream_reaches:
-                return reach_id
+        edges_full = []
+        for reach_id, reach in reaches.items():
+            if reach.receiving_reach_id is None:
+                continue
+            edges_full.append((reach_id, reach.receiving_reach_id))
             
-    def update_connectivity(self):
-        # Create a fully connected network
-        all_reaches_connectivity_dict = self._create_connectivity_dict()
-        
-        # we make a copy as to not modify the original fully connected one
-        connectivity_dict = copy.deepcopy(all_reaches_connectivity_dict)
+        full_graph.add_edges_from(edges_full)
 
-        self.all_reaches_connectivity_dict = all_reaches_connectivity_dict
+        # current_graph = full_graph.copy()
+        ignored_reaches = set()
+        for reach_id, reach in reaches.items():
+            if reach.ignore:
+                # set all upstream reaches to ignore
+                for ancestor_reach_id in nx.ancestors(reach_id):
+                    reaches[ancestor_reach_id].ignore_reach()
+                    ignored_reaches.add(ancestor_reach_id)
 
-        # Identify ignored and upstream reaches
-        ignored_reaches, upstream_of_ignored_reaches = self._find_ignored_reaches(connectivity_dict)
+        kept_reaches = set(full_graph.nodes) - ignored_reaches
+        current_graph = full_graph.subgraph(kept_reaches)
 
-        # Set ignored reaches and remove from dictionary
-        self._set_ignored_reaches(connectivity_dict, ignored_reaches, upstream_of_ignored_reaches)
-
-        self.current_connectivity_dict = connectivity_dict
-        return connectivity_dict
+        self.full_graph = full_graph
+        self.current_graph = current_graph
             
     def get_ignored_reaches_id(self):
         reaches = self.reaches
@@ -156,6 +135,56 @@ class Watershed:
             if reach.strahler_number <= strahler_threshold:
                 reach.ignore_reach()
 
+    # def assign_strahler_number_to_reaches(self, mode='fully_connected'):
+    #     """
+    #     Assign Strahler number to reaches in the system according to the connectivity dict.
+    #     mode: 'fully_connected' (mode) -> Uses the fully connected network
+    #           'current' -> Uses the current connectivity dict taking into account ignored reaches
+    #     """
+
+    #     reaches = self.reaches
+
+    #     if mode == 'fully_connected':
+    #         connectivity_dict = self.all_reaches_connectivity_dict
+    #     elif mode == 'current':
+    #         connectivity_dict = self.current_connectivity_dict
+    #     else:
+    #         warnings.warn("Invalid mode to assign strahler number -> Using 'fully_connected' by default")
+    #         connectivity_dict = self.all_reaches_connectivity_dict
+               
+
+    #     root_id = self._find_root_reach(connectivity_dict)
+
+    #     # optimizing the order of reaches processed by using DFS algorithm
+    #     queue = dfs_iterative_postorder(connectivity_dict, root_id)
+    #     # queue = list(connectivity_dict.keys())
+
+    #     # Process the queue
+    #     while queue:
+    #         current_id = queue.pop(0) # take the first element
+    #         current_reach = reaches[current_id]
+
+    #         if current_id not in connectivity_dict:
+    #             # reach is at the most upstream end
+    #             current_reach.strahler_number = 1
+    #             continue
+
+    #         # get list of upstream reaches
+    #         upstream_reaches_strahler = [reaches[id].strahler_number for id in connectivity_dict[current_id]]
+
+    #         if None in upstream_reaches_strahler:
+    #             # undetermined case, keep current_reach in queue
+    #             queue.append(current_id)
+    #             continue
+    #         else:
+    #             max_strahler = max(upstream_reaches_strahler)
+    #             count_max_strahler = upstream_reaches_strahler.count(max_strahler)
+
+    #             if count_max_strahler >= 2:
+    #                 current_reach.strahler_number = max_strahler + 1
+    #             else:
+    #                 current_reach.strahler_number = max_strahler
+    
     def assign_strahler_number_to_reaches(self, mode='fully_connected'):
         """
         Assign Strahler number to reaches in the system according to the connectivity dict.
@@ -166,18 +195,16 @@ class Watershed:
         reaches = self.reaches
 
         if mode == 'fully_connected':
-            connectivity_dict = self.all_reaches_connectivity_dict
+            graph = self.full_graph
         elif mode == 'current':
-            connectivity_dict = self.current_connectivity_dict
+            graph = self.current_graph
         else:
             warnings.warn("Invalid mode to assign strahler number -> Using 'fully_connected' by default")
-            connectivity_dict = self.all_reaches_connectivity_dict
+            graph = self.full_graph
                
 
-        root_id = self._find_root_reach(connectivity_dict)
-
         # optimizing the order of reaches processed by using DFS algorithm
-        queue = dfs_iterative_postorder(connectivity_dict, root_id)
+        queue = custom_dfs_traversal_sorted_predecessors(graph, start=None, visit_descending_order=True, postorder=True)
         # queue = list(connectivity_dict.keys())
 
         # Process the queue
@@ -185,13 +212,13 @@ class Watershed:
             current_id = queue.pop(0) # take the first element
             current_reach = reaches[current_id]
 
-            if current_id not in connectivity_dict:
+            if graph.in_degree(current_id) == 0:
                 # reach is at the most upstream end
                 current_reach.strahler_number = 1
                 continue
 
             # get list of upstream reaches
-            upstream_reaches_strahler = [reaches[id].strahler_number for id in connectivity_dict[current_id]]
+            upstream_reaches_strahler = [reaches[id].strahler_number for id in graph.predecessors(current_id)]
 
             if None in upstream_reaches_strahler:
                 # undetermined case, keep current_reach in queue

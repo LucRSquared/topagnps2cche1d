@@ -292,6 +292,35 @@ def get_counterclockwise_inflows(candidates, juncrowcol, img_flovec, oneindexed=
 
     return reaches_counterclockwise_order
 
+def custom_dfs_traversal_sorted_predecessors(G, start=None, visit_descending_order=True, postorder=True):
+        """
+        Custom DFS traversal of graph G given a start node "start". If start node is not provided 
+        it will use the node with an out degree equal to 0
+        If visit_descending_order = True then the predecessors of a given node will be visited in descending order
+            (assuming nodes are sortable)
+        If postorder is true the nodes will be listed in a postorder fashion
+        """
+        if start is None:
+            # list nodes with out_degree 0 and take the first one
+            start = [node[0] for node in G.out_degree() if node[1]==0][0]
+
+        visited = set()
+        result = []
+
+        stack = [start]
+        while stack:
+            node = stack.pop()
+            if node not in visited:
+                visited.add(node)
+                predecessors = sorted(G.predecessors(node), reverse=visit_descending_order)
+                unvisited_predecessors = [predecessor for predecessor in predecessors if predecessor not in visited]
+                stack.extend(unvisited_predecessors)
+                result.append(node)
+
+        if postorder:
+            result = result[::-1]
+
+        return result
 
 def dfs_iterative_postorder(network, outlet_reach):
     # Depth First Search Post Order Tree Traversal (Iterative)
