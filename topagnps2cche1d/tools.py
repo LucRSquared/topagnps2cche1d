@@ -19,11 +19,13 @@ def read_first_line(filename):
         num = int(num[0])
     return num
 
+
 def read_cche1d_dat_file(filename):
     numlines = read_first_line(filename)
     df = pd.read_csv(filename, skiprows=1, nrows=numlines, sep="\t", header="infer")
     df.reset_index(drop=True, inplace=True)
     return df
+
 
 def read_cche1d_channel_dat(filename):
     return read_cche1d_dat_file(filename)
@@ -44,6 +46,7 @@ def read_cche1d_link_dat(filename):
 def read_csec_dat(filename):
     return read_cche1d_dat_file(filename)
 
+
 def cche1d_annagnps_reach_eq(img_reach_old, img_reach_new, nodataval=None):
     # This function returns a dictionary of cche1d reaches and their old AnnAGNPS equivalent
     return {
@@ -52,8 +55,10 @@ def cche1d_annagnps_reach_eq(img_reach_old, img_reach_new, nodataval=None):
         if new != nodataval
     }
 
+
 def dict_cche1d_annagnps_to_df(dico):
-    return pd.DataFrame(dico.items(), columns=['CCHE1D_Channel', 'TopAGNPS_Reach'])
+    return pd.DataFrame(dico.items(), columns=["CCHE1D_Channel", "TopAGNPS_Reach"])
+
 
 # the nodes file is slightly different
 def read_cche1d_nodes_dat(filename):
@@ -69,46 +74,105 @@ def read_cche1d_nodes_dat(filename):
     return df
 
 
-def read_agflow_reach_data(filename):
+def read_reach_data_section(filename):
+    """
+    This function reads an "AgFlow_Reach_Data.csv" file produced by TopAGNPS
+    """
     df = pd.read_csv(filename, header="infer", index_col=False)
     df.reset_index(drop=True, inplace=True)
     return df
 
+
+def read_agflow_reach_data(filename):
+    """
+    This function reads an "AgFlow_Reach_Data.csv" file produced by TopAGNPS
+    """
+    df = pd.read_csv(filename, header="infer", index_col=False)
+    df.reset_index(drop=True, inplace=True)
+    return df
+
+
+def read_cell_data_section(filename):
+    """
+    This function reads an "AnnAGNPS_Cell_Data_Section.csv" file produced by TopAGNPS
+    """
+    return pd.read_csv(filename, index_col=False)
+
+
 def augment_df_agflow_with_XY(df_agflow, geoMatrix):
-    df_agflow[['y_US', 'x_US']] = df_agflow.apply(lambda row: pd.Series(rowcol2latlon_esri_asc(geoMatrix, row['Upstream_End_Row'], row['Upstream_End_Column'], oneindexed=True)), axis=1)
-    df_agflow[['y_DS', 'x_DS']] = df_agflow.apply(lambda row: pd.Series(rowcol2latlon_esri_asc(geoMatrix, row['Downstream_End_Row'], row['Downstream_End_Column'], oneindexed=True)), axis=1)
+    df_agflow[["y_US", "x_US"]] = df_agflow.apply(
+        lambda row: pd.Series(
+            rowcol2latlon_esri_asc(
+                geoMatrix,
+                row["Upstream_End_Row"],
+                row["Upstream_End_Column"],
+                oneindexed=True,
+            )
+        ),
+        axis=1,
+    )
+    df_agflow[["y_DS", "x_DS"]] = df_agflow.apply(
+        lambda row: pd.Series(
+            rowcol2latlon_esri_asc(
+                geoMatrix,
+                row["Downstream_End_Row"],
+                row["Downstream_End_Column"],
+                oneindexed=True,
+            )
+        ),
+        axis=1,
+    )
     return df_agflow
 
+
 def assemble_agflow_reach_cche1d(df_agflow, df_top_cche1d, geoMatrix, network=None):
-    '''
+    """
     - df_top_cche1d contains two columns 'CCHE1D_Channel' and 'TopAGNPS_Reach'
-    - df_agflow is the final dataframe representing the original df_agflow file    
-    '''
+    - df_agflow is the final dataframe representing the original df_agflow file
+    """
 
     if network is None:
         network = build_network(df_agflow)
 
     combined = df_top_cche1d.copy(deep=True)
 
-    combined = combined.merge(df_agflow, left_on='TopAGNPS_Reach', right_on='Reach_ID')
+    combined = combined.merge(df_agflow, left_on="TopAGNPS_Reach", right_on="Reach_ID")
 
-    combined[['Upstream_Reach_ID_1', 'Upstream_Reach_ID_2']] = combined.apply(lambda x: pd.Series((network[x['Reach_ID']][0], network[x['Reach_ID']][1]))
-                                                                                        if x['Reach_ID'] in network.keys() 
-                                                                                        else pd.Series((None,None)), axis=1)
+    combined[["Upstream_Reach_ID_1", "Upstream_Reach_ID_2"]] = combined.apply(
+        lambda x: pd.Series((network[x["Reach_ID"]][0], network[x["Reach_ID"]][1]))
+        if x["Reach_ID"] in network.keys()
+        else pd.Series((None, None)),
+        axis=1,
+    )
 
     # combined = combined.merge(df_agflow[['Reach_ID', 'Receiving_Reach']], left_on='Reach_ID', right_on='Receiving_Reach')
     # combined.rename(columns={'Reach_ID_x': 'Reach_ID', 'Reach_ID_y': 'Upstream_Reach_ID'}, inplace=True)
     # combined.drop(columns=['Receiving_Reach_x', 'Receiving_Reach_y', 'Receiving_Reach'], inplace=True)
 
     combined = augment_df_agflow_with_XY(combined, geoMatrix)
-    combined.drop(columns=['TopAGNPS_Reach',
-                        'Upstream_End_Row', 'Downstream_End_Row',
-                        'Upstream_End_Column', 'Downstream_End_Column', 'Receiving_Reach',
-                        'Average_Elevation_[m]', 'Reach_Length_[m]', 'Reach_Slope_[m/m]',
-                        'Upstream_End_UTMx', 'Upstream_End_UTMy', 'Downstream_End_UTMx', 'Downstream_End_UTMy',
-                        'Distance_Upstream_End_to_Outlet_[m]', 'Distance_Downstream_End_to_Outlet_[m]'], inplace=True)
+    combined.drop(
+        columns=[
+            "TopAGNPS_Reach",
+            "Upstream_End_Row",
+            "Downstream_End_Row",
+            "Upstream_End_Column",
+            "Downstream_End_Column",
+            "Receiving_Reach",
+            "Average_Elevation_[m]",
+            "Reach_Length_[m]",
+            "Reach_Slope_[m/m]",
+            "Upstream_End_UTMx",
+            "Upstream_End_UTMy",
+            "Downstream_End_UTMx",
+            "Downstream_End_UTMy",
+            "Distance_Upstream_End_to_Outlet_[m]",
+            "Distance_Downstream_End_to_Outlet_[m]",
+        ],
+        inplace=True,
+    )
 
     return combined
+
 
 def find_extremities_binary(img):
     # Find row and column locations that are non-zero
@@ -252,35 +316,43 @@ def get_counterclockwise_inflows(candidates, juncrowcol, img_flovec, oneindexed=
 
     return reaches_counterclockwise_order
 
-def custom_dfs_traversal_sorted_predecessors(G, start=None, visit_descending_order=True, postorder=True):
-        """
-        Custom DFS traversal of graph G given a start node "start". If start node is not provided 
-        it will use the node with an out degree equal to 0
-        If visit_descending_order = True then the predecessors of a given node will be visited in descending order
-            (assuming nodes are sortable)
-        If postorder is true the nodes will be listed in a postorder fashion
-        """
-        if start is None:
-            # list nodes with out_degree 0 and take the first one
-            start = [node[0] for node in G.out_degree() if node[1]==0][0]
 
-        visited = set()
-        result = []
+def custom_dfs_traversal_sorted_predecessors(
+    G, start=None, visit_descending_order=True, postorder=True
+):
+    """
+    Custom DFS traversal of graph G given a start node "start". If start node is not provided
+    it will use the node with an out degree equal to 0
+    If visit_descending_order = True then the predecessors of a given node will be visited in descending order
+        (assuming nodes are sortable)
+    If postorder is true the nodes will be listed in a postorder fashion
+    """
+    if start is None:
+        # list nodes with out_degree 0 and take the first one
+        start = [node[0] for node in G.out_degree() if node[1] == 0][0]
 
-        stack = [start]
-        while stack:
-            node = stack.pop()
-            if node not in visited:
-                visited.add(node)
-                predecessors = sorted(G.predecessors(node), reverse=visit_descending_order)
-                unvisited_predecessors = [predecessor for predecessor in predecessors if predecessor not in visited]
-                stack.extend(unvisited_predecessors)
-                result.append(node)
+    visited = set()
+    result = []
 
-        if postorder:
-            result = result[::-1]
+    stack = [start]
+    while stack:
+        node = stack.pop()
+        if node not in visited:
+            visited.add(node)
+            predecessors = sorted(G.predecessors(node), reverse=visit_descending_order)
+            unvisited_predecessors = [
+                predecessor
+                for predecessor in predecessors
+                if predecessor not in visited
+            ]
+            stack.extend(unvisited_predecessors)
+            result.append(node)
 
-        return result
+    if postorder:
+        result = result[::-1]
+
+    return result
+
 
 def dfs_iterative_postorder(network, outlet_reach):
     # Depth First Search Post Order Tree Traversal (Iterative)
@@ -457,23 +529,23 @@ def convert_topagnps_output_to_cche1d_input(
     min_netw=1,
     distance=1,
 ):
-    '''
-     This script takes topagns reaches and changes the numbering according to the CCHE1D numbering
-     system for links
-     ASSUMPTIONS :
-     - Only 2 inflows per junction (TopAGNPS guarantees it but AnnAGNPS is more liberal)
-     - The Outlet "reach" is its own reach but has 0 length, potential problem (?)
-     Inputs :
-     - FILEPATH to Agflow file
-     - FILEPATH to AnnAGNPS_Reach_IDs.ASC (DEM file)
-     - cross_sections : dictionary containing the cross sections, for now it's just a default
-        default_xsection = {'type' : 'default',
-                            'CP_Ws': [-43, -35, -13, -10, 10, 13, 35, 43],
-                            'CP_Zs': [6, 2, 2, 0, 0, 2, 2, 6]}
-     - min_netw : Minimum Strahler Number
-     - distance : distance in meters at which interval the reaches are sampled (for cross-sections)
-    '''
-     
+    """
+    This script takes topagns reaches and changes the numbering according to the CCHE1D numbering
+    system for links
+    ASSUMPTIONS :
+    - Only 2 inflows per junction (TopAGNPS guarantees it but AnnAGNPS is more liberal)
+    - The Outlet "reach" is its own reach but has 0 length, potential problem (?)
+    Inputs :
+    - FILEPATH to Agflow file
+    - FILEPATH to AnnAGNPS_Reach_IDs.ASC (DEM file)
+    - cross_sections : dictionary containing the cross sections, for now it's just a default
+       default_xsection = {'type' : 'default',
+                           'CP_Ws': [-43, -35, -13, -10, 10, 13, 35, 43],
+                           'CP_Zs': [6, 2, 2, 0, 0, 2, 2, 6]}
+    - min_netw : Minimum Strahler Number
+    - distance : distance in meters at which interval the reaches are sampled (for cross-sections)
+    """
+
     # Reading
     # img_flovec = read_esri_asc_file(filepath_flovec)[0]
     img_reach_asc, geomatrix, _, _, nodataval_reach_asc, _ = read_esri_asc_file(
@@ -539,9 +611,13 @@ def convert_topagnps_output_to_cche1d_input(
     )
 
     # Insert all functions for full package output for CCHE1D
-    df_cche1d_to_annagnps_reaches = dict_cche1d_annagnps_to_df(cche1d_to_annagnps_reaches)
+    df_cche1d_to_annagnps_reaches = dict_cche1d_annagnps_to_df(
+        cche1d_to_annagnps_reaches
+    )
 
-    df_cche1d_annagnps_conn = assemble_agflow_reach_cche1d(dfagflow_original, df_cche1d_to_annagnps_reaches, geomatrix)
+    df_cche1d_annagnps_conn = assemble_agflow_reach_cche1d(
+        dfagflow_original, df_cche1d_to_annagnps_reaches, geomatrix
+    )
 
     return (
         df_nodes,
@@ -553,6 +629,7 @@ def convert_topagnps_output_to_cche1d_input(
         img_reach_reordered,
         df_cche1d_annagnps_conn,
     )
+
 
 def apply_permutation_int_array(original_arr, permutation_vect):
     renumbered_arr = np.copy(original_arr)
@@ -743,7 +820,9 @@ def create_cche1d_tables(
 
         # Computing corresponding coordinates
         YCXC_tmp = [
-            rowcol2latlon_esri_asc(geomatrix, rowcol[0], rowcol[1], oneindexed=False) # voluntary ondeindexed=False because row/col comes from the previous function that makes it 0 indexed
+            rowcol2latlon_esri_asc(
+                geomatrix, rowcol[0], rowcol[1], oneindexed=False
+            )  # voluntary ondeindexed=False because row/col comes from the previous function that makes it 0 indexed
             for rowcol in ordered_path
         ]
         YC_tmp, XC_tmp = zip(*YCXC_tmp)
@@ -1178,7 +1257,7 @@ def compute_cche1d_reaches_length(x, y):
 
 
 def rowcol2latlon_esri_asc(geomatrix, row, col, oneindexed=False):
-    # The provided row col NEED to be in 0-index. If oneindexed is provided (i.e. input assumes that the first row is row = 1 
+    # The provided row col NEED to be in 0-index. If oneindexed is provided (i.e. input assumes that the first row is row = 1
     # then an adjustment needs to be done
     if oneindexed:
         row -= 1

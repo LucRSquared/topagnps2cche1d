@@ -27,5 +27,5 @@ build-backend = "pdm.backend"
 
 [tool.pdm.dev-dependencies]
 dev = [
-    "black>=23.3.0",
+    "black[jupyter]>=23.7.0",
 ]
