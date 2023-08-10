@@ -8,8 +8,6 @@ import pandas as pd
 class Watershed:
     def __init__(self):
         self.reaches = {}
-        self.all_reaches_connectivity_dict = {}
-        self.current_connectivity_dict = {}
         self.full_graph = None
         self.current_graph = None
 
@@ -79,7 +77,7 @@ class Watershed:
 
         self.update_graph()
 
-        self.assign_strahler_number_to_reaches()    
+        self.assign_strahler_number_to_reaches()
 
     def update_graph(self):
         """ Replaces the connectivity dict by a NetworkX DiGraph
@@ -103,7 +101,7 @@ class Watershed:
         for reach_id, reach in reaches.items():
             if reach.ignore:
                 # set all upstream reaches to ignore
-                for ancestor_reach_id in nx.ancestors(reach_id):
+                for ancestor_reach_id in nx.ancestors(full_graph, reach_id):
                     reaches[ancestor_reach_id].ignore_reach()
                     ignored_reaches.add(ancestor_reach_id)
 
@@ -131,59 +129,10 @@ class Watershed:
         """
         Ignore reaches with Strahler Number less than a given threshold
         """
+        self.keep_all_reaches()
         for reach in self.reaches.values():
             if reach.strahler_number <= strahler_threshold:
                 reach.ignore_reach()
-
-    # def assign_strahler_number_to_reaches(self, mode='fully_connected'):
-    #     """
-    #     Assign Strahler number to reaches in the system according to the connectivity dict.
-    #     mode: 'fully_connected' (mode) -> Uses the fully connected network
-    #           'current' -> Uses the current connectivity dict taking into account ignored reaches
-    #     """
-
-    #     reaches = self.reaches
-
-    #     if mode == 'fully_connected':
-    #         connectivity_dict = self.all_reaches_connectivity_dict
-    #     elif mode == 'current':
-    #         connectivity_dict = self.current_connectivity_dict
-    #     else:
-    #         warnings.warn("Invalid mode to assign strahler number -> Using 'fully_connected' by default")
-    #         connectivity_dict = self.all_reaches_connectivity_dict
-               
-
-    #     root_id = self._find_root_reach(connectivity_dict)
-
-    #     # optimizing the order of reaches processed by using DFS algorithm
-    #     queue = dfs_iterative_postorder(connectivity_dict, root_id)
-    #     # queue = list(connectivity_dict.keys())
-
-    #     # Process the queue
-    #     while queue:
-    #         current_id = queue.pop(0) # take the first element
-    #         current_reach = reaches[current_id]
-
-    #         if current_id not in connectivity_dict:
-    #             # reach is at the most upstream end
-    #             current_reach.strahler_number = 1
-    #             continue
-
-    #         # get list of upstream reaches
-    #         upstream_reaches_strahler = [reaches[id].strahler_number for id in connectivity_dict[current_id]]
-
-    #         if None in upstream_reaches_strahler:
-    #             # undetermined case, keep current_reach in queue
-    #             queue.append(current_id)
-    #             continue
-    #         else:
-    #             max_strahler = max(upstream_reaches_strahler)
-    #             count_max_strahler = upstream_reaches_strahler.count(max_strahler)
-
-    #             if count_max_strahler >= 2:
-    #                 current_reach.strahler_number = max_strahler + 1
-    #             else:
-    #                 current_reach.strahler_number = max_strahler
     
     def assign_strahler_number_to_reaches(self, mode='fully_connected'):
         """

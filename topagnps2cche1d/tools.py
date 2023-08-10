@@ -144,46 +144,6 @@ def find_extremities_binary(img):
     return skel_coords, skel_length
 
 
-# def build_network(dfagflow, img_flovec, root=None):
-#     # For now, nothing is done if more than 2 inflows come at a junction
-#     # If root is specified then all the downstream reaches are ignored
-
-#     network = {}
-
-#     # All Reaches that receive a tributary in the network
-#     receiving_reaches = np.unique(dfagflow["Receiving_Reach"].to_numpy())
-
-#     # Build the entire network
-#     for rr in receiving_reaches:
-#         receiving_reach = dfagflow.loc[dfagflow["Reach_ID"] == rr, :]
-#         juncrowcol = tuple(
-#             receiving_reach[["Upstream_End_Row", "Upstream_End_Column"]].to_records(
-#                 index=False
-#             )[0]
-#         )
-
-#         candidates = dfagflow.loc[
-#             (dfagflow["Receiving_Reach"] == rr) & (dfagflow["Reach_ID"] != rr), :
-#         ]
-
-#         network[rr] = get_counterclockwise_inflows(
-#             candidates, juncrowcol, img_flovec, oneindexed=True
-#         )
-
-#     if root is not None:
-#         reaches_to_keep = dfs_iterative_postorder(network, root)
-
-#         new_network = {}
-
-#         for r in reaches_to_keep:
-#             if r in network.keys():
-#                 new_network[r] = network[r]
-
-#         return new_network
-
-#     return network
-
-
 def build_network(dfagflow, root=None):
     # For now, nothing is done if more than 2 inflows come at a junction
     # If root is specified then all the downstream reaches are ignored
