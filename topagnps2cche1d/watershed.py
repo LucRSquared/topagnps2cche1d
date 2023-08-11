@@ -143,7 +143,10 @@ class Watershed:
         - This function takes as input the "AnnAGNPS_Reach_IDs.asc" file and adds to the watershed
           the gdal geomatrix
         - For every raster being a part of a reach it adds a node to the corresponding reach
+        - This function doesn't assume that it knows the upstream end from the downstream end
+          It will be determined later
         """
+
         img_reach_asc, geomatrix, _, _, nodataval_reach_asc, _ = read_esri_asc_file(
             path_to_asc_file
         )
@@ -157,7 +160,9 @@ class Watershed:
 
         # Get list of reach ids (excluding nodataval_reach_asc = 0 typically)
         mask_no_data = img_reach_asc == nodataval_reach_asc
-        list_of_reaches_in_raster = np.unique(img_reach_asc[~mask_no_data]).astype(int)
+        list_of_reaches_in_raster = set(
+            np.unique(img_reach_asc[~mask_no_data]).astype(int)
+        )
 
         for reach_id in list_of_reaches_in_raster:
             reach_img = np.where(img_reach_asc == reach_id, 1, 0)
@@ -218,6 +223,37 @@ class Watershed:
                             col=pixel_rowcol[1],
                         )
                     )
+
+        # Set the reaches that are not in the raster to be deleted
+        all_reaches_ids = set(reaches.keys())
+        reaches_to_delete = all_reaches_ids - list_of_reaches_in_raster
+        for ri in reaches_to_delete:
+            del reaches[ri]
+
+        self.update_graph()
+        self.assign_strahler_number_to_reaches()
+
+    def determine_reaches_us_ds_direction(self):
+        """
+        This function looks at the nodes in each reach of the watershed
+        and based on the reach connectivity determines which end of each reach
+        is downstream or upstream and updates the reach (us/ds)_nd_id
+        """
+        pass
+
+    def update_nodes_neighbors_inflows_and_junctions(self):
+        """
+        This function takes the correctly ordered reaches and determines
+        for each node the IDs of upstream, downstream node neighbors, us2id for junctions
+        inflow nodes when applicable and type
+        """
+        pass
+
+    def renumber_all_nodes_computational_order(self):
+        """
+        This function renumbers all the nodes according to their computational order
+        """
+        pass
 
     def _create_reaches_from_df(self, df):
         """
