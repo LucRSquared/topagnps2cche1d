@@ -168,11 +168,13 @@ class Watershed:
         )
 
         for reach_id in list_of_reaches_in_raster:
+            print(reach_id)
             reach_img = np.where(img_reach_asc == reach_id, 1, 0)
             # at this point we don't know if the start and end are the upstream and downstream
             extremities = find_extremities_binary(
                 reach_img, output_index_starts_one=False
             )
+
             if len(extremities) == 1:
                 # Case where the reach is only one pixel
                 rowcol = extremities[0]
@@ -180,6 +182,8 @@ class Watershed:
                 reaches[reach_id].add_node(
                     Node(id=nd_counter, row=rowcol[0], col=rowcol[1])
                 )
+                reaches[reach_id].us_nd_id = nd_counter
+                reaches[reach_id].ds_nd_id = nd_counter
                 continue
             elif len(extremities) == 2:
                 startrowcol, endrowcol = extremities

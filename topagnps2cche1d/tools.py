@@ -185,6 +185,9 @@ def find_extremities_binary(img, output_index_starts_one=False):
     for r, c in zip(rows, cols):
         # Check if the current pixel is nonzero
         if img[r, c] == 1:
+            # set current pixel to zero to show that we visited it
+            img[r, c] = 0
+
             # Extract an 8-connected neighborhood
             neighborhood = img[
                 max(r - 1, 0) : min(r + 2, img.shape[0]),
@@ -199,7 +202,7 @@ def find_extremities_binary(img, output_index_starts_one=False):
                 r += 1
                 c += 1
 
-            if num_nonzero <= 2:
+            if num_nonzero < 2:
                 extremities.append((r, c))
 
     return extremities
