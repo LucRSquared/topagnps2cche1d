@@ -1,4 +1,5 @@
 from topagnps2cche1d.reach import Reach
+import numpy as np
 
 
 class Node(Reach):
@@ -25,3 +26,9 @@ class Node(Reach):
         self.y = y
         self.row = row
         self.col = col
+
+    def distance_from(self, other, measure="euclidean"):
+        if measure.lower() in ["euclidean", "l2"]:
+            return np.sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2)
+        elif measure.lower() in ["manhattan", "l1"]:
+            return np.abs(self.x - other.x) + np.abs(self.y - other.y)
