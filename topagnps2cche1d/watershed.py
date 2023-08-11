@@ -239,7 +239,63 @@ class Watershed:
         and based on the reach connectivity determines which end of each reach
         is downstream or upstream and updates the reach (us/ds)_nd_id
         """
-        pass
+
+        current_graph = self.current_graph
+        reaches = self.reaches
+
+        # We know that the order of these is from upstream to downstream,
+        # the last one being the reach just before the outlet
+        reach_order = custom_dfs_traversal_sorted_predecessors(
+            current_graph, start=None, visit_descending_order=True, postorder=True
+        )
+
+        for reach_id in reach_order:
+            receiving_reach_id = reaches[reach_id].receiving_reach_id
+            if receiving_reach_id is None:
+                # reach before outlet case
+                continue
+
+            receiving_reach = reaches[receiving_reach_id]
+
+            RR_pot_usnd_id = receiving_reach.us_nd_id
+            RR_pot_dsnd_id = receiving_reach.ds_nd_id
+
+            RR_pot_usnd = receiving_reach.nodes[RR_pot_usnd_id]
+            RR_pot_dsnd = receiving_reach.nodes[RR_pot_dsnd_id]
+
+            current_reach = reaches[reach_id]
+
+            CR_pot_usnd_id = current_reach.us_nd_id
+            CR_pot_dsnd_id = current_reach.ds_nd_id
+
+            CR_pot_usnd = current_reach.nodes[CR_pot_usnd_id]
+            CR_pot_dsnd = current_reach.nodes[CR_pot_dsnd_id]
+
+            dist_CR_ds_RR_us = CR_pot_dsnd.distance_from(RR_pot_usnd)
+            dist_CR_us_RR_us = CR_pot_usnd.distance_from(RR_pot_usnd)
+            dist_CR_ds_RR_ds = CR_pot_dsnd.distance_from(RR_pot_dsnd)
+            dist_CR_us_RR_ds = CR_pot_usnd.distance_from(RR_pot_dsnd)
+
+            distances = [
+                dist_CR_us_RR_us,
+                dist_CR_ds_RR_us,
+                dist_CR_us_RR_ds,
+                dist_CR_ds_RR_ds,
+            ]
+
+            min_dist = min(distances)
+
+            if min_dist == dist_CR_ds_RR_us:
+                # do nothing, both reaches are correctly ordered
+                continue
+            elif min_dist == dist_CR_us_RR_us:
+                current_reach.flip_order()
+                # don't flip receiving_reach
+            elif min_dist == dist_CR_ds_RR_ds:
+                receiving_reach.flip_order()
+            elif min_dist == dist_CR_us_RR_ds:
+                current_graph.flip_order()
+                receiving_reach.flip_order()
 
     def update_nodes_neighbors_inflows_and_junctions(self):
         """
