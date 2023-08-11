@@ -1,8 +1,8 @@
-from topagnps2cche1d.reach import Reach
+from topagnps2cche1d.tools import rowcol2latlon_esri_asc
 import numpy as np
 
 
-class Node(Reach):
+class Node:
     def __init__(
         self,
         id,
@@ -17,15 +17,43 @@ class Node(Reach):
         col=None,
     ):
         self.id = id
-        self.type = type
         self.usid = usid
-        self.us2id = us2id
         self.dsid = dsid
+        self.us2id = us2id
+
+        self.type = type
+
         self.computeid = computeid
+
         self.x = x
         self.y = y
         self.row = row
         self.col = col
+
+    def __str__(self):
+        out_str = [
+            "-----------------------------",
+            f"Node            : {self.id}",
+            f"TYPE            : {self.type}",
+            f"USID            : {self.usid}",
+            f"DSID            : {self.dsid}",
+            f"US2ID           : {self.us2id}",
+            f"COMPUTEID       : {self.computeid}",
+            f"(x,y)           : ({self.x}, {self.y})",
+            f"(row,col)       : ({self.row}, {self.col})",
+        ]
+
+        return "\n".join(out_str)
+
+    def compute_XY_coordinates(self, geomatrix, oneindexed=False):
+        """
+        If the node has ROW/COL information, this function computes the XY coordinates
+        The provided row col NEED to be in 0-index. If oneindexed is provided (i.e. input assumes that the first row is row = 1
+        then an adjustment needs to be done
+        """
+        self.y, self.x = rowcol2latlon_esri_asc(
+            geomatrix, self.row, self.col, oneindexed=oneindexed
+        )
 
     def distance_from(self, other, measure="euclidean"):
         if measure.lower() in ["euclidean", "l2"]:

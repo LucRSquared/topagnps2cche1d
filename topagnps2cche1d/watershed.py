@@ -49,7 +49,8 @@ class Watershed:
 
         edges_full = []
         for reach_id, reach in reaches.items():
-            if reach.receiving_reach_id is None:
+            # we don't add reaches that are not in the "Reach_ID" column
+            if reach.receiving_reach_id not in reaches:
                 continue
             edges_full.append((reach_id, reach.receiving_reach_id))
 
@@ -58,7 +59,7 @@ class Watershed:
         ignored_reaches = set()
         for reach_id, reach in reaches.items():
             if reach.ignore:
-                # set all upstream reaches to ignore
+                ignored_reaches.add(reach_id)
                 for ancestor_reach_id in nx.ancestors(full_graph, reach_id):
                     reaches[ancestor_reach_id].ignore_reach()
                     ignored_reaches.add(ancestor_reach_id)
@@ -85,6 +86,8 @@ class Watershed:
         for reach in self.reaches.values():
             if reach.strahler_number <= strahler_threshold:
                 reach.ignore_reach()
+
+        self.update_graph()
 
     def assign_strahler_number_to_reaches(self, mode="fully_connected"):
         """
@@ -202,6 +205,7 @@ class Watershed:
                             col=pixel_rowcol[1],
                         )
                     )
+                    reaches[reach_id].us_nd_id = nd_counter
                 elif k == len(reach_skel_rowcols):
                     # end node
                     reaches[reach_id].add_node(
@@ -213,6 +217,7 @@ class Watershed:
                             col=pixel_rowcol[1],
                         )
                     )
+                    reaches[reach_id].ds_nd_id = nd_counter
                 else:  # middle nodes
                     reaches[reach_id].add_node(
                         Node(
@@ -224,14 +229,28 @@ class Watershed:
                         )
                     )
 
-        # Set the reaches that are not in the raster to be deleted
+        # Set the reaches that are not in the raster to be removed from the reaches and graph
         all_reaches_ids = set(reaches.keys())
-        reaches_to_delete = all_reaches_ids - list_of_reaches_in_raster
-        for ri in reaches_to_delete:
+        reaches_to_remove = all_reaches_ids - list_of_reaches_in_raster
+        for ri in reaches_to_remove:
             del reaches[ri]
 
+        self.compute_XY_coordinates_of_all_nodes(oneindexed=False)
         self.update_graph()
-        self.assign_strahler_number_to_reaches()
+
+    def compute_XY_coordinates_of_all_nodes(self, oneindexed=False):
+        """
+        Compute the XY coordinates of all the nodes in the Watershed
+        - oneindexed=False assumes that the row col coordinates are provided in the 0-starting format
+        """
+
+        reaches = self.reaches
+        geomatrix = self.geomatrix
+
+        for reach in reaches.values():
+            reach.compute_XY_coordinates_of_reach_nodes(
+                geomatrix, oneindexed=oneindexed
+            )
 
     def determine_reaches_us_ds_direction(self):
         """
@@ -289,13 +308,13 @@ class Watershed:
                 # do nothing, both reaches are correctly ordered
                 continue
             elif min_dist == dist_CR_us_RR_us:
-                current_reach.flip_order()
+                current_reach.flip_reach_us_ds_order()
                 # don't flip receiving_reach
             elif min_dist == dist_CR_ds_RR_ds:
-                receiving_reach.flip_order()
+                receiving_reach.flip_reach_us_ds_order()
             elif min_dist == dist_CR_us_RR_ds:
-                current_graph.flip_order()
-                receiving_reach.flip_order()
+                current_reach.flip_reach_us_ds_order()
+                receiving_reach.flip_reach_us_ds_order()
 
     def update_nodes_neighbors_inflows_and_junctions(self):
         """
@@ -316,6 +335,8 @@ class Watershed:
         This function add reaches to the watershed based on a DataFrame
         containing a "Reach_ID" and "Receiving_Reach" column
         """
+
+        self.reaches = {}
 
         def convert_to_int_when_possible(x):
             try:
@@ -340,11 +361,3 @@ class Watershed:
             self.add_reach(
                 Reach(id=reach_id, receiving_reach_id=receiving_reach_id, slope=slope)
             )
-
-        # Find reaches that are in the Receiving_Reach column but not in the Reach_ID column
-        # and add them to the collection
-        only_receiving_reaches = set(df["Receiving_Reach"].to_list()) - set(
-            df["Reach_ID"].to_list()
-        )
-        for only_receiving_reach in only_receiving_reaches:
-            self.add_reach(Reach(id=only_receiving_reach))
