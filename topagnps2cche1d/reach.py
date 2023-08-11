@@ -31,3 +31,8 @@ class Reach:
 
     def include_reach(self):
         self.ignore = False
+
+    def flip_reach_us_ds_order(self):
+        self.us_nd_id, self.ds_nd_id = self.ds_nd_id, self.us_nd_id
+        for node in self.nodes():
+            node.usid, node.dsid = node.dsid, node.usid
