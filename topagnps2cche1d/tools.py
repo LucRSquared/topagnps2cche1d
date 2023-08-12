@@ -11,6 +11,8 @@ import plotly.graph_objects as go
 from osgeo import gdal
 from affine import Affine
 
+import networkx as nx
+
 
 def read_first_line(filename):
     with open(filename, "r") as f:
