@@ -176,7 +176,7 @@ def assemble_agflow_reach_cche1d(df_agflow, df_top_cche1d, geoMatrix, network=No
     return combined
 
 
-def path_crawler(rowcols, maxiter=100):
+def path_crawler(rowcols):
     """
     This function takes as input a list of (row, col) coordinates
     forming a linear path and returns the linear path connecting them
@@ -196,8 +196,11 @@ def path_crawler(rowcols, maxiter=100):
     G = nx.Graph()
 
     rowcols_to_visit = rowcols.copy()
+    maxiter = len(rowcols_to_visit)
+    orphans = []
 
     rowcol = rowcols_to_visit.pop(0)
+    start = rowcol
 
     if not rowcols_to_visit:
         # only one node
@@ -211,7 +214,7 @@ def path_crawler(rowcols, maxiter=100):
                 "Maximum number of iterations reached! Probably invalid path"
             )
 
-        for delta in deltas:
+        for counter, delta in enumerate(deltas, 1):
             rowcolnext = (rowcol[0] + delta[0], rowcol[1] + delta[1])
 
             if rowcolnext in rowcols_to_visit:
@@ -220,7 +223,20 @@ def path_crawler(rowcols, maxiter=100):
                 rowcol = rowcolnext
                 rowcols_to_visit.remove(rowcolnext)
                 break
-                # don't try additional directions the first one found is the good one because N/S/E/W are prioritized
+            elif counter == 8:
+                # if all directions have been found and there are still rowcols to visit
+                # it means the starting point was not an extremity. Therefore we need to start
+                # somewhere else and append the orphans that we'll deal with later
+                orphans.append(start)
+                rowcol = rowcols_to_visit.pop(0)
+                start = rowcol
+
+    # Finish connecting the orphans
+    for orphan in orphans:
+        for delta in deltas:
+            rowcolnext = (orphan[0] + delta[0], orphan[1] + delta[1])
+            if rowcolnext in rowcols:
+                G.add_edge(orphan, rowcolnext)
 
     return G
 

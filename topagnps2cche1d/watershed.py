@@ -1,16 +1,15 @@
 import warnings
+from tqdm import tqdm
 import networkx as nx
+import numpy as np
 from topagnps2cche1d.tools import (
     custom_dfs_traversal_sorted_predecessors,
     read_esri_asc_file,
-    read_agflow_reach_data,
     read_reach_data_section,
     find_extremities_binary,
     get_intermediate_nodes_img,
 )
 from topagnps2cche1d import Reach, Node
-import pandas as pd
-import numpy as np
 
 
 class Watershed:
@@ -167,8 +166,7 @@ class Watershed:
             np.unique(img_reach_asc[~mask_no_data]).astype(int)
         )
 
-        for reach_id in list_of_reaches_in_raster:
-            print(reach_id)
+        for reach_id in tqdm(list_of_reaches_in_raster, desc="Reading Reaches"):
             reach_img = np.where(img_reach_asc == reach_id, 1, 0)
             # at this point we don't know if the start and end are the upstream and downstream
             extremities = find_extremities_binary(
@@ -192,6 +190,7 @@ class Watershed:
                     f"Invalid reach {reach_id} in raster, more than 2 extremities"
                 )
 
+            # TODO: optimize with path_crawler
             reach_skel_rowcols = get_intermediate_nodes_img(
                 startrowcol, endrowcol, reach_img
             )
@@ -274,7 +273,7 @@ class Watershed:
 
         for reach_id in reach_order:
             receiving_reach_id = reaches[reach_id].receiving_reach_id
-            if receiving_reach_id is None:
+            if (receiving_reach_id is None) or (receiving_reach_id not in reaches):
                 # reach before outlet case
                 continue
 
