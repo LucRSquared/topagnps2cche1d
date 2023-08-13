@@ -176,36 +176,80 @@ def assemble_agflow_reach_cche1d(df_agflow, df_top_cche1d, geoMatrix, network=No
     return combined
 
 
+def path_crawler(rowcols, maxiter=100):
+    """
+    This function takes as input a list of (row, col) coordinates
+    forming a linear path and returns the linear path connecting them
+    prioritizing North/South/East/West direction over diagonals
+    """
+    deltas = {
+        (-1, 0): "North",
+        (0, -1): "West",
+        (1, 0): "South",
+        (0, 1): "East",
+        (-1, -1): "NorthWest",
+        (1, -1): "SouthWest",
+        (1, 1): "SouthEast",
+        (-1, 1): "NorthEast",
+    }
+
+    G = nx.Graph()
+
+    rowcols_to_visit = rowcols.copy()
+
+    rowcol = rowcols_to_visit.pop(0)
+
+    if not rowcols_to_visit:
+        # only one node
+        G.add_node(rowcol)
+
+    iter = 0
+    while rowcols_to_visit:
+        iter += 1
+        if iter == maxiter:
+            raise Exception(
+                "Maximum number of iterations reached! Probably invalid path"
+            )
+
+        for delta in deltas:
+            rowcolnext = (rowcol[0] + delta[0], rowcol[1] + delta[1])
+
+            if rowcolnext in rowcols_to_visit:
+                G.add_edge(rowcol, rowcolnext)
+                # jump there
+                rowcol = rowcolnext
+                rowcols_to_visit.remove(rowcolnext)
+                break
+                # don't try additional directions the first one found is the good one because N/S/E/W are prioritized
+
+    return G
+
+
 def find_extremities_binary(img, output_index_starts_one=False):
-    # Find row and column locations that are non-zero
+    """
+    This function takes a binary image as input where pixels form
+    a linear path and returns the row/cols extremities
+    - if output_index_start_one = True then the rows and cols of the image
+    are assumed to start at (1,1) e.g.
+
+    I = np.array([[1, 0, 0, 0, 0],
+                  [0, 1, 0, 0, 0],
+                  [0, 1, 0, 0, 0],
+                  [0, 0, 1, 1, 0],
+                  [0, 0, 0, 1, 1]])
+    OUTPUT : [(0,0), (4,4)]
+
+    """
     (rows, cols) = np.nonzero(img)
 
-    # Initialize empty list of coordinates
-    extremities = []
+    rowcols = [(row, col) for row, col in zip(rows, cols)]
 
-    # For each non-zero pixel...
-    for r, c in zip(rows, cols):
-        # Check if the current pixel is nonzero
-        if img[r, c] == 1:
-            # set current pixel to zero to show that we visited it
-            img[r, c] = 0
+    G = path_crawler(rowcols)
 
-            # Extract an 8-connected neighborhood
-            neighborhood = img[
-                max(r - 1, 0) : min(r + 2, img.shape[0]),
-                max(c - 1, 0) : min(c + 2, img.shape[1]),
-            ]
+    extremities = [rowcol for rowcol in G.nodes() if nx.degree(G, rowcol) <= 1]
 
-            # Count the nonzero pixels in the neighborhood
-            num_nonzero = np.sum(neighborhood)
-
-            # If the reach is a single pixel or more we append
-            if output_index_starts_one:
-                r += 1
-                c += 1
-
-            if num_nonzero < 2:
-                extremities.append((r, c))
+    if output_index_starts_one:
+        extremities = [(r + 1, c + 1) for r, c in extremities]
 
     return extremities
 
