@@ -30,12 +30,13 @@ class Node:
         self.row = row
         self.col = col
 
-        # self.bc_source = {} # e.g. {'cell': cell_id, 'reach': 'reach_id}
+        self.inflow_cell_source = None
+        self.inflow_reaches_source = []
 
     def __str__(self):
         out_str = [
             "-----------------------------",
-            f"Node            : {self.id}",
+            f"Node ID         : {self.id}",
             f"TYPE            : {self.type}",
             f"USID            : {self.usid}",
             f"DSID            : {self.dsid}",

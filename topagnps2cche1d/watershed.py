@@ -20,7 +20,8 @@ class Watershed:
         self.cells = {}
         self.full_graph = None
         self.current_graph = None
-        self.inflow_bc_reach = []
+
+        self.geomatrix = None
 
     def add_reach(self, reach):
         """
@@ -349,7 +350,7 @@ class Watershed:
                 current_reach.flip_reach_us_ds_order()
                 receiving_reach.flip_reach_us_ds_order()
 
-    def create_junctions_between_reaches(self):
+    def _create_junctions_between_reaches(self):
         """
         Every reach that has exactly two upstream reaches needs to have its most upstream node added as the most downstream node
         (= 'end of link' node with type = 3). The DSID, USID, US2ID need to be updated accordingly.
@@ -360,7 +361,7 @@ class Watershed:
         If a reach has only one it's a trivial connection and the DSID, USID, and TYPE can be easily handled.
         """
 
-        latest_nd_id = self.get_highest_node_id()
+        latest_nd_id = self._get_highest_node_id()
 
         reaches = self.reaches
         # Remove type 3 nodes if they exist
@@ -383,9 +384,11 @@ class Watershed:
         current_graph = self.current_graph
 
         for reach_id in current_graph.nodes:
+            # getting current reach and its most upstream node
             reach = reaches[reach_id]
             ds_reach_us_junc_node = reach.nodes[reach.us_nd_id]
 
+            # getting the list of upstream reaches in topagnps ascending order (CCHE1D descending)
             upstream_reaches_id = sorted(list(current_graph.predecessors(reach_id)))
 
             if len(upstream_reaches_id) == 0:
@@ -396,11 +399,11 @@ class Watershed:
                 us_reach = reaches[upstream_reach_id]
                 us_reach_last_node = us_reach.nodes[us_reach.ds_nd_id]
                 us_reach_last_node.dsid = ds_reach_us_junc_node.id
-                us_reach_last_node.set_type(3)
+                us_reach_last_node.set_node_type(3)
                 us_reach_last_node.us2id = -1
 
                 # QUESTION: Does the ds_reach_us_junc_node need to be of a specific type? For now it will be "user defined" (default)
-                ds_reach_us_junc_node.set_type(6)
+                ds_reach_us_junc_node.set_node_type(6)
                 ds_reach_us_junc_node.usid = us_reach_last_node.id
 
             elif len(upstream_reaches_id) == 2:
@@ -437,54 +440,129 @@ class Watershed:
                     us_reach.add_node(us_reach_ds_junc_node)
                     us_reach.ds_nd_id = latest_nd_id
 
-                ds_reach_us_junc_node.set_type(
+                ds_reach_us_junc_node.set_node_type(
                     2
                 )  # the junction node of two inflows is defined as type 2
 
-    def get_highest_node_id(self):
-        max_nd_id = 0
-        reaches = self.reaches
-        # Remove type 3 nodes if they exist
-        for reach_id, reach in reaches.items():
-            nodes = reach.nodes
-            for node_id in nodes:
-                max_nd_id = max(max_nd_id, node_id)
-
-        return max_nd_id
-
-    def update_nodes_types_neighbors_inflows_and_junctions(self):
+    def identify_inflow_sources(self):
         """
-        This function takes the correctly ordered reaches and determines
-        for each node the IDs of upstream, downstream node neighbors, us2id for junctions
-        inflow nodes when applicable and type
+        There are two types of inflow sources:
+            1. Cells all throughout the watershed pouring into either source nodes
+               or the downstream node of their adjacent reach
+            2. Inflow from a "ghost" reach that was removed
+        """
+        self._find_cells_inflow_nodes()
+        self._find_removed_reaches_inflow_nodes()
+
+    def _find_cells_inflow_nodes(self):
+        """
+        Find which node the cells are pouring into based on their type ('left', 'right', 'source')
+        """
+
+        cells = self.cells
+        reaches = self.reaches
+
+        for cell_id, cell in cells.items():
+            receiving_reach_id = cell.receiving_reach_id
+            receiving_reach = reaches[receiving_reach_id]
+
+            if cell.type in ["left", "right"]:
+                receiving_node_id = receiving_reach.ds_nd_id
+            elif cell.type == "source":
+                receiving_node_id = receiving_reach.us_nd_id
+
+            cell.set_receiving_node(receiving_node_id)
+            # set also the property in the node itself
+            receiving_node = receiving_reach.nodes[receiving_node_id]
+            receiving_node.inflow_cell_source = cell_id
+
+    def _find_removed_reaches_inflow_nodes(self):
+        """
+        If the network was simplified and reaches were removed then we need to set them as boundary conditions inflows
         """
         current_graph = self.current_graph
         full_graph = self.full_graph
 
         reaches = self.reaches
 
-        # Upstream node of reaches of current_graph with in_order == 0 then inflow node
-        for reach_id in current_graph.nodes:
-            reach = reaches[reach_id]
+        for reach_id, reach in reaches.items():
+            if reach_id not in current_graph:
+                continue
 
-            # Set all nodes to 6 as default
-            for node in reach.nodes.values():
-                node.set_node_type(6)  # Set 6 as default
+            current_graph_reach_predecessors = set(current_graph.predecessors(reach_id))
+            full_graph_reach_predecessors = set(full_graph.predecessors(reach_id))
 
-            if current_graph.in_degree(reach_id) == 0:
-                us_nd_id = reach.us_nd_id
-                reach.nodes[us_nd_id].set_node_type(0)  # Set upstream node as source
-            elif full_graph.in_degree(reach_id) == 0:
-                ds_nd_id = reach.ds_nd_id
-                reach.nodes[ds_nd_id].set_node_type(
-                    0
-                )  # Set downstream node as inflow because it receives the cells
+            removed_upstream_reaches = (
+                full_graph_reach_predecessors - current_graph_reach_predecessors
+            )
+
+            reach_us_node = reach.nodes[reach.us_nd_id]
+            reach_us_node.inflow_reaches_source = []
+
+            if removed_upstream_reaches:
+                reach_us_node.set_node_type(1)
+
+            for removed_reach in removed_upstream_reaches:
+                reach_us_node.inflow_reaches_source.append(removed_reach)
 
     def renumber_all_nodes_computational_order(self):
         """
         This function renumbers all the nodes according to their computational order
         """
         pass
+
+    def _set_outlet_node_type(self):
+        """
+        Finds the outlet reach and sets its downstream node as type 9 for outlet
+        """
+        current_graph = self.current_graph
+
+        for reach_id in current_graph:
+            if current_graph.out_degree(reach_id) == 0:
+                outlet_reach_id = reach_id
+                break
+
+        outlet_reach = self.reaches[outlet_reach_id]
+        outlet_node_id = outlet_reach.ds_nd_id
+
+        outlet_node = outlet_reach.nodes[outlet_node_id]
+        outlet_node.set_node_type(9)
+
+    def _set_inflow_nodes_type(self):
+        """
+        Finds the inflow reaches and set their respective upstream node as type 0 for source
+        """
+        current_graph = self.current_graph
+
+        for reach_id in current_graph:
+            if current_graph.in_degree(reach_id) == 0:
+                inflow_reach = self.reaches[reach_id]
+                inflow_node_id = inflow_reach.us_nd_id
+                inflow_node = inflow_reach.nodes[inflow_node_id]
+                inflow_node.set_node_type(0)
+
+    def _set_default_node_type(self):
+        """
+        Goes through each node of each reach and set its type to default (6) unless it is already defined as something else
+        """
+
+        reaches = self.reaches
+
+        for reach in reaches.values():
+            for node in reach.nodes.values():
+                if node.type not in [0, 1, 2, 3, 9]:
+                    node.set_node_type(6)
+
+    def update_junctions_and_node_types(self):
+        """
+        For the current connectivity graph:
+            - updates junctions
+            - set node types
+        """
+        self._create_junctions_between_reaches()
+        self._set_outlet_node_type()
+        self._set_inflow_nodes_type()
+        self._set_default_node_type()
 
     def _create_reaches_from_df(self, df):
         """
@@ -531,3 +609,14 @@ class Watershed:
             reach_id = int(row["Reach_ID"])
             cell_area = row["Cell_Area"]
             self.add_cell(Cell(id=cell_id, receiving_reach_id=reach_id, area=cell_area))
+
+    def _get_highest_node_id(self):
+        max_nd_id = 0
+        reaches = self.reaches
+        # Remove type 3 nodes if they exist
+        for reach_id, reach in reaches.items():
+            nodes = reach.nodes
+            for node_id in nodes:
+                max_nd_id = max(max_nd_id, node_id)
+
+        return max_nd_id

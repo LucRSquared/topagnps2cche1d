@@ -8,7 +8,6 @@ class Cell:
         self.area = area
 
         self.receiving_reach_id = receiving_reach_id
-        self.receiving_node_id = None
 
         if type is None:
             self._determine_type_based_on_topagnps_id()
@@ -36,7 +35,3 @@ class Cell:
 
     def set_receiving_node(self, nd_id):
         self.receiving_node_id = nd_id
-        # if self.type in ['left', 'right']:
-        #     self.receiving_node_id = watershed.reaches[self.receiving_reach_id].ds_nd_id
-        # elif self.type == 'source':
-        #     self.receiving_node_id = watershed.reaches[self.receiving_reach_id].us_nd_id
