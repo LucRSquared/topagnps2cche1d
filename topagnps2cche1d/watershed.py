@@ -1,8 +1,8 @@
 import warnings
-import copy
 from tqdm import tqdm
 import networkx as nx
 import numpy as np
+import pandas as pd
 from topagnps2cche1d.tools import (
     custom_dfs_traversal_sorted_predecessors,
     read_esri_asc_file,
@@ -177,7 +177,6 @@ class Watershed:
         - This function takes as input the "AnnAGNPS_Reach_IDs.asc" file and adds to the watershed
           the gdal geomatrix
         - For every raster being a part of a reach it adds a node to the corresponding reach
-        - This function doesn't assume that it knows the upstream end from the downstream end
         """
 
         img_reach_asc, geomatrix, _, _, nodataval_reach_asc, _ = read_esri_asc_file(
@@ -271,6 +270,7 @@ class Watershed:
 
         self.compute_XY_coordinates_of_all_nodes(oneindexed=False)
         self.update_graph()
+        self.determine_reaches_us_ds_direction()
 
     def compute_XY_coordinates_of_all_nodes(self, oneindexed=False):
         """
@@ -349,6 +349,77 @@ class Watershed:
             elif min_dist == dist_CR_us_RR_ds:
                 current_reach.flip_reach_us_ds_order()
                 receiving_reach.flip_reach_us_ds_order()
+
+    def identify_inflow_sources(self):
+        """
+        There are two types of inflow sources:
+            1. Cells all throughout the watershed pouring into either source nodes
+               or the downstream node of their adjacent reach
+            2. Inflow from a "ghost" reach that was removed
+        """
+        self._find_cells_inflow_nodes()
+        self._find_removed_reaches_inflow_nodes()
+
+    def update_junctions_and_node_types(self):
+        """
+        For the current connectivity graph:
+            - updates junctions
+            - set nodes type
+        """
+        self._create_junctions_between_reaches()
+        self._set_outlet_node_type()
+        self._set_inflow_nodes_type()
+        self._set_default_node_type()
+
+    def renumber_all_nodes_and_reaches_in_CCHE1D_computational_order(self):
+        """
+        This function renumbers all the nodes and reaches according to their CCHE1D computational order
+        """
+        current_graph = self.current_graph
+        reaches = self.reaches
+
+        reach_dfs_postorder = custom_dfs_traversal_sorted_predecessors(
+            current_graph, visit_descending_order=True, postorder=True
+        )
+        computeid = 0
+        for cche1d_id, reach_id in enumerate(reach_dfs_postorder, 1):
+            reach = reaches[reach_id]
+            nodes = reach.nodes
+            reach.cche1d_id = cche1d_id
+            us_node_id = reach.us_nd_id
+            ds_node_id = reach.ds_nd_id
+            current_node_id = us_node_id
+
+            while True:
+                print(reach_id, computeid, current_node_id)
+                computeid += 1
+                current_node = nodes[current_node_id]
+                current_node.computeid = computeid
+
+                if current_node_id == ds_node_id:
+                    break
+                else:
+                    current_node_id = current_node.dsid
+
+    def _set_node_id_to_compute_id(self):
+        """
+        Optional, changes node absolute id to its computational id
+        """
+        reaches = self.reaches
+
+        old_new_dict = {}
+
+        for reach in reaches.values():
+            nodes = reach.nodes
+            for node in nodes.values():
+                old_new_dict[node.id] = node.computeid
+
+        # Apply dictionary
+        for reach in reaches.values():
+            reach.change_node_ids_dict(old_new_dict)
+            nodes = reach.nodes
+            for node in nodes.values():
+                node.change_node_ids_dict(old_new_dict)
 
     def _create_junctions_between_reaches(self):
         """
@@ -444,16 +515,6 @@ class Watershed:
                     2
                 )  # the junction node of two inflows is defined as type 2
 
-    def identify_inflow_sources(self):
-        """
-        There are two types of inflow sources:
-            1. Cells all throughout the watershed pouring into either source nodes
-               or the downstream node of their adjacent reach
-            2. Inflow from a "ghost" reach that was removed
-        """
-        self._find_cells_inflow_nodes()
-        self._find_removed_reaches_inflow_nodes()
-
     def _find_cells_inflow_nodes(self):
         """
         Find which node the cells are pouring into based on their type ('left', 'right', 'source')
@@ -471,7 +532,6 @@ class Watershed:
             elif cell.type == "source":
                 receiving_node_id = receiving_reach.us_nd_id
 
-            cell.set_receiving_node(receiving_node_id)
             # set also the property in the node itself
             receiving_node = receiving_reach.nodes[receiving_node_id]
             receiving_node.inflow_cell_source = cell_id
@@ -504,12 +564,6 @@ class Watershed:
 
             for removed_reach in removed_upstream_reaches:
                 reach_us_node.inflow_reaches_source.append(removed_reach)
-
-    def renumber_all_nodes_computational_order(self):
-        """
-        This function renumbers all the nodes according to their computational order
-        """
-        pass
 
     def _set_outlet_node_type(self):
         """
@@ -545,24 +599,12 @@ class Watershed:
         """
         Goes through each node of each reach and set its type to default (6) unless it is already defined as something else
         """
-
         reaches = self.reaches
 
         for reach in reaches.values():
             for node in reach.nodes.values():
                 if node.type not in [0, 1, 2, 3, 9]:
                     node.set_node_type(6)
-
-    def update_junctions_and_node_types(self):
-        """
-        For the current connectivity graph:
-            - updates junctions
-            - set node types
-        """
-        self._create_junctions_between_reaches()
-        self._set_outlet_node_type()
-        self._set_inflow_nodes_type()
-        self._set_default_node_type()
 
     def _create_reaches_from_df(self, df):
         """

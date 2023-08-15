@@ -1,10 +1,13 @@
 class Reach:
     def __init__(self, id, receiving_reach_id=None, slope=None, ignore=False):
         self.id = id
+
         self.ignore = ignore
 
         self.receiving_reach_id = receiving_reach_id
         self.slope = slope
+
+        self.cche1d_id = None
 
         self.strahler_number = None
         self.us_nd_id = None
@@ -16,6 +19,7 @@ class Reach:
         out_str = [
             "-----------------------------",
             f"Reach            : {self.id}",
+            f"CCHE1D Ch. ID    : {self.cche1d_id}",
             f"Receiving Reach  : {self.receiving_reach_id}",
             f"Slope            : {self.slope}",
             f"Strahler Number  : {self.strahler_number}",
@@ -34,7 +38,7 @@ class Reach:
         """
         self.ignore = True
 
-    def include_reach(self, keep_upstream_too="yes"):
+    def include_reach(self):
         """
         Set a reach to be kept in subsequent computation
         """
@@ -54,3 +58,13 @@ class Reach:
 
         for node in nodes.values():
             node.compute_XY_coordinates(geomatrix, oneindexed=oneindexed)
+
+    def change_node_ids_dict(self, old_new_dict):
+        """
+        Given a dictionary with {old_id: new_id} structure, applies the id change to the nodes
+        """
+        if None not in old_new_dict:
+            old_new_dict[None] = None
+
+        self.us_nd_id = old_new_dict[self.us_nd_id]
+        self.ds_nd_id = old_new_dict[self.ds_nd_id]

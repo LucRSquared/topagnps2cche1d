@@ -32,6 +32,3 @@ class Cell:
             self.type = "left"
         else:
             raise Exception(f"Non recognized cell_id (last-digit) type: {last_digit}")
-
-    def set_receiving_node(self, nd_id):
-        self.receiving_node_id = nd_id

@@ -51,6 +51,18 @@ class Node:
     def set_node_type(self, type):
         self.type = type
 
+    def change_node_ids_dict(self, old_new_dict):
+        """
+        Given a dictionary with {old_id: new_id} structure, applies the id change to the node (except computeid)
+        """
+        if None not in old_new_dict:
+            old_new_dict[None] = None
+
+        self.id = old_new_dict[self.id]
+        self.usid = old_new_dict[self.usid]
+        self.us2id = old_new_dict[self.us2id]
+        self.dsid = old_new_dict[self.dsid]
+
     def compute_XY_coordinates(self, geomatrix, oneindexed=False):
         """
         If the node has ROW/COL information, this function computes the XY coordinates
