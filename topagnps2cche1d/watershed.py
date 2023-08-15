@@ -1,4 +1,5 @@
 import warnings
+import copy
 from tqdm import tqdm
 import networkx as nx
 import numpy as np
@@ -6,23 +7,32 @@ from topagnps2cche1d.tools import (
     custom_dfs_traversal_sorted_predecessors,
     read_esri_asc_file,
     read_reach_data_section,
+    read_cell_data_section,
     find_extremities_binary,
     get_intermediate_nodes_img,
 )
-from topagnps2cche1d import Reach, Node
+from topagnps2cche1d import Reach, Node, Cell
 
 
 class Watershed:
     def __init__(self):
         self.reaches = {}
+        self.cells = {}
         self.full_graph = None
         self.current_graph = None
+        self.inflow_bc_reach = []
 
     def add_reach(self, reach):
         """
         Add a reach to the watershed
         """
         self.reaches[reach.id] = reach
+
+    def add_cell(self, cell):
+        """
+        Add a cell to the watershed
+        """
+        self.cells[cell.id] = cell
 
     def import_topagnps_reaches_network(self, path_reach_data_section):
         """
@@ -36,6 +46,19 @@ class Watershed:
         self.update_graph()
 
         self.assign_strahler_number_to_reaches()
+
+    def import_topagnps_cells(self, path_cell_data_section):
+        """
+        Imports information from "AnnAGNPS_Cell_Data_Section.csv" file produced by TopAGNPS
+        and adds to Watershed
+        """
+
+        df = read_cell_data_section(path_cell_data_section)
+        df["Cell_Area"] = (
+            df["Cell_Area"] * 1e4
+        )  # TopAGNPS produces an area in ha, we want it in m²
+
+        self._create_cells_from_df(df)
 
     def update_graph(self):
         """Replaces the connectivity dict by a NetworkX DiGraph
@@ -140,13 +163,20 @@ class Watershed:
                 else:
                     current_reach.strahler_number = max_strahler
 
+    def read_reaches_geometry_from_polygons_gdf(gdf, column_id_name="dn"):
+        """
+        Takes a GeoDataFrame containing POLYGONS describing reaches (most likely from gdal_polygonize of AnnAGNPS_Reach_IDs.asc raster)
+        and identifies the skeleton and adds nodes along the paths of every reach.
+        The reaches returned are not necessarily in the correct US/DS order
+        """
+        pass
+
     def read_reaches_geometry_from_topagnps_asc_file(self, path_to_asc_file):
         """
         - This function takes as input the "AnnAGNPS_Reach_IDs.asc" file and adds to the watershed
           the gdal geomatrix
         - For every raster being a part of a reach it adds a node to the corresponding reach
         - This function doesn't assume that it knows the upstream end from the downstream end
-          It will be determined later
         """
 
         img_reach_asc, geomatrix, _, _, nodataval_reach_asc, _ = read_esri_asc_file(
@@ -319,13 +349,136 @@ class Watershed:
                 current_reach.flip_reach_us_ds_order()
                 receiving_reach.flip_reach_us_ds_order()
 
-    def update_nodes_neighbors_inflows_and_junctions(self):
+    def create_junctions_between_reaches(self):
+        """
+        Every reach that has exactly two upstream reaches needs to have its most upstream node added as the most downstream node
+        (= 'end of link' node with type = 3). The DSID, USID, US2ID need to be updated accordingly.
+        In two inflows junction, the second inflow (which is the last reach upstream of the downstream reach when numbered in a depth
+        first search method with a right hand rule (looking upstream)). The second inflow is thus also the reach with the smallest reach_id
+        value according to TopAGNPS numbering system.
+
+        If a reach has only one it's a trivial connection and the DSID, USID, and TYPE can be easily handled.
+        """
+
+        latest_nd_id = self.get_highest_node_id()
+
+        reaches = self.reaches
+        # Remove type 3 nodes if they exist
+        for reach in reaches.values():
+            nodes = reach.nodes
+            for node_id, node in nodes.items():
+                if node.type == 3:
+                    usid = node.usid
+                    reach.ds_nd_id = (
+                        usid  # the new ds_nd_id is the node that was immediately before
+                    )
+                    nodes[
+                        usid
+                    ].dsid = None  # the node immediately before now has no dsid
+                    del nodes[node_id]  # delete the node of type 2
+                if node.type == 2:
+                    node.type = None
+
+        # Go through graph
+        current_graph = self.current_graph
+
+        for reach_id in current_graph.nodes:
+            reach = reaches[reach_id]
+            ds_reach_us_junc_node = reach.nodes[reach.us_nd_id]
+
+            upstream_reaches_id = sorted(list(current_graph.predecessors(reach_id)))
+
+            if len(upstream_reaches_id) == 0:
+                # No upstream reaches
+                continue
+            elif len(upstream_reaches_id) == 1:
+                # Simple connection
+                us_reach = reaches[upstream_reach_id]
+                us_reach_last_node = us_reach.nodes[us_reach.ds_nd_id]
+                us_reach_last_node.dsid = ds_reach_us_junc_node.id
+                us_reach_last_node.set_type(3)
+                us_reach_last_node.us2id = -1
+
+                # QUESTION: Does the ds_reach_us_junc_node need to be of a specific type? For now it will be "user defined" (default)
+                ds_reach_us_junc_node.set_type(6)
+                ds_reach_us_junc_node.usid = us_reach_last_node.id
+
+            elif len(upstream_reaches_id) == 2:
+                # go through the upstream topagnps reach ids in ascending id order, the first one will be the second inflow
+                # according to cche1d numbering scheme of channels
+
+                while upstream_reaches_id:
+                    upstream_reach_id = upstream_reaches_id.pop(0)
+
+                    us_reach = reaches[upstream_reach_id]
+
+                    if upstream_reaches_id:  # the list is not empty
+                        # us_reach = Second inflow
+                        first_inflow_reach = reaches[
+                            upstream_reaches_id[0]
+                        ]  # the first inflow is the other one remaining
+                        ds_reach_us_junc_node.us2id = first_inflow_reach.ds_nd_id
+                        ds_reach_us_junc_node.usid = us_reach.ds_nd_id
+
+                    # make a copy of us_junc_node
+                    latest_nd_id += 1
+                    us_reach_ds_junc_node = Node(
+                        id=latest_nd_id,
+                        type=3,
+                        usid=us_reach.ds_nd_id,
+                        dsid=reach.us_nd_id,
+                        us2id=-1,
+                        x=ds_reach_us_junc_node.x,
+                        y=ds_reach_us_junc_node.y,
+                        row=ds_reach_us_junc_node.row,
+                        col=ds_reach_us_junc_node.col,
+                    )
+
+                    us_reach.add_node(us_reach_ds_junc_node)
+                    us_reach.ds_nd_id = latest_nd_id
+
+                ds_reach_us_junc_node.set_type(
+                    2
+                )  # the junction node of two inflows is defined as type 2
+
+    def get_highest_node_id(self):
+        max_nd_id = 0
+        reaches = self.reaches
+        # Remove type 3 nodes if they exist
+        for reach_id, reach in reaches.items():
+            nodes = reach.nodes
+            for node_id in nodes:
+                max_nd_id = max(max_nd_id, node_id)
+
+        return max_nd_id
+
+    def update_nodes_types_neighbors_inflows_and_junctions(self):
         """
         This function takes the correctly ordered reaches and determines
         for each node the IDs of upstream, downstream node neighbors, us2id for junctions
         inflow nodes when applicable and type
         """
-        pass
+        current_graph = self.current_graph
+        full_graph = self.full_graph
+
+        reaches = self.reaches
+
+        # Upstream node of reaches of current_graph with in_order == 0 then inflow node
+        for reach_id in current_graph.nodes:
+            reach = reaches[reach_id]
+
+            # Set all nodes to 6 as default
+            for node in reach.nodes.values():
+                node.set_node_type(6)  # Set 6 as default
+
+            if current_graph.in_degree(reach_id) == 0:
+                us_nd_id = reach.us_nd_id
+                reach.nodes[us_nd_id].set_node_type(0)  # Set upstream node as source
+            elif full_graph.in_degree(reach_id) == 0:
+                ds_nd_id = reach.ds_nd_id
+                reach.nodes[ds_nd_id].set_node_type(
+                    0
+                )  # Set downstream node as inflow because it receives the cells
 
     def renumber_all_nodes_computational_order(self):
         """
@@ -335,7 +488,7 @@ class Watershed:
 
     def _create_reaches_from_df(self, df):
         """
-        This function add reaches to the watershed based on a DataFrame
+        This function adds reaches to the watershed based on a DataFrame
         containing a "Reach_ID" and "Receiving_Reach" column
         """
 
@@ -364,3 +517,17 @@ class Watershed:
             self.add_reach(
                 Reach(id=reach_id, receiving_reach_id=receiving_reach_id, slope=slope)
             )
+
+    def _create_cells_from_df(self, df):
+        """
+        This function adds cells to the watershed based on a DataFrame containing
+        'Cell_ID', 'Reach_ID', 'Cell_Area' columns
+        """
+
+        self.cells = {}
+
+        for _, row in df.iterrows():
+            cell_id = int(row["Cell_ID"])
+            reach_id = int(row["Reach_ID"])
+            cell_area = row["Cell_Area"]
+            self.add_cell(Cell(id=cell_id, receiving_reach_id=reach_id, area=cell_area))

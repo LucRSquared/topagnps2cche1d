@@ -30,6 +30,8 @@ class Node:
         self.row = row
         self.col = col
 
+        # self.bc_source = {} # e.g. {'cell': cell_id, 'reach': 'reach_id}
+
     def __str__(self):
         out_str = [
             "-----------------------------",
@@ -44,6 +46,9 @@ class Node:
         ]
 
         return "\n".join(out_str)
+
+    def set_node_type(self, type):
+        self.type = type
 
     def compute_XY_coordinates(self, geomatrix, oneindexed=False):
         """
