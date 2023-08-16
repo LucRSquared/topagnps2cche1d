@@ -400,7 +400,7 @@ class Watershed:
                 else:
                     current_node_id = current_node.dsid
 
-    def _set_node_id_to_compute_id(self):
+    def set_node_id_to_compute_id(self):
         """
         Optional, changes node absolute id to its computational id
         """
