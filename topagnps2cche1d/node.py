@@ -55,8 +55,9 @@ class Node:
         """
         Given a dictionary with {old_id: new_id} structure, applies the id change to the node (except computeid)
         """
-        if None not in old_new_dict:
-            old_new_dict[None] = None
+        # Add fixed dictionary points
+        old_new_dict[None] = None
+        old_new_dict[-1] = -1
 
         self.id = old_new_dict[self.id]
         self.usid = old_new_dict[self.usid]

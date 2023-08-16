@@ -391,7 +391,6 @@ class Watershed:
             current_node_id = us_node_id
 
             while True:
-                print(reach_id, computeid, current_node_id)
                 computeid += 1
                 current_node = nodes[current_node_id]
                 current_node.computeid = computeid
@@ -488,11 +487,10 @@ class Watershed:
 
                     if upstream_reaches_id:  # the list is not empty
                         # us_reach = Second inflow
+                        second_inflow_reach = us_reach
                         first_inflow_reach = reaches[
                             upstream_reaches_id[0]
                         ]  # the first inflow is the other one remaining
-                        ds_reach_us_junc_node.us2id = first_inflow_reach.ds_nd_id
-                        ds_reach_us_junc_node.usid = us_reach.ds_nd_id
 
                     # make a copy of us_junc_node
                     latest_nd_id += 1
@@ -509,8 +507,17 @@ class Watershed:
                     )
 
                     us_reach.add_node(us_reach_ds_junc_node)
+
+                    # Make sure that the penultimate node (the one that used to be the ds_node
+                    # actually points to the new one)
+                    penultimate_node = us_reach.nodes[us_reach_ds_junc_node.usid]
+                    penultimate_node.dsid = latest_nd_id
+
+                    # Update reach with ds_node information
                     us_reach.ds_nd_id = latest_nd_id
 
+                ds_reach_us_junc_node.us2id = first_inflow_reach.ds_nd_id
+                ds_reach_us_junc_node.usid = second_inflow_reach.ds_nd_id
                 ds_reach_us_junc_node.set_node_type(
                     2
                 )  # the junction node of two inflows is defined as type 2

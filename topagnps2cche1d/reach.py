@@ -63,8 +63,12 @@ class Reach:
         """
         Given a dictionary with {old_id: new_id} structure, applies the id change to the nodes
         """
-        if None not in old_new_dict:
-            old_new_dict[None] = None
+        # Add fixed dictionary points
+        old_new_dict[None] = None
+        old_new_dict[-1] = -1
 
         self.us_nd_id = old_new_dict[self.us_nd_id]
         self.ds_nd_id = old_new_dict[self.ds_nd_id]
+
+        # Remap nodes dict too:
+        self.nodes = {old_new_dict[k]: v for k, v in self.nodes.items()}
