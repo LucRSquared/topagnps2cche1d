@@ -432,8 +432,9 @@ class Watershed:
         """
 
         latest_nd_id = self._get_highest_node_id()
-
         reaches = self.reaches
+        current_graph = self.current_graph
+
         # Remove type 3 nodes if they exist
         for reach in reaches.values():
             nodes = reach.nodes
@@ -450,9 +451,6 @@ class Watershed:
                 if node.type == 2:
                     node.type = None
 
-        # Go through graph
-        current_graph = self.current_graph
-
         for reach_id in current_graph.nodes:
             # getting current reach and its most upstream node
             reach = reaches[reach_id]
@@ -466,7 +464,7 @@ class Watershed:
                 continue
             elif len(upstream_reaches_id) == 1:
                 # Simple connection
-                us_reach = reaches[upstream_reach_id]
+                us_reach = reaches[upstream_reaches_id[0]]
                 us_reach_last_node = us_reach.nodes[us_reach.ds_nd_id]
                 us_reach_last_node.dsid = ds_reach_us_junc_node.id
                 us_reach_last_node.set_node_type(3)
