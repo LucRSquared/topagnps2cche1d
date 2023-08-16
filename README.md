@@ -11,7 +11,7 @@ Using the files produced by TopAGNPS:
   - Reach raster data: `AnnAGNPS_Reach_IDs.asc` (with accompanying projection file)
 
 `topagnps2cche1d` will create a `Watershed` object containing the reaches and their connectivity in a NetworkX DiGraph.
-- Reaches are represented with computational nodes with a structure compatible with the Fluvial Routing Analysis and Modeling Environment (FRAME) developed by Vieira (1997) 
+- Reaches are represented with computational nodes with a structure compatible with the Fluvial Routing Analysis and Modeling Environment (FRAME) developed by Vieira (1997) and therefore usable by CCHE1D
 
 
 ## To-do:
@@ -21,10 +21,11 @@ Using the files produced by TopAGNPS:
   
 - [ ] Implement reach resampling methods
 
-- [ ] Implement processing reach geometryies from polygons GeoDataFrame (output of polygonization process)
+- [ ] Implement processing reach geometries from polygons GeoDataFrame (output of polygonization process)
   - Using reach skeletonization method
 
 - [ ] Implement cross-sections methods
+- [ ] Implement reading from NHD network directly using `pynhd` and NLDI
 
 
 ## Changelogs
