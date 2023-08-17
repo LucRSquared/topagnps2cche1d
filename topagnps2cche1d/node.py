@@ -42,6 +42,8 @@ class Node:
             f"DSID            : {self.dsid}",
             f"US2ID           : {self.us2id}",
             f"COMPUTEID       : {self.computeid}",
+            f"Cell Source     : {self.inflow_cell_source}",
+            f"Reach Sources   : {self.inflow_reaches_source}",
             f"(x,y)           : ({self.x}, {self.y})",
             f"(row,col)       : ({self.row}, {self.col})",
         ]
