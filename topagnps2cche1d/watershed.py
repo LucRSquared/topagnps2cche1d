@@ -365,6 +365,8 @@ class Watershed:
         For the current connectivity graph:
             - updates junctions
             - set nodes type
+        This function should be called AFTER identify_inflow_sources so that node types are correctly
+        identified
         """
         self._create_junctions_between_reaches()
         self._set_outlet_node_type()
