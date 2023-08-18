@@ -383,7 +383,7 @@ def custom_dfs_traversal_sorted_predecessors(
     G, start=None, visit_descending_order=True, postorder=True
 ):
     """
-    Custom DFS traversal of graph G given a start node "start". If start node is not provided
+    Custom DFS traversal of directed graph G given a start node "start". If start node is not provided
     it will use the node with an out degree equal to 0
     If visit_descending_order = True then the predecessors of a given node will be visited in descending order
         (assuming nodes are sortable)
