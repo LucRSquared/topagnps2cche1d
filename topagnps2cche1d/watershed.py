@@ -13,6 +13,9 @@ from topagnps2cche1d.tools import (
 )
 from topagnps2cche1d import Reach, Node, Cell
 
+import holoviews as hv
+import hvplot.pandas
+
 
 class Watershed:
     def __init__(self):
@@ -421,6 +424,48 @@ class Watershed:
             nodes = reach.nodes
             for node in nodes.values():
                 node.change_node_ids_dict(old_new_dict)
+
+    def plot(self, **kwargs):
+        """
+        Plot network
+        """
+        reaches_plots = []
+
+        if 'aspect' in kwargs:
+            aspect = kwargs['aspect']
+        else:
+            aspect = 'equal'
+
+        if 'frame_width' in kwargs:
+            frame_width = kwargs['frame_width']
+        else:
+            frame_width = 1000
+
+        if 'frame_height' in kwargs:
+            frame_height = kwargs['frame_height']
+        else:
+            frame_height = 1000
+
+        if 'by' in kwargs:
+            by = kwargs['by']
+        else:
+            by = 'Reach_ID'
+
+
+        for reach in self.reaches.values():
+            reaches_plots.append(reach.get_nodes_as_df())
+
+        dfs = pd.concat(reaches_plots, ignore_index=True)
+
+        watershed_plot = (
+            dfs.hvplot(x='X', y='Y', by=by, kind='line',
+                        hover_cols=['TYPE', 'US2ID', 'USID', 'ID', 'COMPUTEID', 'DSID']) * \
+            dfs.hvplot(x='X', y='Y', by=by, kind='scatter', alpha=0.5,
+                        hover_cols=['TYPE', 'US2ID', 'USID', 'ID', 'COMPUTEID', 'DSID'])
+        ).opts(frame_width=frame_width, frame_height=frame_height, aspect=aspect) 
+
+        return watershed_plot 
+        
 
     def _create_junctions_between_reaches(self):
         """

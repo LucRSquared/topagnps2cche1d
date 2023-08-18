@@ -1,3 +1,5 @@
+import pandas as pd
+
 class Reach:
     def __init__(self, id, receiving_reach_id=None, slope=None, ignore=False):
         self.id = id
@@ -72,3 +74,92 @@ class Reach:
 
         # Remap nodes dict too:
         self.nodes = {old_new_dict[k]: v for k, v in self.nodes.items()}
+
+    def get_nodes_us_ds_order(self):
+        """
+        Get the list of node ids in US -> DS direction [us_nd_id, ..., ds_nd_id]
+        """
+        nodes = self.nodes
+        num_nodes_left = len(nodes)
+
+        nodes_order = []
+
+        current_node = nodes[self.us_nd_id]
+
+        while num_nodes_left != 0:
+            nodes_order.append(current_node.id)
+            num_nodes_left -= 1
+
+            if current_node.dsid not in nodes:
+                break
+
+            current_node = nodes[current_node.dsid]
+
+        return nodes_order
+    
+    def get_x_y_node_arrays_us_ds_order(self):
+        """
+        Retrieve x and y node coordinates in US -> DS order
+        """
+        x = []
+        y = [] 
+        nodes_order = self.get_nodes_us_ds_order()
+        nodes = self.nodes
+
+        for node_id in nodes_order:
+            x.append(nodes[node_id].x)
+            y.append(nodes[node_id].y)
+
+        return x, y
+    
+    def get_nodes_as_df(self):
+        """
+        Retrieve nodes information and put it in a DataFrame
+        """
+        nodes = self.nodes
+
+        node_id = []
+        node_type = []
+        node_usid = []
+        node_us2id = []
+        node_dsid = []
+        node_computeid = []
+        node_x = []
+        node_y = []
+        node_row = []
+        node_col = []
+
+        for node in nodes.values():
+            node_id.append(node.id)
+            node_type.append(node.type)
+            node_usid.append(node.usid)
+            node_us2id.append(node.us2id)
+            node_dsid.append(node.dsid)
+            node_computeid.append(node.computeid)
+            node_x.append(node.x)
+            node_y.append(node.y)
+            node_row.append(node.row)
+            node_col.append(node.col)
+
+        df = pd.DataFrame(
+            {'ID': node_id,
+             'COMPUTEID': node_computeid,
+             'TYPE': node_type,
+             'USID': node_usid,
+             'US2ID': node_us2id,
+             'DSID': node_dsid,
+             'X': node_x,
+             'Y': node_y,
+             'ROW': node_row,
+             'COL': node_col}
+        )
+
+        df['Reach_ID'] = self.id
+        df['CCHE1D_ID'] = self.cche1d_id
+        df = df.sort_values(by='COMPUTEID')
+        
+        return df
+
+
+
+
