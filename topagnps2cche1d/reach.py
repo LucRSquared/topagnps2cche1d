@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 class Reach:
     def __init__(self, id, receiving_reach_id=None, slope=None, ignore=False):
         self.id = id
@@ -96,13 +97,28 @@ class Reach:
             current_node = nodes[current_node.dsid]
 
         return nodes_order
-    
+
+    def resample_reach(self, **kwargs):
+        """
+        Resample reach either at a constant spacing or a given number of points (>=2)
+        """
+
+        if "distance" in kwargs:
+            distance = kwargs["distance"]
+        else:
+            distance = None
+
+        if "numpoints" in kwargs:
+            numpoints = kwargs["numpoints"]
+        else:
+            numpoints = 30
+
     def get_x_y_node_arrays_us_ds_order(self):
         """
         Retrieve x and y node coordinates in US -> DS order
         """
         x = []
-        y = [] 
+        y = []
         nodes_order = self.get_nodes_us_ds_order()
         nodes = self.nodes
 
@@ -111,7 +127,7 @@ class Reach:
             y.append(nodes[node_id].y)
 
         return x, y
-    
+
     def get_nodes_as_df(self):
         """
         Retrieve nodes information and put it in a DataFrame
@@ -142,24 +158,23 @@ class Reach:
             node_col.append(node.col)
 
         df = pd.DataFrame(
-            {'ID': node_id,
-             'COMPUTEID': node_computeid,
-             'TYPE': node_type,
-             'USID': node_usid,
-             'US2ID': node_us2id,
-             'DSID': node_dsid,
-             'X': node_x,
-             'Y': node_y,
-             'ROW': node_row,
-             'COL': node_col}
+            {
+                "ID": node_id,
+                "COMPUTEID": node_computeid,
+                "TYPE": node_type,
+                "USID": node_usid,
+                "US2ID": node_us2id,
+                "DSID": node_dsid,
+                "X": node_x,
+                "Y": node_y,
+                "ROW": node_row,
+                "COL": node_col,
+            }
         )
 
-        df['Reach_ID'] = self.id
-        df['CCHE1D_ID'] = self.cche1d_id
-        df = df.sort_values(by='COMPUTEID')
-        
+        df["Reach_ID"] = self.id
+        df["CCHE1D_ID"] = self.cche1d_id
+        df["Strahler_Number"] = self.strahler_number
+        df = df.sort_values(by="COMPUTEID")
+
         return df
-
-
-
-

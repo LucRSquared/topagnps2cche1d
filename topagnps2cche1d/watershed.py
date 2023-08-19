@@ -431,26 +431,35 @@ class Watershed:
         """
         reaches_plots = []
 
-        if 'aspect' in kwargs:
-            aspect = kwargs['aspect']
+        if "title" in kwargs:
+            title = kwargs["title"]
         else:
-            aspect = 'equal'
+            title = ""
 
-        if 'frame_width' in kwargs:
-            frame_width = kwargs['frame_width']
+        if "aspect" in kwargs:
+            aspect = kwargs["aspect"]
+        else:
+            aspect = "equal"
+
+        if "frame_width" in kwargs:
+            frame_width = kwargs["frame_width"]
         else:
             frame_width = 1000
 
-        if 'frame_height' in kwargs:
-            frame_height = kwargs['frame_height']
+        if "frame_height" in kwargs:
+            frame_height = kwargs["frame_height"]
         else:
             frame_height = 1000
 
-        if 'by' in kwargs:
-            by = kwargs['by']
+        if "by" in kwargs:
+            by = kwargs["by"]
         else:
-            by = 'Reach_ID'
+            by = "Reach_ID"
 
+        if "line_width" in kwargs:
+            line_width = kwargs["line_width"]
+        else:
+            line_width = 0
 
         for reach in self.reaches.values():
             reaches_plots.append(reach.get_nodes_as_df())
@@ -458,14 +467,29 @@ class Watershed:
         dfs = pd.concat(reaches_plots, ignore_index=True)
 
         watershed_plot = (
-            dfs.hvplot(x='X', y='Y', by=by, kind='line',
-                        hover_cols=['TYPE', 'US2ID', 'USID', 'ID', 'COMPUTEID', 'DSID']) * \
-            dfs.hvplot(x='X', y='Y', by=by, kind='scatter', alpha=0.5,
-                        hover_cols=['TYPE', 'US2ID', 'USID', 'ID', 'COMPUTEID', 'DSID'])
-        ).opts(frame_width=frame_width, frame_height=frame_height, aspect=aspect) 
+            dfs.hvplot.line(
+                x="X",
+                y="Y",
+                by=by,
+                hover_cols=["TYPE", "US2ID", "USID", "ID", "COMPUTEID", "DSID", "CCHE1D_ID", "Reach_ID"],
+                line_width=line_width
+            )
+            * dfs.hvplot(
+                x="X",
+                y="Y",
+                by=by,
+                kind="scatter",
+                alpha=0.5,
+                hover_cols=["TYPE", "US2ID", "USID", "ID", "COMPUTEID", "DSID", "CCHE1D_ID", "Reach_ID"],
+            )
+        ).opts(
+            frame_width=frame_width,
+            frame_height=frame_height,
+            aspect=aspect,
+            title=title
+        )
 
-        return watershed_plot 
-        
+        return watershed_plot
 
     def _create_junctions_between_reaches(self):
         """
