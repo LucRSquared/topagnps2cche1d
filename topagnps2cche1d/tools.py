@@ -5,7 +5,11 @@ import csv
 import pandas as pd
 import numpy as np
 
+from math import ceil
+
 # import scipy
+from scipy.interpolate import make_interp_spline
+
 import plotly.express as px
 import plotly.graph_objects as go
 from osgeo import gdal
@@ -319,6 +323,56 @@ def reorder_network(network, permutation_vect):
         ]
 
     return reordered_network
+
+
+def interpolate_xy_cord_step_numpoints(x, y, **kwargs):
+    """
+    Given two x and y arrays provides two new arrays xnew, ynew that are interpolated:
+    key-value arguments:
+        - step : define a step length (in the units of x and y) to resample points along the cord length
+        OR
+        - numpoints: define an arbitrary number of points to resample along the cord length
+    WARNING: If both values are specified, the method yielding the greater of resampling nodes will be chosen
+    It is advised to use only one of the keywords arguments.
+    """
+    if "step" in kwargs:
+        step = kwargs["step"]
+    else:
+        step = None
+
+    if "numpoints" in kwargs:
+        numpoints = kwargs["numpoints"]
+    else:
+        numpoints = 0
+
+    if step is None and numpoints == 0:
+        raise Exception("No resampling parameter provided (step, or numpoints)")
+
+    # Arrange coordinates in pairs:
+    p = np.stack((x, y))
+
+    dp = p[:, 1:] - p[:, :-1]  # 2 vector distance between points
+    l = (dp**2).sum(axis=0)  # squares of lengths of 2-vectors between points
+    u_cord = np.sqrt(l).cumsum()  # cumulative sums of 2-norms
+    u_cord = np.r_[0, u_cord]  # the first point is parameterized at zero
+
+    # Get arc length
+    arc_length = u_cord[-1]  # by definition
+
+    # Compute number of nodes needed for interpolation
+    if step is not None:
+        numpoints = max(
+            ceil(arc_length / step), numpoints
+        )  # chooses the highest value between
+        # provided numpoints and the one computed
+        # with the step method
+    # create spline interpolant
+    spl_cord = make_interp_spline(u_cord, np.c_[x, y])
+
+    uu = np.linspace(u_cord[0], u_cord[-1], numpoints)
+    xx_cord, yy_cord = spl_cord(uu).T
+
+    return xx_cord, yy_cord
 
 
 def get_counterclockwise_inflows(candidates, juncrowcol, img_flovec, oneindexed=False):

@@ -65,7 +65,8 @@ class Watershed:
         self._create_cells_from_df(df)
 
     def update_graph(self):
-        """Replaces the connectivity dict by a NetworkX DiGraph
+        """
+        Replaces the connectivity dict by a NetworkX DiGraph
         Creates a fully connected graph from all the reaches that are in the watershed
         And then creates a subgraph -- current_graph from the reaches that are not ignored
         """
@@ -95,6 +96,18 @@ class Watershed:
 
         self.full_graph = full_graph
         self.current_graph = current_graph
+
+    def update_watershed(self):
+        """
+        Updates:
+            - Graph, Junctions, Node IDs, Node types, Renumbers everything in computational order
+        """
+        self.update_graph()
+        self.identify_inflow_sources()
+        self.update_junctions_and_node_types()
+
+        self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
+        self.set_node_id_to_compute_id()
 
     def keep_all_reaches(self):
         """
@@ -353,6 +366,33 @@ class Watershed:
                 current_reach.flip_reach_us_ds_order()
                 receiving_reach.flip_reach_us_ds_order()
 
+    def resample_reaches(self, id_list="all", **kwargs):
+        """
+        Resample specific reach, list of reaches, or all reaches either at a constant spacing or a given number of points.
+        # positional argument:
+        id_list: id of reach(es) to resample OR 'all' to resample all reaches
+
+        key-value arguments:
+        - step : define a step length (in the units of x and y) to resample points along the cord length
+        OR
+        - numpoints: define an arbitrary number of points to resample along the cord length
+        WARNING: If both values are specified, the method yielding the greater of resampling nodes will be chosen
+        It is advised to use only one of the keywords arguments.
+        - nodes_new_id_start : node id at which to start renumbering nodes
+        """
+        if isinstance(id_list, int):
+            id_list = [id_list]
+        elif id_list == "all":
+            id_list = self.reaches
+        elif not (isinstance(id_list, list) or isinstance(id_list, tuple)):
+            raise Exception("Invalid argument for list of reaches to resample")
+
+        for reach_id in id_list:
+            self.reaches[reach_id].resample_reach(**kwargs)
+
+        # Update node ids, junctions, etc.
+        self.update_watershed()
+
     def identify_inflow_sources(self):
         """
         There are two types of inflow sources:
@@ -471,8 +511,17 @@ class Watershed:
                 x="X",
                 y="Y",
                 by=by,
-                hover_cols=["TYPE", "US2ID", "USID", "ID", "COMPUTEID", "DSID", "CCHE1D_ID", "Reach_ID"],
-                line_width=line_width
+                hover_cols=[
+                    "TYPE",
+                    "US2ID",
+                    "USID",
+                    "ID",
+                    "COMPUTEID",
+                    "DSID",
+                    "CCHE1D_ID",
+                    "Reach_ID",
+                ],
+                line_width=line_width,
             )
             * dfs.hvplot(
                 x="X",
@@ -480,13 +529,22 @@ class Watershed:
                 by=by,
                 kind="scatter",
                 alpha=0.5,
-                hover_cols=["TYPE", "US2ID", "USID", "ID", "COMPUTEID", "DSID", "CCHE1D_ID", "Reach_ID"],
+                hover_cols=[
+                    "TYPE",
+                    "US2ID",
+                    "USID",
+                    "ID",
+                    "COMPUTEID",
+                    "DSID",
+                    "CCHE1D_ID",
+                    "Reach_ID",
+                ],
             )
         ).opts(
             frame_width=frame_width,
             frame_height=frame_height,
             aspect=aspect,
-            title=title
+            title=title,
         )
 
         return watershed_plot

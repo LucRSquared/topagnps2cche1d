@@ -1,5 +1,8 @@
 import pandas as pd
 
+from topagnps2cche1d.tools import interpolate_xy_cord_step_numpoints
+from topagnps2cche1d.node import Node
+
 
 class Reach:
     def __init__(self, id, receiving_reach_id=None, slope=None, ignore=False):
@@ -100,18 +103,43 @@ class Reach:
 
     def resample_reach(self, **kwargs):
         """
-        Resample reach either at a constant spacing or a given number of points (>=2)
+        Resample reach either at a constant spacing or a given number of points.
+        key-value arguments:
+        - step : define a step length (in the units of x and y) to resample points along the cord length
+        OR
+        - numpoints: define an arbitrary number of points to resample along the cord length
+        WARNING: If both values are specified, the method yielding the greater of resampling nodes will be chosen
+        It is advised to use only one of the keywords arguments.
+        - nodes_new_id_start : node id at which to start renumbering nodes
         """
 
-        if "distance" in kwargs:
-            distance = kwargs["distance"]
-        else:
-            distance = None
+        x, y = self.get_x_y_node_arrays_us_ds_order()
+        if len(x) <= 2:
+            # the reach doesn't need resampling
+            return
 
-        if "numpoints" in kwargs:
-            numpoints = kwargs["numpoints"]
+        xnew, ynew = interpolate_xy_cord_step_numpoints(x, y, **kwargs)
+        num_nodes = len(xnew)
+
+        if "nodes_new_id_start" in kwargs:
+            nodes_new_id_start = kwargs["nodes_new_id_start"]
         else:
-            numpoints = 30
+            nodes_new_id_start = self.us_nd_id
+
+        self.nodes = {}
+
+        for ni, (xi, yi) in enumerate(zip(xnew, ynew), start=nodes_new_id_start):
+            if ni == nodes_new_id_start:
+                # start node
+                self.us_nd_id = ni
+                self.add_node(Node(id=ni, usid=None, dsid=ni + 1, x=xi, y=yi))
+            elif ni == nodes_new_id_start + num_nodes - 1:
+                # end node
+                self.ds_nd_id = ni
+                self.add_node(Node(id=ni, usid=ni - 1, dsid=None, x=xi, y=yi))
+            else:
+                # middle node
+                self.add_node(Node(id=ni, usid=ni - 1, dsid=ni + 1, x=xi, y=yi))
 
     def get_x_y_node_arrays_us_ds_order(self):
         """
