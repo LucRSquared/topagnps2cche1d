@@ -103,11 +103,13 @@ class Watershed:
             - Graph, Junctions, Node IDs, Node types, Renumbers everything in computational order
         """
         self.update_graph()
-        self.identify_inflow_sources()
+        # self.identify_inflow_sources()
         self.update_junctions_and_node_types()
+        self.identify_inflow_sources()
 
         self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
         self.set_node_id_to_compute_id()
+        # self.identify_inflow_sources()
 
     def keep_all_reaches(self):
         """
@@ -408,8 +410,6 @@ class Watershed:
         For the current connectivity graph:
             - updates junctions
             - set nodes type
-        This function should be called AFTER identify_inflow_sources so that node types are correctly
-        identified
         """
         self._create_junctions_between_reaches()
         self._set_outlet_node_type()
@@ -444,6 +444,8 @@ class Watershed:
                     break
                 else:
                     current_node_id = current_node.dsid
+
+        # I should also renumber us_nd_id and ds_nd_id
 
     def set_node_id_to_compute_id(self):
         """
@@ -557,7 +559,7 @@ class Watershed:
         first search method with a right hand rule (looking upstream)). The second inflow is thus also the reach with the smallest reach_id
         value according to TopAGNPS numbering system.
 
-        If a reach has only one it's a trivial connection and the DSID, USID, and TYPE can be easily handled.
+        If a reach has only one predecessor it's a trivial connection and the DSID, USID, and TYPE can be easily handled.
         """
 
         latest_nd_id = self._get_highest_node_id()
@@ -566,6 +568,7 @@ class Watershed:
 
         # Remove type 3 nodes if they exist
         for reach in reaches.values():
+            nodes_to_delete = []
             nodes = reach.nodes
             for node_id, node in nodes.items():
                 if node.type == 3:
@@ -576,9 +579,12 @@ class Watershed:
                     nodes[
                         usid
                     ].dsid = None  # the node immediately before now has no dsid
-                    del nodes[node_id]  # delete the node of type 2
+                    nodes_to_delete.append(nodes[node_id])
+                    # del nodes[node_id]  # delete the node of type 2
                 if node.type == 2:
                     node.type = None
+            for node in nodes_to_delete:
+                del node
 
         for reach_id in current_graph.nodes:
             # getting current reach and its most upstream node

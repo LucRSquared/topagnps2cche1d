@@ -18,9 +18,9 @@ class Cell:
         out_str = [
             "-----------------------------",
             f"Cell ID            : {self.id}",
-            f"Area               : {self.area}",
+            f"Area (m²)          : {self.area:.2f}",
             f"Receiving Reach ID : {self.receiving_reach_id}",
-            f"Type               : {self.type}"
+            f"Type               : {self.type}",
         ]
 
         return "\n".join(out_str)
