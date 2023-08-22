@@ -14,6 +14,17 @@ class Cell:
         else:
             self.type = type  # Can be 'left', 'right', or 'source'
 
+    def __str__(self) -> str:
+        out_str = [
+            "-----------------------------",
+            f"Cell ID            : {self.id}",
+            f"Area               : {self.area}",
+            f"Receiving Reach ID : {self.receiving_reach_id}",
+            f"Type               : {self.type}"
+        ]
+
+        return "\n".join(out_str)
+
     def _determine_type_based_on_topagnps_id(self):
         """
         This function determines based on the last digit of the cell_id. The convenction is as follows:
