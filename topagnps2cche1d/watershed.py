@@ -797,8 +797,9 @@ class Watershed:
         reaches = self.reaches
         # Remove type 3 nodes if they exist
         for reach_id, reach in reaches.items():
-            nodes = reach.nodes
-            for node_id in nodes:
-                max_nd_id = max(max_nd_id, node_id)
+            if not reach.ignore:
+                nodes = reach.nodes
+                for node_id in nodes:
+                    max_nd_id = max(max_nd_id, node_id)
 
         return max_nd_id
