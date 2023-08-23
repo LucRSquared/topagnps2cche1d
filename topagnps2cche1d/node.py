@@ -11,6 +11,7 @@ class Node:
         us2id=None,
         dsid=None,
         computeid=None,
+        csid=None,
         x=None,
         y=None,
         row=None,
@@ -25,6 +26,9 @@ class Node:
 
         self.computeid = computeid
 
+        # Cross section ID
+        self.csid = csid
+
         self.x = x
         self.y = y
         self.row = row
@@ -38,14 +42,14 @@ class Node:
             "-----------------------------",
             f"Node ID         : {self.id}",
             f"TYPE            : {self.type}",
-            f"USID            : {self.usid}",
-            f"DSID            : {self.dsid}",
+            f"USID / DSID     : {self.usid} / {self.dsid}",
             f"US2ID           : {self.us2id}",
             f"COMPUTEID       : {self.computeid}",
+            f"CSID            : {self.csid}",
             f"Cell Source     : {self.inflow_cell_source}",
             f"Reach Sources   : {self.inflow_reaches_source}",
             f"(x,y)           : ({self.x}, {self.y})",
-            f"(row,col)       : ({self.row}, {self.col})",
+            # f"(row,col)       : ({self.row}, {self.col})",
         ]
 
         return "\n".join(out_str)

@@ -21,6 +21,7 @@ class Watershed:
     def __init__(self):
         self.reaches = {}
         self.cells = {}
+        self.cross_sections = {}
         self.full_graph = None
         self.current_graph = None
 
@@ -37,6 +38,12 @@ class Watershed:
         Add a cell to the watershed
         """
         self.cells[cell.id] = cell
+
+    def add_cross_section(self, cross_section):
+        """
+        Add a cross section to the watershed
+        """
+        self.cross_sections[cross_section.id] = cross_section
 
     def import_topagnps_reaches_network(self, path_reach_data_section):
         """
@@ -466,6 +473,9 @@ class Watershed:
             nodes = reach.nodes
             for node in nodes.values():
                 node.change_node_ids_dict(old_new_dict)
+
+    def assign_cross_section_to_node_byid(self, node_id, **kwargs):
+        pass
 
     def plot(self, **kwargs):
         """

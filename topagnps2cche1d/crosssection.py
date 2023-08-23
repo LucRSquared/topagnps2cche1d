@@ -8,23 +8,41 @@ class CrossSection:
         ws=[],
         zs=[],
         lfp_idx=None,
-        rfp_idx=None,
         lbt_idx=None,
         rbt_idx=None,
+        rfp_idx=None,
         mannings_roughness=0.03,
         **kwargs,
     ):
+        """
+        Define a cross section in the local transverse plane coordinates along the channel. The coordinates are given in the left to right
+        format (when looking downstream)
+        Arguments:
+        * id: cross section unique id
+        * ws: cross section abscisccas arrays from left to right
+        * zs: cross section ordinates arrays
+        * lfp_idx: 'Left Flood Plain' edge Index of cross section marking the beginning of the main channel
+        * lbt_idx: 'Left Bank Toe' Index of cross section marking the toe of the left bank
+        * rbt_idx: 'Right Bank Toe'
+        * rfp_idx: 'Right Flood Plain' Index marking the end of the main channel on the right bank
+        * mannings_roughness : Manning's Roughness coefficient
+            Either a float representing the roughness of the entire cross section 
+            or an array of length len(zs) - 1 where n_rgh[i] is the roughness between ws[i] and ws[i+1]
+            # FUN FACT: Did you know that the Manning's Roughness coefficient was first invented by 
+            # french engineer Philippe Gaspard Gauckler in 1868 and later re-developed by Robert Manning in 1890?
+            # So really this should be the Gauckler roughness coefficient but no one's holding any grudges ;-)
+        """
+
         self.id = id
-        self.ws = np.array(ws)  # Transversal coordinates from left to right
-        self.zs = np.array(zs)  # Elevation values
-        self.lfp_idx = lfp_idx  # 'Left Flood Plain' edge Index of cross section marking the beginning of the main channel
-        self.rfp_idx = rfp_idx  # 'Left Bank Toe' Index of cross section marking the end of the main channel
-        self.lbt_idx = lbt_idx  # 'Left Bank Toe' index marking the toe of the left bank
-        self.rbt_idx = (
-            rbt_idx  # 'Right Bank Toe' index marking the toe of the right bank
-        )
-        self.n_rgh = mannings_roughness  # Manning's Roughness coefficient
-        # Can be an array of length len(ws) - 1 where n_rgh[i] is the roughness between ws[i] and ws[i+1]
+        self.ws = np.array(ws)  
+        self.zs = np.array(zs)
+        self.lfp_idx = lfp_idx 
+        self.rfp_idx = rfp_idx  
+        self.lbt_idx = lbt_idx  
+        self.rbt_idx = rbt_idx
+        self.n_rgh = mannings_roughness
+
+        
 
         if "type" in kwargs:
             xs_type = kwargs["type"]
@@ -58,17 +76,18 @@ class CrossSection:
         """
         ws, zs = self.ws, self.zs
         lfp, lbt, rbt, rfp = self.lfp_idx, self.lbt_idx, self.rbt_idx, self.rfp_idx
-        if not (ws) or not (zs):
+        if ws.size == 0 or zs.size==0:
             raise AssertionError("Empty cross section coordinates")
-        elif len(ws) != len(zs):
+        elif ws.size != zs.size:
             raise AssertionError("Ws and Zs coordinates should be the same length")
         elif any([item is None for item in [lfp, rfp, lbt, rbt]]):
             raise AssertionError("LFP, LBT, RBT, RFP indexes must be provided")
-        elif not (0 < lfp < lbt < rbt < rfp < len(zs)):
+        elif not (0 <= lfp <= lbt < rbt <= rfp <= zs.size):
             raise AssertionError(
                 "Invalid LFP, LBT, RBT, RFP index values: maybe out of bounds or incorrect order?"
             )
 
+        # Making sure Manning's Roughness coefficient
         n_rgh = self.n_rgh
         if isinstance(n_rgh, float):
             self.n_rgh = np.full(len(self.zs) - 1, n_rgh)
@@ -127,7 +146,7 @@ class CrossSection:
             if main_channel_depth <= 0:
                 raise AssertionError("'main_channel_depth' should be a positive number")
         else:
-            main_channel_depth = 20
+            main_channel_depth = 2
 
         if "main_channel_bank_slope" in kwargs:
             main_channel_bank_slope = kwargs["main_channel_bank_slope"]
