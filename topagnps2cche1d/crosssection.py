@@ -19,37 +19,50 @@ class CrossSection:
         format (when looking downstream)
         Arguments:
         * id: cross section unique id
-        * ws: cross section abscisccas arrays from left to right
+        * ws: cross section abscissas arrays from left to right
         * zs: cross section ordinates arrays
         * lfp_idx: 'Left Flood Plain' edge Index of cross section marking the beginning of the main channel
         * lbt_idx: 'Left Bank Toe' Index of cross section marking the toe of the left bank
         * rbt_idx: 'Right Bank Toe'
         * rfp_idx: 'Right Flood Plain' Index marking the end of the main channel on the right bank
+        /!\ these indexes start at 1 (ONE) not 0 (ZERO)
         * mannings_roughness : Manning's Roughness coefficient
-            Either a float representing the roughness of the entire cross section 
+            Either a float representing the roughness of the entire cross section
             or an array of length len(zs) - 1 where n_rgh[i] is the roughness between ws[i] and ws[i+1]
-            # FUN FACT: Did you know that the Manning's Roughness coefficient was first invented by 
+            # FUN FACT: Did you know that the Manning's Roughness coefficient was first invented by
             # french engineer Philippe Gaspard Gauckler in 1868 and later re-developed by Robert Manning in 1890?
             # So really this should be the Gauckler roughness coefficient but no one's holding any grudges ;-)
+        Key-Value Arguments:
+        * type:
+            - 'trapezoidal_with_flood_plain' which accepts the parameters defined below
+                * 'bottom_elevation'          : elevation of bottom of channel
+                * 'flood_plain_width'         : width of the flood plain on each side
+                * 'main_channel_bottom_width' : width of the bottom of the main channel
+                * 'main_channel_depth'        : depth of main channel measured from bottom to elevation of flood plain
+                * 'main_channel_bank_slope'   : slope of main channel banks
+                * 'flood_plain_bank_slope'    : slope of flood plain banks
+                * 'flood_plain_bank_height    : height of flood plain bank
+                If these parameters are not provided default values will be used!
+            - 'user_defined' : the user provides the coordinates ws, zs, and lfp_idx, lbt_idx, rbt_idx, rfp_idx
+                if the indexes are not provided then they are defaulted to end and beginning indexes
+
         """
 
         self.id = id
-        self.ws = np.array(ws)  
+        self.ws = np.array(ws)
         self.zs = np.array(zs)
-        self.lfp_idx = lfp_idx 
-        self.rfp_idx = rfp_idx  
-        self.lbt_idx = lbt_idx  
+        self.lfp_idx = lfp_idx
+        self.rfp_idx = rfp_idx
+        self.lbt_idx = lbt_idx
         self.rbt_idx = rbt_idx
         self.n_rgh = mannings_roughness
-
-        
 
         if "type" in kwargs:
             xs_type = kwargs["type"]
         else:
-            xs_type = "default"
+            xs_type = "trapezoidal_with_flood_plain"
 
-        if xs_type == "default":
+        if xs_type == "trapezoidal_with_flood_plain":
             (
                 self.ws,
                 self.zs,
@@ -57,16 +70,7 @@ class CrossSection:
                 self.lbt_idx,
                 self.rbt_idx,
                 self.rfp_idx,
-            ) = self.define_trapz_cross_section_width_slope_elevation()
-        elif xs_type == "trapezoidal_with_flood_plain":
-            (
-                self.ws,
-                self.zs,
-                self.lfp_idx,
-                self.lbt_idx,
-                self.rbt_idx,
-                self.rfp_idx,
-            ) = self.define_trapz_cross_section_width_slope_elevation()
+            ) = self.define_trapz_cross_section_width_slope_elevation(**kwargs)
 
         self._assert_valid_cross_section()
 
@@ -75,13 +79,20 @@ class CrossSection:
         Make sure the provided cross-section is valid
         """
         ws, zs = self.ws, self.zs
+        numpoints = len(ws)
         lfp, lbt, rbt, rfp = self.lfp_idx, self.lbt_idx, self.rbt_idx, self.rfp_idx
-        if ws.size == 0 or zs.size==0:
+        if ws.size == 0 or zs.size == 0:
             raise AssertionError("Empty cross section coordinates")
         elif ws.size != zs.size:
             raise AssertionError("Ws and Zs coordinates should be the same length")
         elif any([item is None for item in [lfp, rfp, lbt, rbt]]):
-            raise AssertionError("LFP, LBT, RBT, RFP indexes must be provided")
+            self.lfp_idx, self.lbt_idx, self.rbt_idx, self.rfp_idx, self = (
+                1,
+                1,
+                numpoints,
+                numpoints,
+            )
+            lfp, lbt, rbt, rfp = self.lfp_idx, self.lbt_idx, self.rbt_idx, self.rfp_idx
         elif not (0 <= lfp <= lbt < rbt <= rfp <= zs.size):
             raise AssertionError(
                 "Invalid LFP, LBT, RBT, RFP index values: maybe out of bounds or incorrect order?"
@@ -90,9 +101,9 @@ class CrossSection:
         # Making sure Manning's Roughness coefficient
         n_rgh = self.n_rgh
         if isinstance(n_rgh, float):
-            self.n_rgh = np.full(len(self.zs) - 1, n_rgh)
+            self.n_rgh = np.full(numpoints - 1, n_rgh)
 
-        elif len(n_rgh) - 1 != len(zs):
+        elif len(n_rgh) - 1 != numpoints:
             raise AssertionError(
                 "Invalid 'mannings_roughness', should be a float or array of length numpoints-1 "
             )

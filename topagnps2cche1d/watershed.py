@@ -11,7 +11,7 @@ from topagnps2cche1d.tools import (
     find_extremities_binary,
     get_intermediate_nodes_img,
 )
-from topagnps2cche1d import Reach, Node, Cell
+from topagnps2cche1d import Reach, Node, Cell, CrossSection
 
 import holoviews as hv
 import hvplot.pandas
@@ -475,7 +475,67 @@ class Watershed:
                 node.change_node_ids_dict(old_new_dict)
 
     def assign_cross_section_to_node_byid(self, node_id, **kwargs):
-        pass
+        """
+        Define a cross section in the local transverse plane coordinates along the channel. The coordinates are given in the left to right
+        format (when looking downstream)
+        Arguments:
+            node_id : id of the node we want to assign the cross section to
+
+        Key-Value Arguments:
+        * node_id_type : node id type
+            - 'absolute' corresponds to the "id" attribute (default)
+            - 'computeid' corresponds to the "computeid" attribute
+        * cs_id: cross section unique id
+            If not provided it will increment the highest cross section id by one
+        * cs_type:
+            - 'default' uses a trapezoidal with flood plain cross section made of 8 points with arbitrary values
+            - 'trapezoidal_with_flood_plain' which accepts the parameters defined below
+                * 'bottom_elevation'          : elevation of bottom of channel
+                * 'flood_plain_width'         : width of the flood plain on each side
+                * 'main_channel_bottom_width' : width of the bottom of the main channel
+                * 'main_channel_depth'        : depth of main channel measured from bottom to elevation of flood plain
+                * 'main_channel_bank_slope'   : slope of main channel banks
+                * 'flood_plain_bank_slope'    : slope of flood plain banks
+                * 'flood_plain_bank_height    : height of flood plain bank
+            - 'user_defined' : the user provides the coordinates ws, zs, and lfp_idx, lbt_idx, rbt_idx, rfp_idx
+                if the indexes are not provided then they are defaulted to end and beginning indexes
+        * ws: cross section abscissas arrays from left to right
+        * zs: cross section ordinates arrays
+        * lfp_idx: 'Left Flood Plain' edge Index of cross section marking the beginning of the main channel
+        * lbt_idx: 'Left Bank Toe' Index of cross section marking the toe of the left bank
+        * rbt_idx: 'Right Bank Toe'
+        * rfp_idx: 'Right Flood Plain' Index marking the end of the main channel on the right bank
+        /!\ these indexes start at 1 (ONE) not 0 (ZERO)
+        * mannings_roughness : Manning's Roughness coefficient
+            Either a float representing the roughness of the entire cross section
+            or an array of length len(zs) - 1 where n_rgh[i] is the roughness between ws[i] and ws[i+1]
+
+        e.g. watershed.assign_cross_section_to_node_byid(12)
+        """
+
+        if "node_id_type" in kwargs:
+            node_id_type = kwargs["node_id_type"]
+        else:
+            node_id_type = "absolute"
+
+        if "cs_id" in kwargs:
+            cs_id = kwargs["cs_id"]
+        else:
+            cs_id = self._get_highest_cross_section_id() + 1
+
+        if "cs_type" in kwargs:
+            cs_type = kwargs["cs_type"]
+        else:
+            cs_type = "trapezoidal_with_flood_plain"
+
+        cross_section = CrossSection(id=cs_id, type=cs_type, **kwargs)
+
+        node = self._get_node_byid(node_id, id_type=node_id_type)
+
+        # Add cross section to Watershed collection of cross sections
+        self.add_cross_section(cross_section)
+        # Assign cross section id to node
+        node.csid = cs_id
 
     def plot(self, **kwargs):
         """
@@ -813,3 +873,35 @@ class Watershed:
                     max_nd_id = max(max_nd_id, node_id)
 
         return max_nd_id
+
+    def _get_node_byid(self, id, id_type="absolute"):
+        """
+        Go through reaches of watershed and find the node with provided id
+        id_type:
+            - 'absolute' corresponds to the "id" attribute
+            - 'computeid' corresponds to the "computeid" attribute
+        """
+        nodes = self.nodes
+        node = None
+        if id_type.lower() == "absolute":
+            return nodes[id]
+        elif id_type.lower() == "computeid":
+            for node in nodes.values():
+                if node.computeid == id:
+                    return node
+        else:
+            raise Exception(
+                "Invalid id_type for selection of node. Valid values are 'absolute' and 'computeid'"
+            )
+
+        if node is None:
+            raise Exception(f"No valid none found for id: {id} and id_type: {id_type}")
+
+    def _get_highest_cross_section_id(self):
+        max_cs_id = 0
+        crosss_sections = self.cross_sections
+        # Remove type 3 nodes if they exist
+        for c_section in crosss_sections.values():
+            max_cs_id = max(c_section.id, max_cs_id)
+
+        return max_cs_id
