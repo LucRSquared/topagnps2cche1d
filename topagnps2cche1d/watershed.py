@@ -537,6 +537,35 @@ class Watershed:
         # Assign cross section id to node
         node.csid = cs_id
 
+    def assign_cross_section_to_all_points(self, **kwargs):
+        """
+        This function accepts the same key-value arguments as the function assign_cross_section_to_node_byid
+        except for node_id, node_id_type, and cs_id. The function will assign the defined cross section to all points in the current watershed
+        """
+
+        if "cs_type" in kwargs:
+            cs_type = kwargs["cs_type"]
+        else:
+            cs_type = "trapezoidal_with_flood_plain"
+
+        reaches = self.reaches
+        current_graph = self.current_graph
+
+        cs_id = 0
+        for reach_id, reach in reaches:
+            if reach_id not in current_graph:
+                continue
+            for node in reach.nodes.values():
+                cs_id +=1
+                cross_section = CrossSection(
+                    id=cs_id,
+                    type=cs_type,
+                    **kwargs
+                )
+                node.csid = cs_id
+                self.add_cross_section(cross_section)
+        pass
+
     def plot(self, **kwargs):
         """
         Plot network
@@ -809,9 +838,13 @@ class Watershed:
         """
         Goes through each node of each reach and set its type to default (6) unless it is already defined as something else
         """
+        current_graph = self.current_graph
+
         reaches = self.reaches
 
-        for reach in reaches.values():
+        for reach_id, reach in reaches.items():
+            if reach_id not in current_graph:
+                continue
             for node in reach.nodes.values():
                 if node.type not in [0, 1, 2, 3, 9]:
                     node.set_node_type(6)
