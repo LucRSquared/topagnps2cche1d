@@ -556,12 +556,8 @@ class Watershed:
             if reach_id not in current_graph:
                 continue
             for node in reach.nodes.values():
-                cs_id +=1
-                cross_section = CrossSection(
-                    id=cs_id,
-                    type=cs_type,
-                    **kwargs
-                )
+                cs_id += 1
+                cross_section = CrossSection(id=cs_id, type=cs_type, **kwargs)
                 node.csid = cs_id
                 self.add_cross_section(cross_section)
         pass
