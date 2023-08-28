@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from topagnps2cche1d.tools import interpolate_xy_cord_step_numpoints
@@ -206,3 +207,15 @@ class Reach:
         df = df.sort_values(by="COMPUTEID")
 
         return df
+
+    def length(self):
+        """Computes Reach Length"""
+        x = self.x
+        y = self.y
+
+        p = np.stack((x, y))
+        dp = p[:, 1:] - p[:, :-1]  # 2 vector distance between points
+        l = (dp**2).sum(axis=0)  # squares of lengths of 2-vectors between points
+        u_cord = np.sqrt(l).cumsum()  # cumulative sums of 2-norms
+        reach_length = u_cord[-1]  # by definition
+        return reach_length

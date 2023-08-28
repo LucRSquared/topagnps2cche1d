@@ -552,7 +552,7 @@ class Watershed:
         current_graph = self.current_graph
 
         cs_id = 0
-        for reach_id, reach in reaches:
+        for reach_id, reach in reaches.items():
             if reach_id not in current_graph:
                 continue
             for node in reach.nodes.values():
@@ -560,7 +560,183 @@ class Watershed:
                 cross_section = CrossSection(id=cs_id, type=cs_type, **kwargs)
                 node.csid = cs_id
                 self.add_cross_section(cross_section)
-        pass
+
+    def create_cche1d_node_df(self):
+        """
+        Generate a DataFrame containing all the nodes in CCHE1D format
+        """
+
+        reaches = self.reaches
+        current_graph = self.current_graph
+
+        # Defining columns
+        nd_ID, nd_FRMNO = [], []
+        nd_TYPE = []
+        nd_XC, nd_YC = [], []
+        nd_DSID, nd_USID, nd_US2ID = [], [], []
+        nd_CSID = []
+        nd_RSID = []  # Legacy Raster cell record ID set to -1
+        nd_STID = []  # Hydraulic structure record ID set to 1 by default
+
+        for reach_id, reach in reaches.items():
+            if reach_id not in current_graph:
+                continue
+            for node in reach.nodes.values():
+                nd_ID.append(node.id)
+                nd_FRMNO.append(node.computeid)
+                nd_TYPE.append(node.type)
+                nd_XC.append(node.x)
+                nd_YC.append(node.y)
+                nd_DSID.append(node.dsid)
+                nd_USID.append(node.usid)
+                nd_US2ID.append(node.us2id)
+                nd_CSID.append(node.csid)
+                nd_RSID.append(-1)  # set a default value
+                nd_STID.append(1)  # set de default value
+
+        df = pd.DataFrame(
+            {
+                "ND_ID": nd_ID,
+                "ND_FRMNO": nd_FRMNO,
+                "ND_TYPE": nd_TYPE,
+                "ND_XC": nd_XC,
+                "ND_YC": nd_YC,
+                "ND_DSID": nd_DSID,
+                "ND_USID": nd_USID,
+                "ND_US2ID": nd_US2ID,
+                "ND_CSID": nd_CSID,
+                "ND_RSID": nd_RSID,
+                "ND_STID": nd_STID,
+            }
+        )
+
+        df = df.sort_values(by="ND_ID")
+
+        return df
+
+    def create_cche1d_channels_df(self):
+        """
+        Generate a DataFrame containing all the TopAGNPS reaches (called channels for CCHE1D) in CCHE1D format
+        """
+
+        reaches = self.reaches
+        current_graph = self.current_graph
+
+        # Define columns
+        ch_ID = []
+        ch_NDUSID, ch_NDDSID = [], []
+        ch_LENGTH = []
+
+        for reach_id, reach in reaches.items():
+            if reach_id in current_graph:
+                ch_ID.append(reach.cche1d_id)
+                ch_NDUSID.append(reach.us_nd_id)
+                ch_NDDSID.append(reach.nd_ds_id)
+                ch_LENGTH.append(reach.length())
+
+        df = pd.DataFrame(
+            {
+                "CH_ID": ch_ID,
+                "CH_NDUSID": ch_NDUSID,
+                "CH_NDDSID": ch_NDDSID,
+                "CH_LENGTH": ch_LENGTH, # NOTE: See if this causes problems when importing in GUI
+            }
+        )
+
+        df = df.sort_values(by="CH_ID")
+
+        return df
+
+    def create_cche1d_links_and_reaches_df(self):
+        """
+        Generate a DataFrame containing all the links and reaches in CCHE1D format
+        /!\ A CCHE1D Reach is not the same as a TopAGNPS reach. A CCHE1D reach is simply
+        a section between two nodes
+        """
+
+        reaches = self.reaches
+        current_graph = self.current_graph
+
+        # Define columns
+        lk_ID = []
+        lk_NDUSID, lk_NDDSID = [], []
+        lk_RCUSID, lk_RCDSID = [], []
+        lk_TYPE = []  # Link type, 1 = channel (default), 2 = hydraulic strucutre
+        lk_LENGTH = []
+
+        rc_ID = []
+        rc_NDUSID, rc_NDDSID = [], []
+        rc_ORDER = []  # Strahler order
+        rc_SLOPE = []
+        rc_LENGTH = []
+
+        rc_id = 0
+        for reach_id, reach in reaches.items():
+            nodes = reach.nodes
+            if reach_id in current_graph:
+                # Create reaches
+                current_node_id = reach.us_nd_id
+                current_node = nodes[current_node_id]
+                us_rc_id = max(
+                    1, rc_ID
+                )  # this is so that if rc_id = 0 then we know that the US reach ID in the CCHE1D sense of the term is 1
+                while current_node_id != reach.ds_nd_id:
+                    rc_id += 1
+                    rc_ID.append(rc_ID)
+                    rc_NDUSID.append(current_node.id)
+                    rc_NDDSID.append(current_node.dsid)
+                    rc_ORDER.append(reach.strahler_number)
+                    rc_SLOPE.append(reach.slope)
+
+                    ds_node = nodes[current_node.dsid]
+                    rc_LENGTH.append(current_node.distance_from(ds_node))
+                    current_node = ds_node
+                    current_node_id = ds_node.id
+                ds_rc_id = rc_id  # the last rc_id is the downstream CCHE1D reach id for that topagnps reach
+
+                lk_ID.append(reach.cche1d_id)
+                lk_NDUSID.append(reach.us_nd_id)
+                lk_NDDSID.append(reach.nd_ds_id)
+                lk_RCUSID.append(us_rc_id)
+                lk_RCDSID.append(ds_rc_id)
+                lk_TYPE.append(
+                    1
+                )  # by default we don't consider hydraulic structures so the link is a channel
+                lk_LENGTH.append(
+                    reach.length()
+                )  # NOTE : See if it causes issues when importing in GUI
+
+        df_lk = pd.DataFrame(
+            {
+                "LK_ID": lk_ID,
+                "LK_CMPSEQ": lk_ID,
+                "LK_NDUSID": lk_NDUSID,
+                "LK_NDDSID": lk_NDDSID,
+                "LK_RCUSID": lk_RCUSID,
+                "LK_RCDSID": lk_RCDSID,
+                "LK_LENGTH": lk_LENGTH,
+            }
+        )
+
+        df_lk = df_lk.sort_values(by="LK_ID")
+
+        df_rc = pd.DataFrame(
+            {
+                "RC_ID": rc_ID,
+                "RC_NDUSID": rc_NDUSID,
+                "RC_NDDSID": rc_NDDSID,
+                "RC_ORDER": rc_ORDER,
+                "RC_SLOPE": rc_SLOPE,  # NOTE : didn't use to include this, we'll see if it causes issues when importing in GUI
+                "RC_LENGTH": rc_LENGTH,
+            }
+        )
+
+        return df_lk, df_rc
+    
+    def create_cche1d_csec_csprf_df(self):
+        """
+        Create the two DataFrames that describe the cross sections
+        """
 
     def plot(self, **kwargs):
         """
