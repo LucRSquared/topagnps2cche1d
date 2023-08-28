@@ -1,4 +1,5 @@
 import numpy as np
+import holoviews as hv
 
 
 class CrossSection:
@@ -59,6 +60,8 @@ class CrossSection:
 
         if "type" in kwargs:
             xs_type = kwargs["type"]
+        elif ws.any():
+            xs_type = "user_defined"
         else:
             xs_type = "trapezoidal_with_flood_plain"
 
@@ -86,7 +89,7 @@ class CrossSection:
         elif ws.size != zs.size:
             raise AssertionError("Ws and Zs coordinates should be the same length")
         elif any([item is None for item in [lfp, rfp, lbt, rbt]]):
-            self.lfp_idx, self.lbt_idx, self.rbt_idx, self.rfp_idx, self = (
+            self.lfp_idx, self.lbt_idx, self.rbt_idx, self.rfp_idx = (
                 1,
                 1,
                 numpoints,
@@ -214,3 +217,54 @@ class CrossSection:
         lfp_idx, lbt_idx, rbt_idx, rfp_idx = 2, 3, 4, 5
 
         return ws, zs, lfp_idx, lbt_idx, rbt_idx, rfp_idx
+
+    def plot(self, **kwargs):
+        """
+        Plot cross section
+        """
+        if "title" in kwargs:
+            title = kwargs["title"]
+        else:
+            title = ""
+
+        if "aspect" in kwargs:
+            aspect = kwargs["aspect"]
+        else:
+            aspect = None
+
+        if "frame_width" in kwargs:
+            frame_width = kwargs["frame_width"]
+        else:
+            frame_width = 800
+
+        if "frame_height" in kwargs:
+            frame_height = kwargs["frame_height"]
+        else:
+            frame_height = 500
+
+        if "line_width" in kwargs:
+            line_width = kwargs["line_width"]
+        else:
+            line_width = 2
+
+        if "marker" in kwargs:
+            marker = kwargs["marker"]
+        else:
+            marker = "o"
+
+        if "marker_size" in kwargs:
+            marker_size = kwargs["marker_size"]
+        else:
+            marker_size = 7
+
+        xs_plot = hv.Curve((self.ws, self.zs)).opts(line_width=line_width) * hv.Scatter(
+            (self.ws, self.zs)
+        ).opts(
+            marker=marker,
+            size=marker_size,
+            frame_width=frame_width,
+            frame_height=frame_height,
+            aspect=aspect,
+            title=title,
+        )
+        return xs_plot
