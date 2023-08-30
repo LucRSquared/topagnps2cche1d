@@ -117,6 +117,7 @@ class Watershed:
         self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
         self.set_node_id_to_compute_id()
         # self.identify_inflow_sources()
+        self._update_default_us_ds_default_values()
 
     def keep_all_reaches(self):
         """
@@ -508,7 +509,7 @@ class Watershed:
         /!\ these indexes start at 1 (ONE) not 0 (ZERO)
         * mannings_roughness : Manning's Roughness coefficient
             Either a float representing the roughness of the entire cross section
-            or an array of length len(zs) - 1 where n_rgh[i] is the roughness between ws[i] and ws[i+1]
+            or an array of length len(zs) where n_rgh[i] is the roughness of point (ws[i], zs[i])
 
         e.g. watershed.assign_cross_section_to_node_byid(12)
         """
@@ -561,7 +562,7 @@ class Watershed:
                 node.csid = cs_id
                 self.add_cross_section(cross_section)
 
-    def create_cche1d_node_df(self):
+    def create_cche1d_nodes_df(self):
         """
         Generate a DataFrame containing all the nodes in CCHE1D format
         """
@@ -612,6 +613,8 @@ class Watershed:
 
         df = df.sort_values(by="ND_ID")
 
+        df.reset_index(inplace=True, drop=True)
+
         return df
 
     def create_cche1d_channels_df(self):
@@ -631,7 +634,7 @@ class Watershed:
             if reach_id in current_graph:
                 ch_ID.append(reach.cche1d_id)
                 ch_NDUSID.append(reach.us_nd_id)
-                ch_NDDSID.append(reach.nd_ds_id)
+                ch_NDDSID.append(reach.ds_nd_id)
                 ch_LENGTH.append(reach.length())
 
         df = pd.DataFrame(
@@ -639,11 +642,13 @@ class Watershed:
                 "CH_ID": ch_ID,
                 "CH_NDUSID": ch_NDUSID,
                 "CH_NDDSID": ch_NDDSID,
-                "CH_LENGTH": ch_LENGTH, # NOTE: See if this causes problems when importing in GUI
+                "CH_LENGTH": ch_LENGTH,  # NOTE: See if this causes problems when importing in GUI
             }
         )
 
         df = df.sort_values(by="CH_ID")
+
+        df.reset_index(inplace=True, drop=True)
 
         return df
 
@@ -672,39 +677,41 @@ class Watershed:
 
         rc_id = 0
         for reach_id, reach in reaches.items():
+            if reach_id not in current_graph:
+                continue
+
             nodes = reach.nodes
-            if reach_id in current_graph:
-                # Create reaches
-                current_node_id = reach.us_nd_id
-                current_node = nodes[current_node_id]
-                us_rc_id = max(
-                    1, rc_ID
-                )  # this is so that if rc_id = 0 then we know that the US reach ID in the CCHE1D sense of the term is 1
-                while current_node_id != reach.ds_nd_id:
-                    rc_id += 1
-                    rc_ID.append(rc_ID)
-                    rc_NDUSID.append(current_node.id)
-                    rc_NDDSID.append(current_node.dsid)
-                    rc_ORDER.append(reach.strahler_number)
-                    rc_SLOPE.append(reach.slope)
+            # Create cche1d reaches
+            current_node_id = reach.us_nd_id
+            current_node = nodes[current_node_id]
+            us_rc_id = max(
+                1, rc_id
+            )  # this is so that if rc_id = 0 then we know that the US reach ID in the CCHE1D sense of the term is 1
+            while current_node_id != reach.ds_nd_id:
+                rc_id += 1
+                rc_ID.append(rc_id)
+                rc_NDUSID.append(current_node.id)
+                rc_NDDSID.append(current_node.dsid)
+                rc_ORDER.append(reach.strahler_number)
+                rc_SLOPE.append(reach.slope)
 
-                    ds_node = nodes[current_node.dsid]
-                    rc_LENGTH.append(current_node.distance_from(ds_node))
-                    current_node = ds_node
-                    current_node_id = ds_node.id
-                ds_rc_id = rc_id  # the last rc_id is the downstream CCHE1D reach id for that topagnps reach
+                ds_node = nodes[current_node.dsid]
+                rc_LENGTH.append(current_node.distance_from(ds_node))
+                current_node = ds_node
+                current_node_id = ds_node.id
+            ds_rc_id = rc_id  # the last rc_id is the downstream CCHE1D reach id for that topagnps reach
 
-                lk_ID.append(reach.cche1d_id)
-                lk_NDUSID.append(reach.us_nd_id)
-                lk_NDDSID.append(reach.nd_ds_id)
-                lk_RCUSID.append(us_rc_id)
-                lk_RCDSID.append(ds_rc_id)
-                lk_TYPE.append(
-                    1
-                )  # by default we don't consider hydraulic structures so the link is a channel
-                lk_LENGTH.append(
-                    reach.length()
-                )  # NOTE : See if it causes issues when importing in GUI
+            lk_ID.append(reach.cche1d_id)
+            lk_NDUSID.append(reach.us_nd_id)
+            lk_NDDSID.append(reach.ds_nd_id)
+            lk_RCUSID.append(us_rc_id)
+            lk_RCDSID.append(ds_rc_id)
+            lk_TYPE.append(
+                1
+            )  # by default we don't consider hydraulic structures so the link is a channel
+            lk_LENGTH.append(
+                reach.length()
+            )  # NOTE : See if it causes issues when importing in GUI
 
         df_lk = pd.DataFrame(
             {
@@ -719,6 +726,7 @@ class Watershed:
         )
 
         df_lk = df_lk.sort_values(by="LK_ID")
+        df_lk.reset_index(inplace=True, drop=True)
 
         df_rc = pd.DataFrame(
             {
@@ -731,12 +739,187 @@ class Watershed:
             }
         )
 
+        df_rc.reset_index(inplace=True, drop=True)
+
         return df_lk, df_rc
-    
+
     def create_cche1d_csec_csprf_df(self):
         """
         Create the two DataFrames that describe the cross sections
         """
+
+        reaches = self.reaches
+        cross_sections = self.cross_sections
+        current_graph = self.current_graph
+
+        # Define columns: csec
+        cs_ID = []
+        cs_NPTS = []
+        cs_LOB, cs_LBT, cs_ROB, cs_RBT = [], [], [], []
+        cs_SVTYPE = []  # cs type, we provide wz so it will always be 'WZ'
+        cs_TYPE = (
+            []
+        )  # Can be 'MC', 'MCLF', 'MCRF', 'MCLFRF' depending if floodplains are provided. for now we'll just put 'MC'
+        cs_ORIGIN = []  # Constant will be 'USERSPEC'
+        cs_STATION = []  # header needs to be there but will be empty
+
+        # Define columns: csprf
+        cp_ID = []
+        cp_CSID = []
+        cp_POSIDX = []
+        cp_W, cp_Z, cp_RGH = [], [], []
+        cp_BLOCK = []  # not sure what this is but it is set constant as 1
+
+        cp_id = 0  # global counter for cross section points
+        for reach_id, reach in reaches.items():
+            if reach_id not in current_graph:
+                continue
+            nodes = reach.nodes
+            for node in nodes.values():
+                csid = node.csid
+                xsection = cross_sections[csid]
+                ws, zs, n_rgh = xsection.ws, xsection.zs, xsection.n_rgh
+                lfp, lbt, rbt, rfp = (
+                    xsection.lfp_idx,
+                    xsection.lbt_idx,
+                    xsection.rbt_idx,
+                    xsection.rfp_idx,
+                )
+
+                numpts = len(ws)
+
+                cp_id += 1
+                cp_ID.extend(range(cp_id, cp_id + numpts))
+                cp_CSID.extend([csid for _ in range(numpts)])
+                cp_POSIDX.extend(range(1, 1 + numpts))
+                cp_W.extend(ws)
+                cp_Z.extend(zs)
+                cp_RGH.extend(n_rgh)
+                cp_BLOCK.extend([1 for _ in range(numpts)])
+                cp_id = cp_id + numpts - 1  # is also equal to the cp_ID[-1]
+
+                cs_ID.append(csid)
+                cs_NPTS.append(numpts)
+                cs_LOB.append(lfp)
+                cs_LBT.append(lbt)
+                cs_RBT.append(rbt)
+                cs_ROB.append(rfp)
+                cs_TYPE.append("MC")
+                cs_SVTYPE.append("WZ")
+                cs_ORIGIN.append("USERSPEC")
+                cs_STATION.append("")
+
+        df_csec = pd.DataFrame(
+            {
+                "CS_ID": cs_ID,
+                "CS_NPTS": cs_NPTS,
+                "CS_LOB": cs_LOB,
+                "CS_LBT": cs_LBT,
+                "CS_ROB": cs_ROB,
+                "CS_RBT": cs_RBT,
+                "CS_SVTYPE": cs_SVTYPE,
+                "CS_TYPE": cs_TYPE,
+                "CS_ORIGIN": cs_ORIGIN,
+                "CS_STATION": cs_STATION,
+            }
+        )
+
+        df_csec = df_csec.sort_values(by="CS_ID")
+        df_csec.reset_index(inplace=True, drop=True)
+
+        df_csprf = pd.DataFrame(
+            {
+                "CP_ID": cp_ID,
+                "CP_CSID": cp_CSID,
+                "CP_POSIDX": cp_POSIDX,
+                "CP_W": cp_W,
+                "CP_Z": cp_Z,
+                "CP_RGH": cp_RGH,
+                "CP_BLOCK": cp_BLOCK,
+            }
+        )
+
+        df_csprf.reset_index(inplace=True, drop=True)
+
+        return df_csec, df_csprf
+
+    def create_cche1d_twcells_df(self):
+        """
+        Create a DataFrame of the cells pouring into the CCHE1D reach network
+        """
+        cells = self.cells
+        reaches = self.reaches
+        current_graph = self.current_graph
+
+        tw_ID = []  # cell absolute id
+        tw_NUMB = []  # cell TopAGNPS Cell_ID
+        tw_NDDSID = []  # by default cells are defined to pour into the downstream node
+        tw_NDUSID = []  # we also include the current reach's upstream node id
+        tw_DRAREA = []  # we include the cell area
+
+        tw_id = 0
+        for reach_id, reach in reaches.items():
+            if reach_id not in current_graph:
+                continue
+            nodes = reach.nodes
+
+            for node in nodes.values():
+                for cell_source_id in node.inflow_cell_sources:
+                    tw_id += 1
+
+                    cell_source = cells[cell_source_id]
+                    tw_ID.append(tw_id)
+                    tw_NUMB.append(cell_source_id)
+                    tw_NDDSID.append(node.id)
+                    tw_NDUSID.append(
+                        reach.us_nd_id
+                    )  # For convenience we include the reach upstream node
+                    tw_DRAREA.append(cell_source.area)
+
+        df = pd.DataFrame(
+            {
+                "TW_ID": tw_ID,
+                "TW_NUMB": tw_NUMB,
+                "TW_NDDSID": tw_NDDSID,
+                "TW_NDUSID": tw_NDUSID,
+                "TW_DRAREA": tw_DRAREA,
+            }
+        )
+
+        return df
+
+    def get_list_of_inflow_reaches_df(self):
+        """
+        Create a DataFrame with a list of nodes that have inflow reaches that were removed
+        from an AnnAGNPS simulation
+        """
+
+        reaches = self.reaches
+        current_graph = self.current_graph
+
+        # Defining columns
+        inflow_reach_ID = []
+        receiving_node_ID = []
+
+        for reach_id, reach in reaches.items():
+            if reach_id not in current_graph:
+                continue
+            nodes = reach.nodes
+
+            for node in nodes.values():
+                for inflow_reach in node.inflow_reach_sources:
+                    inflow_reach_ID.append(inflow_reach)
+                    receiving_node_ID.append(node.id)
+
+        df = pd.DataFrame(
+            {
+                "inflow_topagnps_reach_id": inflow_reach_ID,
+                "receiving_node_id": receiving_node_ID,
+            }
+        )
+        df = df.sort_values(by="inflow_topagnps_reach_id")
+
+        return df
 
     def plot(self, **kwargs):
         """
@@ -926,6 +1109,27 @@ class Watershed:
                     2
                 )  # the junction node of two inflows is defined as type 2
 
+    def _update_default_us_ds_default_values(self):
+        """
+        After junctions the rest of the nodes need to be set to a default value for CCHE1D
+        """
+        reaches = self.reaches
+
+        for reach in reaches.values():
+            nodes = reach.nodes
+            for node in nodes.values():
+                if node.type == 9:  # if it's the outlet node then it's its own ds node
+                    node.dsid = node.id
+
+                if node.us2id is None:
+                    node.us2id = -1
+
+                if node.usid is None:
+                    node.usid = -1
+
+                if node.dsid is None:
+                    node.dsid = -1
+
     def _find_cells_inflow_nodes(self):
         """
         Find which node the cells are pouring into based on their type ('left', 'right', 'source')
@@ -945,7 +1149,7 @@ class Watershed:
 
             # set also the property in the node itself
             receiving_node = receiving_reach.nodes[receiving_node_id]
-            receiving_node.inflow_cell_source = cell_id
+            receiving_node.inflow_cell_sources.append(cell_id)
 
     def _find_removed_reaches_inflow_nodes(self):
         """
@@ -968,13 +1172,13 @@ class Watershed:
             )
 
             reach_us_node = reach.nodes[reach.us_nd_id]
-            reach_us_node.inflow_reaches_source = []
+            reach_us_node.inflow_reach_sources = []
 
             if removed_upstream_reaches:
                 reach_us_node.set_node_type(1)
 
             for removed_reach in removed_upstream_reaches:
-                reach_us_node.inflow_reaches_source.append(removed_reach)
+                reach_us_node.inflow_reach_sources.append(removed_reach)
 
     def _set_outlet_node_type(self):
         """
