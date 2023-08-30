@@ -210,8 +210,7 @@ class Reach:
 
     def length(self):
         """Computes Reach Length"""
-        x = self.x
-        y = self.y
+        x, y = self.get_x_y_node_arrays_us_ds_order()
 
         p = np.stack((x, y))
         dp = p[:, 1:] - p[:, :-1]  # 2 vector distance between points
