@@ -34,8 +34,8 @@ class Node:
         self.row = row
         self.col = col
 
-        self.inflow_cell_source = None
-        self.inflow_reaches_source = []
+        self.inflow_cell_sources = []
+        self.inflow_reach_sources = []
 
     def __str__(self):
         out_str = [
@@ -46,8 +46,8 @@ class Node:
             f"US2ID           : {self.us2id}",
             f"COMPUTEID       : {self.computeid}",
             f"CSID            : {self.csid}",
-            f"Cell Source     : {self.inflow_cell_source}",
-            f"Reach Sources   : {self.inflow_reaches_source}",
+            f"Cell Sources    : {self.inflow_cell_sources}",
+            f"Reach Sources   : {self.inflow_reach_sources}",
             f"(x,y)           : ({self.x}, {self.y})",
             # f"(row,col)       : ({self.row}, {self.col})",
         ]
