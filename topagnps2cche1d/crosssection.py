@@ -29,7 +29,7 @@ class CrossSection:
         /!\ these indexes start at 1 (ONE) not 0 (ZERO)
         * mannings_roughness : Manning's Roughness coefficient
             Either a float representing the roughness of the entire cross section
-            or an array of length len(zs) - 1 where n_rgh[i] is the roughness between ws[i] and ws[i+1]
+            or an array of length len(zs) where n_rgh[i] is the roughness of point (ws[i], zs[i])
             # FUN FACT: Did you know that the Manning's Roughness coefficient was first invented by
             # french engineer Philippe Gaspard Gauckler in 1868 and later re-developed by Robert Manning in 1890?
             # So really this should be the Gauckler roughness coefficient but no one's holding any grudges ;-)
@@ -60,7 +60,7 @@ class CrossSection:
 
         if "type" in kwargs:
             xs_type = kwargs["type"]
-        elif ws.any():
+        elif self.ws.any():
             xs_type = "user_defined"
         else:
             xs_type = "trapezoidal_with_flood_plain"
@@ -104,11 +104,11 @@ class CrossSection:
         # Making sure Manning's Roughness coefficient
         n_rgh = self.n_rgh
         if isinstance(n_rgh, float):
-            self.n_rgh = np.full(numpoints - 1, n_rgh)
+            self.n_rgh = np.full(numpoints, n_rgh)
 
-        elif len(n_rgh) - 1 != numpoints:
+        elif len(n_rgh) != numpoints:
             raise AssertionError(
-                "Invalid 'mannings_roughness', should be a float or array of length numpoints-1 "
+                "Invalid 'mannings_roughness', should be a float or array of length numpoints"
             )
 
     def shift_elevations(self, k):
