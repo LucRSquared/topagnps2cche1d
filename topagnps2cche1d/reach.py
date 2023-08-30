@@ -4,6 +4,8 @@ import pandas as pd
 from topagnps2cche1d.tools import interpolate_xy_cord_step_numpoints
 from topagnps2cche1d.node import Node
 
+import holoviews as hv
+
 
 class Reach:
     def __init__(self, id, receiving_reach_id=None, slope=None, ignore=False):
@@ -218,3 +220,58 @@ class Reach:
         u_cord = np.sqrt(l).cumsum()  # cumulative sums of 2-norms
         reach_length = u_cord[-1]  # by definition
         return reach_length
+    
+    def plot(self, **kwargs):
+        """
+        Plot reach
+        """
+        
+        if "title" in kwargs:
+            title = kwargs["title"]
+        else:
+            title = ""
+
+        if "aspect" in kwargs:
+            aspect = kwargs["aspect"]
+        else:
+            aspect = None
+
+        if "frame_width" in kwargs:
+            frame_width = kwargs["frame_width"]
+        else:
+            frame_width = 800
+
+        if "frame_height" in kwargs:
+            frame_height = kwargs["frame_height"]
+        else:
+            frame_height = 500
+
+        if "line_width" in kwargs:
+            line_width = kwargs["line_width"]
+        else:
+            line_width = 2
+
+        if "marker" in kwargs:
+            marker = kwargs["marker"]
+        else:
+            marker = "o"
+
+        if "marker_size" in kwargs:
+            marker_size = kwargs["marker_size"]
+        else:
+            marker_size = 7
+
+        x, y = self.get_x_y_node_arrays_us_ds_order()
+
+        reach_plot = hv.Curve((x, y)).opts(line_width=line_width) * hv.Scatter(
+            (x, y)
+        ).opts(
+            marker=marker,
+            size=marker_size,
+            frame_width=frame_width,
+            frame_height=frame_height,
+            aspect=aspect,
+            title=title,
+        )
+        return reach_plot
+

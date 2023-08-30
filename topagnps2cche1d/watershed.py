@@ -1,4 +1,5 @@
 import warnings
+from pathlib import Path
 from tqdm import tqdm
 import networkx as nx
 import numpy as np
@@ -642,7 +643,7 @@ class Watershed:
                 "CH_ID": ch_ID,
                 "CH_NDUSID": ch_NDUSID,
                 "CH_NDDSID": ch_NDDSID,
-                "CH_LENGTH": ch_LENGTH,  # NOTE: See if this causes problems when importing in GUI
+                # "CH_LENGTH": ch_LENGTH,  # NOTE: See if this causes problems when importing in GUI
             }
         )
 
@@ -721,7 +722,7 @@ class Watershed:
                 "LK_NDDSID": lk_NDDSID,
                 "LK_RCUSID": lk_RCUSID,
                 "LK_RCDSID": lk_RCDSID,
-                "LK_LENGTH": lk_LENGTH,
+                # "LK_LENGTH": lk_LENGTH, # NOTE : didn't use to include this
             }
         )
 
@@ -734,7 +735,7 @@ class Watershed:
                 "RC_NDUSID": rc_NDUSID,
                 "RC_NDDSID": rc_NDDSID,
                 "RC_ORDER": rc_ORDER,
-                "RC_SLOPE": rc_SLOPE,  # NOTE : didn't use to include this, we'll see if it causes issues when importing in GUI
+                # "RC_SLOPE": rc_SLOPE,  # NOTE : didn't use to include this, we'll see if it causes issues when importing in GUI
                 "RC_LENGTH": rc_LENGTH,
             }
         )
@@ -920,6 +921,70 @@ class Watershed:
         df = df.sort_values(by="inflow_topagnps_reach_id")
 
         return df
+    
+    def write_cche1d_dat_files(self, casename='topagnps', output_folder=None, float_format="%.4f"):
+        """
+        Generates all the CCHE1D dat files in the specified folder.
+        This function writes the CCHE1D files :
+            * {casename}_channel.dat
+            * {casename}_csec.dat
+            * {casename}_csprf.dat
+            * {casename}_link.dat
+            * {casename}_nodes.dat
+            * {casename}_reach.dat
+            * {casename}_tw_cell.dat
+        As well as a list_of_inflow_reaches.csv file to know which reach outputs need to be generated in AnnAGNPS if
+        some of them were removed from the network to provide correct inflow BCs to CCHE1D
+        """
+
+        def _write_df(df, filename, float_format=float_format):
+            # Little helper function
+            filename.write_text(f"{df.shape[0]}\n")
+            df.to_csv(filename, mode="a", sep="\t", index=False, float_format=float_format)
+
+        if output_folder is None:
+            output_folder = Path().cwd()
+        else:
+            output_folder = Path(output_folder)
+
+        output_folder.mkdir(exist_ok=True)
+
+        file = Path(output_folder) / casename
+
+        # Generating dfs
+        df_nodes = self.create_cche1d_nodes_df()
+        df_ch = self.create_cche1d_channels_df()
+        df_lk, df_rc = self.create_cche1d_links_and_reaches_df()
+        df_csec, df_csprf = self.create_cche1d_csec_csprf_df()
+        df_tw = self.create_cche1d_twcells_df()
+
+        df_inflow_reaches = self.get_list_of_inflow_reaches_df()
+
+        # Writing files
+        file_nodes = file.with_name(f"{casename}_nodes.dat")
+        _write_df(df_nodes, file_nodes)
+
+        file_channels = file.with_name(f"{casename}_channel.dat")
+        _write_df(df_ch, file_channels)
+
+        file_links = file.with_name(f"{casename}_link.dat")
+        _write_df(df_lk, file_links)
+
+        file_reaches = file.with_name(f"{casename}_reach.dat")
+        _write_df(df_rc, file_reaches)
+
+        file_csec = file.with_name(f"{casename}_csec.dat")
+        _write_df(df_csec, file_csec)
+
+        file_csprf = file.with_name(f"{casename}_csprf.dat")
+        _write_df(df_csprf, file_csprf)
+
+        file_tw = file.with_name(f"{casename}_tw_cell.dat")
+        _write_df(df_tw, file_tw)
+
+        if df_inflow_reaches.size != 0:
+            file_inflow_reaches = file.with_name(f"{casename}_inflow_reaches.csv")
+            df_inflow_reaches.to_csv(file_inflow_reaches, index=False)
 
     def plot(self, **kwargs):
         """
@@ -1026,18 +1091,20 @@ class Watershed:
             nodes = reach.nodes
             for node_id, node in nodes.items():
                 if node.type == 3:
+                    print(node)
                     usid = node.usid
-                    reach.ds_nd_id = (
-                        usid  # the new ds_nd_id is the node that was immediately before
-                    )
-                    nodes[
-                        usid
-                    ].dsid = None  # the node immediately before now has no dsid
+                    reach.ds_nd_id = usid  
+                    # the new ds_nd_id is the node that was immediately before
+                    
+                    nodes[usid].dsid = None  
+                    # the node immediately before now has no dsid
+
                     nodes_to_delete.append(nodes[node_id])
                     # del nodes[node_id]  # delete the node of type 2
                 if node.type == 2:
                     node.type = None
             for node in nodes_to_delete:
+                print(f"Deleting node {node.id}")
                 del node
 
         for reach_id in current_graph.nodes:
@@ -1079,13 +1146,14 @@ class Watershed:
                             upstream_reaches_id[0]
                         ]  # the first inflow is the other one remaining
 
-                    # make a copy of us_junc_node
+                    print(f'Making copy of the upstream node of reach_id: {reach_id}')
+                    # make a copy of ds reach us_junc_node
                     latest_nd_id += 1
                     us_reach_ds_junc_node = Node(
                         id=latest_nd_id,
                         type=3,
                         usid=us_reach.ds_nd_id,
-                        dsid=reach.us_nd_id,
+                        dsid=ds_reach_us_junc_node.id,
                         us2id=-1,
                         x=ds_reach_us_junc_node.x,
                         y=ds_reach_us_junc_node.y,
@@ -1097,7 +1165,7 @@ class Watershed:
 
                     # Make sure that the penultimate node (the one that used to be the ds_node
                     # actually points to the new one)
-                    penultimate_node = us_reach.nodes[us_reach_ds_junc_node.usid]
+                    penultimate_node = us_reach.nodes[us_reach.ds_nd_id]
                     penultimate_node.dsid = latest_nd_id
 
                     # Update reach with ds_node information
