@@ -220,12 +220,12 @@ class Reach:
         u_cord = np.sqrt(l).cumsum()  # cumulative sums of 2-norms
         reach_length = u_cord[-1]  # by definition
         return reach_length
-    
+
     def plot(self, **kwargs):
         """
         Plot reach
         """
-        
+
         if "title" in kwargs:
             title = kwargs["title"]
         else:
@@ -274,4 +274,3 @@ class Reach:
             title=title,
         )
         return reach_plot
-

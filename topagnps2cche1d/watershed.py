@@ -110,6 +110,7 @@ class Watershed:
         Updates:
             - Graph, Junctions, Node IDs, Node types, Renumbers everything in computational order
         """
+
         self.update_graph()
         # self.identify_inflow_sources()
         self.update_junctions_and_node_types()
@@ -118,7 +119,7 @@ class Watershed:
         self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
         self.set_node_id_to_compute_id()
         # self.identify_inflow_sources()
-        self._update_default_us_ds_default_values()
+        self.update_default_us_ds_default_values()
 
     def keep_all_reaches(self):
         """
@@ -612,6 +613,18 @@ class Watershed:
             }
         )
 
+        df["ND_ID"] = df["ND_ID"].astype(int)
+        df["ND_FRMNO"] = df["ND_FRMNO"].astype(int)
+        df["ND_TYPE"] = df["ND_TYPE"].astype("category")
+        df["ND_XC"] = df["ND_XC"].astype(float)
+        df["ND_YC"] = df["ND_YC"].astype(float)
+        df["ND_DSID"] = df["ND_DSID"].astype(int)
+        df["ND_USID"] = df["ND_USID"].astype(int)
+        df["ND_US2ID"] = df["ND_US2ID"].astype(int)
+        df["ND_CSID"] = df["ND_CSID"].astype(int)
+        df["ND_RSID"] = df["ND_RSID"].astype(int)
+        df["ND_STID"] = df["ND_STID"].astype(int)
+
         df = df.sort_values(by="ND_ID")
 
         df.reset_index(inplace=True, drop=True)
@@ -722,6 +735,7 @@ class Watershed:
                 "LK_NDDSID": lk_NDDSID,
                 "LK_RCUSID": lk_RCUSID,
                 "LK_RCDSID": lk_RCDSID,
+                "LK_TYPE": lk_TYPE
                 # "LK_LENGTH": lk_LENGTH, # NOTE : didn't use to include this
             }
         )
@@ -921,8 +935,10 @@ class Watershed:
         df = df.sort_values(by="inflow_topagnps_reach_id")
 
         return df
-    
-    def write_cche1d_dat_files(self, casename='topagnps', output_folder=None, float_format="%.4f"):
+
+    def write_cche1d_dat_files(
+        self, casename="topagnps", output_folder=None, float_format="%.4f", sep="\t"
+    ):
         """
         Generates all the CCHE1D dat files in the specified folder.
         This function writes the CCHE1D files :
@@ -937,10 +953,12 @@ class Watershed:
         some of them were removed from the network to provide correct inflow BCs to CCHE1D
         """
 
-        def _write_df(df, filename, float_format=float_format):
+        def _write_df(df, filename, float_format=float_format, sep=sep):
             # Little helper function
             filename.write_text(f"{df.shape[0]}\n")
-            df.to_csv(filename, mode="a", sep="\t", index=False, float_format=float_format)
+            df.to_csv(
+                filename, mode="a", index=False, float_format=float_format, sep=sep
+            )
 
         if output_folder is None:
             output_folder = Path().cwd()
@@ -1091,20 +1109,18 @@ class Watershed:
             nodes = reach.nodes
             for node_id, node in nodes.items():
                 if node.type == 3:
-                    print(node)
                     usid = node.usid
-                    reach.ds_nd_id = usid  
+                    reach.ds_nd_id = usid
                     # the new ds_nd_id is the node that was immediately before
-                    
-                    nodes[usid].dsid = None  
+
+                    nodes[usid].dsid = None
                     # the node immediately before now has no dsid
 
                     nodes_to_delete.append(nodes[node_id])
-                    # del nodes[node_id]  # delete the node of type 2
+
                 if node.type == 2:
                     node.type = None
             for node in nodes_to_delete:
-                print(f"Deleting node {node.id}")
                 del node
 
         for reach_id in current_graph.nodes:
@@ -1146,7 +1162,6 @@ class Watershed:
                             upstream_reaches_id[0]
                         ]  # the first inflow is the other one remaining
 
-                    print(f'Making copy of the upstream node of reach_id: {reach_id}')
                     # make a copy of ds reach us_junc_node
                     latest_nd_id += 1
                     us_reach_ds_junc_node = Node(
@@ -1177,7 +1192,7 @@ class Watershed:
                     2
                 )  # the junction node of two inflows is defined as type 2
 
-    def _update_default_us_ds_default_values(self):
+    def update_default_us_ds_default_values(self):
         """
         After junctions the rest of the nodes need to be set to a default value for CCHE1D
         """
