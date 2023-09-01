@@ -113,11 +113,18 @@ class Watershed:
 
         self.update_graph()
         # self.identify_inflow_sources()
+
+        # self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
+        # self.set_node_id_to_compute_id()
+
         self.update_junctions_and_node_types()
+
         self.identify_inflow_sources()
 
+        # self._print_reaches_node_ids()
         self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
         self.set_node_id_to_compute_id()
+
         # self.identify_inflow_sources()
         self.update_default_us_ds_default_values()
 
@@ -402,7 +409,10 @@ class Watershed:
         for reach_id in id_list:
             self.reaches[reach_id].resample_reach(**kwargs)
 
+        self._print_reaches_node_ids()
         # Update node ids, junctions, etc.
+        self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
+        self.set_node_id_to_compute_id()
         self.update_watershed()
 
     def identify_inflow_sources(self):
@@ -1135,8 +1145,16 @@ class Watershed:
                 # No upstream reaches
                 continue
             elif len(upstream_reaches_id) == 1:
+                                
                 # Simple connection
                 us_reach = reaches[upstream_reaches_id[0]]
+                # print("\nSimple connection")
+                # print(f"\nUpstream Reach: {us_reach.id}")
+                # print(us_reach)
+
+                # print(f"\nDownstream Reach ID: {reach_id}")
+                # print(reach)
+
                 us_reach_last_node = us_reach.nodes[us_reach.ds_nd_id]
                 us_reach_last_node.dsid = ds_reach_us_junc_node.id
                 us_reach_last_node.set_node_type(3)
@@ -1145,6 +1163,12 @@ class Watershed:
                 # QUESTION: Does the ds_reach_us_junc_node need to be of a specific type? For now it will be "user defined" (default)
                 ds_reach_us_junc_node.set_node_type(6)
                 ds_reach_us_junc_node.usid = us_reach_last_node.id
+
+                # print(f"\nUS Reach downstream node:")
+                # print(us_reach_last_node)
+
+                # print(f"\nDS Reach upstream node:")
+                # print(ds_reach_us_junc_node)
 
             elif len(upstream_reaches_id) == 2:
                 # go through the upstream topagnps reach ids in ascending id order, the first one will be the second inflow
@@ -1232,7 +1256,7 @@ class Watershed:
 
             # set also the property in the node itself
             receiving_node = receiving_reach.nodes[receiving_node_id]
-            receiving_node.inflow_cell_sources.append(cell_id)
+            receiving_node.inflow_cell_sources.add(cell_id)
 
     def _find_removed_reaches_inflow_nodes(self):
         """
@@ -1255,13 +1279,13 @@ class Watershed:
             )
 
             reach_us_node = reach.nodes[reach.us_nd_id]
-            reach_us_node.inflow_reach_sources = []
+            reach_us_node.inflow_reach_sources = set()
 
             if removed_upstream_reaches:
                 reach_us_node.set_node_type(1)
 
             for removed_reach in removed_upstream_reaches:
-                reach_us_node.inflow_reach_sources.append(removed_reach)
+                reach_us_node.inflow_reach_sources.add(removed_reach)
 
     def _set_outlet_node_type(self):
         """
@@ -1397,3 +1421,12 @@ class Watershed:
             max_cs_id = max(c_section.id, max_cs_id)
 
         return max_cs_id
+    
+    def _print_reaches_node_ids(self):
+        reaches = self.reaches
+
+        for reach in reaches.values():
+            if reach.ignore:
+                continue
+            for node in reach.nodes.values():
+                print(f"Reach {reach.id}, Node: {node.id}, ComputeID: {node.computeid}")

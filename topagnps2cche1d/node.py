@@ -34,8 +34,8 @@ class Node:
         self.row = row
         self.col = col
 
-        self.inflow_cell_sources = []
-        self.inflow_reach_sources = []
+        self.inflow_cell_sources = set()
+        self.inflow_reach_sources = set()
 
     def __str__(self):
         out_str = [

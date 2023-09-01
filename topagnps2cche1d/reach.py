@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import pandas as pd
 
@@ -107,6 +108,7 @@ class Reach:
     def resample_reach(self, **kwargs):
         """
         Resample reach either at a constant spacing or a given number of points.
+        The upstream and downstream nodes are preserved along with their type
         key-value arguments:
         - step : define a step length (in the units of x and y) to resample points along the cord length
         OR
@@ -124,10 +126,13 @@ class Reach:
         xnew, ynew = interpolate_xy_cord_step_numpoints(x, y, **kwargs)
         num_nodes = len(xnew)
 
+        us_nd_id, ds_nd_id = self.us_nd_id, self.ds_nd_id
+        us_node, ds_node = self.nodes[us_nd_id], self.nodes[ds_nd_id]
+
         if "nodes_new_id_start" in kwargs:
             nodes_new_id_start = kwargs["nodes_new_id_start"]
         else:
-            nodes_new_id_start = self.us_nd_id
+            nodes_new_id_start = us_nd_id
 
         self.nodes = {}
 
@@ -135,11 +140,13 @@ class Reach:
             if ni == nodes_new_id_start:
                 # start node
                 self.us_nd_id = ni
-                self.add_node(Node(id=ni, usid=None, dsid=ni + 1, x=xi, y=yi))
+                self.add_node(Node(id=ni, usid=None, dsid=ni + 1, x=xi, y=yi,
+                                   type=us_node.type))
             elif ni == nodes_new_id_start + num_nodes - 1:
                 # end node
                 self.ds_nd_id = ni
-                self.add_node(Node(id=ni, usid=ni - 1, dsid=None, x=xi, y=yi))
+                self.add_node(Node(id=ni, usid=ni - 1, dsid=None, x=xi, y=yi,
+                                   type=ds_node.type))
             else:
                 # middle node
                 self.add_node(Node(id=ni, usid=ni - 1, dsid=ni + 1, x=xi, y=yi))
