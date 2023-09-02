@@ -18,13 +18,16 @@ Using the files produced by TopAGNPS:
 - [ ] Producing CCHE1D Tables:
     - channel, reaches, links, nodes tables
     - boundary conditions tables (inflows from cells and "ghost" reaches)
+- [ ] Debug tables, for when reaches are resampled or removed.
+    - In the case of a single upstream reach, should the US and DS channels be merged?
   
-- [ ] Implement reach resampling methods
+- [x] Implement reach resampling methods
+- [ ] Debug reach resampling methods
 
 - [ ] Implement processing reach geometries from polygons GeoDataFrame (output of polygonization process)
   - Using reach skeletonization method
 
-- [ ] Implement cross-sections methods
+- [x] Implement cross-sections methods
 - [ ] Implement reading from NHD network directly using `pynhd` and NLDI
 
 

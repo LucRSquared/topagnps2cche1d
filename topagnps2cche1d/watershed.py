@@ -112,21 +112,17 @@ class Watershed:
         """
 
         self.update_graph()
-        # self.identify_inflow_sources()
-
-        # self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
-        # self.set_node_id_to_compute_id()
 
         self.update_junctions_and_node_types()
 
         self.identify_inflow_sources()
 
         # self._print_reaches_node_ids()
-        self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
-        self.set_node_id_to_compute_id()
 
         # self.identify_inflow_sources()
         self.update_default_us_ds_default_values()
+        self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
+        self.set_node_id_to_compute_id()
 
     def keep_all_reaches(self):
         """
@@ -409,10 +405,10 @@ class Watershed:
         for reach_id in id_list:
             self.reaches[reach_id].resample_reach(**kwargs)
 
-        self._print_reaches_node_ids()
         # Update node ids, junctions, etc.
-        self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
-        self.set_node_id_to_compute_id()
+        # NOTE : UNCOMMENT THIS TO MAKE IT WORK
+        # self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
+        # self.set_node_id_to_compute_id()
         self.update_watershed()
 
     def identify_inflow_sources(self):
@@ -699,7 +695,8 @@ class Watershed:
         rc_SLOPE = []
         rc_LENGTH = []
 
-        rc_id = 0
+        # rc_id = 0
+        rc_id = 1
         for reach_id, reach in reaches.items():
             if reach_id not in current_graph:
                 continue
@@ -708,11 +705,12 @@ class Watershed:
             # Create cche1d reaches
             current_node_id = reach.us_nd_id
             current_node = nodes[current_node_id]
-            us_rc_id = max(
-                1, rc_id
-            )  # this is so that if rc_id = 0 then we know that the US reach ID in the CCHE1D sense of the term is 1
+            # us_rc_id = max(
+            #     1, rc_id
+            # )  # this is so that if rc_id = 0 then we know that the US reach ID in the CCHE1D sense of the term is 1
+            us_rc_id = rc_id
             while current_node_id != reach.ds_nd_id:
-                rc_id += 1
+                # rc_id += 1
                 rc_ID.append(rc_id)
                 rc_NDUSID.append(current_node.id)
                 rc_NDDSID.append(current_node.dsid)
@@ -723,7 +721,9 @@ class Watershed:
                 rc_LENGTH.append(current_node.distance_from(ds_node))
                 current_node = ds_node
                 current_node_id = ds_node.id
-            ds_rc_id = rc_id  # the last rc_id is the downstream CCHE1D reach id for that topagnps reach
+                rc_id += 1 # update for the next reach (if there is one)
+
+            ds_rc_id = rc_id - 1 # rc_id-1 is the downstream CCHE1D reach id for that topagnps reach
 
             lk_ID.append(reach.cche1d_id)
             lk_NDUSID.append(reach.us_nd_id)
@@ -1422,11 +1422,13 @@ class Watershed:
 
         return max_cs_id
     
-    def _print_reaches_node_ids(self):
+    def _print_reaches_node_ids(self, computeidnone=True):
         reaches = self.reaches
 
         for reach in reaches.values():
             if reach.ignore:
                 continue
             for node in reach.nodes.values():
-                print(f"Reach {reach.id}, Node: {node.id}, ComputeID: {node.computeid}")
+                if node.computeid is None or not(computeidnone):
+                    print(f"Reach {reach.id}, Node: {node.id}, ComputeID: {node.computeid}")
+                
