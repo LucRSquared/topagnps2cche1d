@@ -366,11 +366,17 @@ def interpolate_xy_cord_step_numpoints(x, y, **kwargs):
         )  # chooses the highest value between
         # provided numpoints and the one computed
         # with the step method
-    # create spline interpolant
-    spl_cord = make_interp_spline(u_cord, np.c_[x, y])
+    # create spline interpolant and do linear if it fails
+    try:
+        spl_cord = make_interp_spline(u_cord, np.c_[x, y])
 
-    uu = np.linspace(u_cord[0], u_cord[-1], numpoints)
-    xx_cord, yy_cord = spl_cord(uu).T
+        uu = np.linspace(u_cord[0], u_cord[-1], numpoints)
+        xx_cord, yy_cord = spl_cord(uu).T
+    except ValueError:
+        # If spline interpolation fails, fall back to linear interpolation
+        xx_cord = np.interp(np.linspace(0, 1, numpoints), np.linspace(0, 1, len(x)), x)
+        yy_cord = np.interp(np.linspace(0, 1, numpoints), np.linspace(0, 1, len(y)), y)
+
 
     return xx_cord, yy_cord
 

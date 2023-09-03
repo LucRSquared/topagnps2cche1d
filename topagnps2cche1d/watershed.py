@@ -113,6 +113,9 @@ class Watershed:
 
         self.update_graph()
 
+        self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
+        self.set_node_id_to_compute_id()
+
         self.update_junctions_and_node_types()
 
         self.identify_inflow_sources()
@@ -393,7 +396,6 @@ class Watershed:
         - numpoints: define an arbitrary number of points to resample along the cord length
         WARNING: If both values are specified, the method yielding the greater of resampling nodes will be chosen
         It is advised to use only one of the keywords arguments.
-        - nodes_new_id_start : node id at which to start renumbering nodes
         """
         if isinstance(id_list, int):
             id_list = [id_list]
@@ -403,7 +405,7 @@ class Watershed:
             raise Exception("Invalid argument for list of reaches to resample")
 
         for reach_id in id_list:
-            self.reaches[reach_id].resample_reach(**kwargs)
+            self.reaches[reach_id].resample_reach(**kwargs, nodes_new_id_start=self._get_highest_node_id()+1)
 
         # Update node ids, junctions, etc.
         # NOTE : UNCOMMENT THIS TO MAKE IT WORK
@@ -1050,8 +1052,11 @@ class Watershed:
         else:
             line_width = 0
 
-        for reach in self.reaches.values():
-            reaches_plots.append(reach.get_nodes_as_df())
+        current_graph = self.current_graph
+
+        for reach_id, reach in self.reaches.items():
+            if reach_id in current_graph:
+                reaches_plots.append(reach.get_nodes_as_df())
 
         dfs = pd.concat(reaches_plots, ignore_index=True)
 
@@ -1119,6 +1124,7 @@ class Watershed:
             nodes = reach.nodes
             for node_id, node in nodes.items():
                 if node.type == 3:
+                    # TODO ONLY DO THIS IF IT'S A PROPER JUNCTION
                     usid = node.usid
                     reach.ds_nd_id = usid
                     # the new ds_nd_id is the node that was immediately before
@@ -1126,12 +1132,12 @@ class Watershed:
                     nodes[usid].dsid = None
                     # the node immediately before now has no dsid
 
-                    nodes_to_delete.append(nodes[node_id])
+                    nodes_to_delete.append(node_id)
 
                 if node.type == 2:
                     node.type = None
-            for node in nodes_to_delete:
-                del node
+            for node_id in nodes_to_delete:
+                del nodes[node_id] # this is not working somehow
 
         for reach_id in current_graph.nodes:
             # getting current reach and its most upstream node
