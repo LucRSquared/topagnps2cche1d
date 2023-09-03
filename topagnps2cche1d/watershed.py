@@ -1123,8 +1123,10 @@ class Watershed:
             nodes_to_delete = []
             nodes = reach.nodes
             for node_id, node in nodes.items():
-                if node.type == 3:
-                    # TODO ONLY DO THIS IF IT'S A PROPER JUNCTION
+                if (node.type == 3) and len(list(current_graph.predecessors(reach.receiving_reach_id)))>=2:
+                    # We only delete the node if it's the end of a reach of a proper junction
+                    # i.e. if the reach downstream has at least two inflow reaches. Otherwise we keep it
+                    # for the case of simple junctions
                     usid = node.usid
                     reach.ds_nd_id = usid
                     # the new ds_nd_id is the node that was immediately before
@@ -1154,12 +1156,6 @@ class Watershed:
                                 
                 # Simple connection
                 us_reach = reaches[upstream_reaches_id[0]]
-                # print("\nSimple connection")
-                # print(f"\nUpstream Reach: {us_reach.id}")
-                # print(us_reach)
-
-                # print(f"\nDownstream Reach ID: {reach_id}")
-                # print(reach)
 
                 us_reach_last_node = us_reach.nodes[us_reach.ds_nd_id]
                 us_reach_last_node.dsid = ds_reach_us_junc_node.id
