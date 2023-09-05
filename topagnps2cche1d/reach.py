@@ -125,11 +125,53 @@ class Reach:
 
         x, y = self.get_x_y_node_arrays_us_ds_order()
 
+        if len(x) == 1:
+            self.nodes = {}
+            self.us_nd_id = nodes_new_id_start
+            self.ds_nd_id = nodes_new_id_start
+            self.add_node(
+                Node(id=nodes_new_id_start, usid=None, dsid=None, x=x[0], y=y[0])
+            )
+            return
+        elif len(x) == 2:
+            self.nodes = {}
+            self.us_nd_id = nodes_new_id_start
+            self.add_node(
+                Node(
+                    id=nodes_new_id_start,
+                    usid=None,
+                    dsid=nodes_new_id_start + 1,
+                    x=x[0],
+                    y=y[0],
+                )
+            )
+
+            self.ds_nd_id = nodes_new_id_start + 1
+            self.add_node(
+                Node(
+                    id=nodes_new_id_start + 1,
+                    usid=nodes_new_id_start,
+                    dsid=None,
+                    x=x[1],
+                    y=y[1],
+                )
+            )
+            return
+
         xnew, ynew = interpolate_xy_cord_step_numpoints(x, y, **kwargs)
         num_nodes = len(xnew)
 
-        us_nd_id, ds_nd_id = self.us_nd_id, self.ds_nd_id
-        us_node, ds_node = self.nodes[us_nd_id], self.nodes[ds_nd_id]
+        if num_nodes == 1:
+            self.nodes = {}
+            self.us_nd_id = nodes_new_id_start
+            self.ds_nd_id = nodes_new_id_start
+            self.add_node(
+                Node(id=nodes_new_id_start, usid=None, dsid=None, x=xnew[0], y=ynew[0])
+            )
+            return
+        else:
+            us_nd_id, ds_nd_id = self.us_nd_id, self.ds_nd_id
+            us_node, ds_node = self.nodes[us_nd_id], self.nodes[ds_nd_id]
 
         self.nodes = {}
 
@@ -219,6 +261,9 @@ class Reach:
     def length(self):
         """Computes Reach Length"""
         x, y = self.get_x_y_node_arrays_us_ds_order()
+
+        if len(x) <= 1:
+            return 0
 
         p = np.stack((x, y))
         dp = p[:, 1:] - p[:, :-1]  # 2 vector distance between points

@@ -113,6 +113,11 @@ class Watershed:
 
         self.update_graph()
 
+        if len(self.current_graph) == 0:
+            raise Exception(
+                "No reaches left to consider in Watershed connectivity graph"
+            )
+
         self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
         self.set_node_id_to_compute_id()
 
@@ -387,10 +392,10 @@ class Watershed:
     def resample_reaches(self, id_list="all", **kwargs):
         """
         Resample specific reach, list of reaches, or all reaches either at a constant spacing or a given number of points.
-        # positional argument:
-        id_list: id of reach(es) to resample OR 'all' to resample all reaches
+        ### positional argument:
+        - id_list: id of reach(es) to resample OR 'all' to resample all reaches
 
-        key-value arguments:
+        ### key-value arguments:
         - step : define a step length (in the units of x and y) to resample points along the cord length
         OR
         - numpoints: define an arbitrary number of points to resample along the cord length
@@ -443,6 +448,7 @@ class Watershed:
         reach_dfs_postorder = custom_dfs_traversal_sorted_predecessors(
             current_graph, visit_descending_order=True, postorder=True
         )
+
         computeid = 0
         for cche1d_id, reach_id in enumerate(reach_dfs_postorder, 1):
             reach = reaches[reach_id]
@@ -451,6 +457,8 @@ class Watershed:
             us_node_id = reach.us_nd_id
             ds_node_id = reach.ds_nd_id
             current_node_id = us_node_id
+
+            # print(f"Renumbering CCHE1D reach: {cche1d_id}, TopAGNPS reach: {reach_id}")
 
             while True:
                 computeid += 1

@@ -15,14 +15,13 @@ Using the files produced by TopAGNPS:
 
 
 ## To-do:
-- [ ] Producing CCHE1D Tables:
+- [x] Producing CCHE1D Tables:
     - channel, reaches, links, nodes tables
     - boundary conditions tables (inflows from cells and "ghost" reaches)
-- [ ] Debug tables, for when reaches are resampled or removed.
-    - In the case of a single upstream reach, should the US and DS channels be merged?
-  
+- [x] Debug tables, for when reaches are resampled or removed.
+- [ ] Implement `pickle_watershed()` and `unpickle_watershed()` methods
 - [x] Implement reach resampling methods
-- [ ] Debug reach resampling methods
+- [x] Debug reach resampling methods
 
 - [ ] Implement processing reach geometries from polygons GeoDataFrame (output of polygonization process)
   - Using reach skeletonization method
