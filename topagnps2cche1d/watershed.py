@@ -405,12 +405,11 @@ class Watershed:
             raise Exception("Invalid argument for list of reaches to resample")
 
         for reach_id in id_list:
-            self.reaches[reach_id].resample_reach(**kwargs, nodes_new_id_start=self._get_highest_node_id()+1)
+            self.reaches[reach_id].resample_reach(
+                **kwargs, nodes_new_id_start=self._get_highest_node_id() + 1
+            )
 
         # Update node ids, junctions, etc.
-        # NOTE : UNCOMMENT THIS TO MAKE IT WORK
-        # self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
-        # self.set_node_id_to_compute_id()
         self.update_watershed()
 
     def identify_inflow_sources(self):
@@ -723,9 +722,11 @@ class Watershed:
                 rc_LENGTH.append(current_node.distance_from(ds_node))
                 current_node = ds_node
                 current_node_id = ds_node.id
-                rc_id += 1 # update for the next reach (if there is one)
+                rc_id += 1  # update for the next reach (if there is one)
 
-            ds_rc_id = rc_id - 1 # rc_id-1 is the downstream CCHE1D reach id for that topagnps reach
+            ds_rc_id = (
+                rc_id - 1
+            )  # rc_id-1 is the downstream CCHE1D reach id for that topagnps reach
 
             lk_ID.append(reach.cche1d_id)
             lk_NDUSID.append(reach.us_nd_id)
@@ -965,6 +966,8 @@ class Watershed:
         some of them were removed from the network to provide correct inflow BCs to CCHE1D
         """
 
+        self.assign_strahler_number_to_reaches(mode="current")
+
         def _write_df(df, filename, float_format=float_format, sep=sep):
             # Little helper function
             filename.write_text(f"{df.shape[0]}\n")
@@ -1015,6 +1018,8 @@ class Watershed:
         if df_inflow_reaches.size != 0:
             file_inflow_reaches = file.with_name(f"{casename}_inflow_reaches.csv")
             df_inflow_reaches.to_csv(file_inflow_reaches, index=False)
+
+        self.assign_strahler_number_to_reaches(mode="fully_connected")
 
     def plot(self, **kwargs):
         """
@@ -1123,7 +1128,9 @@ class Watershed:
             nodes_to_delete = []
             nodes = reach.nodes
             for node_id, node in nodes.items():
-                if (node.type == 3) and len(list(current_graph.predecessors(reach.receiving_reach_id)))>=2:
+                if (node.type == 3) and len(
+                    list(current_graph.predecessors(reach.receiving_reach_id))
+                ) >= 2:
                     # We only delete the node if it's the end of a reach of a proper junction
                     # i.e. if the reach downstream has at least two inflow reaches. Otherwise we keep it
                     # for the case of simple junctions
@@ -1139,7 +1146,7 @@ class Watershed:
                 if node.type == 2:
                     node.type = None
             for node_id in nodes_to_delete:
-                del nodes[node_id] # this is not working somehow
+                del nodes[node_id]  # this is not working somehow
 
         for reach_id in current_graph.nodes:
             # getting current reach and its most upstream node
@@ -1153,7 +1160,6 @@ class Watershed:
                 # No upstream reaches
                 continue
             elif len(upstream_reaches_id) == 1:
-                                
                 # Simple connection
                 us_reach = reaches[upstream_reaches_id[0]]
 
@@ -1423,7 +1429,7 @@ class Watershed:
             max_cs_id = max(c_section.id, max_cs_id)
 
         return max_cs_id
-    
+
     def _print_reaches_node_ids(self, computeidnone=True):
         reaches = self.reaches
 
@@ -1431,6 +1437,7 @@ class Watershed:
             if reach.ignore:
                 continue
             for node in reach.nodes.values():
-                if node.computeid is None or not(computeidnone):
-                    print(f"Reach {reach.id}, Node: {node.id}, ComputeID: {node.computeid}")
-                
+                if node.computeid is None or not (computeidnone):
+                    print(
+                        f"Reach {reach.id}, Node: {node.id}, ComputeID: {node.computeid}"
+                    )

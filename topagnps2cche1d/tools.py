@@ -377,7 +377,6 @@ def interpolate_xy_cord_step_numpoints(x, y, **kwargs):
         xx_cord = np.interp(np.linspace(0, 1, numpoints), np.linspace(0, 1, len(x)), x)
         yy_cord = np.interp(np.linspace(0, 1, numpoints), np.linspace(0, 1, len(y)), y)
 
-
     return xx_cord, yy_cord
 
 
