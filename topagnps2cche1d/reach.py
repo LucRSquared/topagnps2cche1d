@@ -104,6 +104,15 @@ class Reach:
             current_node = nodes[current_node.dsid]
 
         return nodes_order
+    
+    # def adjust_cross_sections_elevation_with_slope(self, ds_nd_elevation=0):
+    #     """
+    #     Goes through the nodes from downstream to upstream adjusting the cross sections
+    #     so that the thalweg of each cross section is shifted upstream according to the distance between
+    #     the nodes and the slope.
+    #     ### Parameter
+    #     ds_nd_elevation : float, optional. Elevation of the thalweg of the downstream node
+    #     """
 
     def resample_reach(self, **kwargs):
         """

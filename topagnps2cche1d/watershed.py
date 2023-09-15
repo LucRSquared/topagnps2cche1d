@@ -579,6 +579,41 @@ class Watershed:
                 node.csid = cs_id
                 self.add_cross_section(cross_section)
 
+    def adjust_cross_sections_elevation_with_slope(self, outlet_elevation=0):
+        """
+        Traverse the watershed network upstream and adjust the elevation of the thalweg
+        of each cross section
+        ### Parameter:
+            - outlet_elevation: float, optional reference elevation of the outlet
+        """
+        reaches = self.reaches
+        cross_sections = self.cross_sections
+
+        compute_id_reach_id = {reach.cche1d_id:reach.id for reach in reaches.values}
+        max_compute_id = max(compute_id_reach_id.keys())
+
+        current_compute_id = max_compute_id
+        elevation = outlet_elevation
+        # previous_node
+
+        while current_compute_id != 0:
+            current_reach = reaches[compute_id_reach_id[current_compute_id]]
+            ds_nd_id = current_reach.ds_nd_id
+            us_nd_id = current_reach.us_nd_id
+
+            nodes = current_reach.nodes
+
+            current_node_id = ds_nd_id
+            while True:
+
+                if current_node_id == us_nd_id:
+                    break
+                
+
+            current_compute_id -= 1
+            pass
+
+
     def create_cche1d_nodes_df(self):
         """
         Generate a DataFrame containing all the nodes in CCHE1D format

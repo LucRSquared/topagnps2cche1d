@@ -14,6 +14,7 @@ class Node:
         csid=None,
         x=None,
         y=None,
+        # thalweg_z=None,
         row=None,
         col=None,
     ):
@@ -33,6 +34,8 @@ class Node:
         self.y = y
         self.row = row
         self.col = col
+
+        # self.thalweg_z = thalweg_z
 
         self.inflow_cell_sources = set()
         self.inflow_reach_sources = set()

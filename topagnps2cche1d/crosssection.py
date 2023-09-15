@@ -117,6 +117,19 @@ class CrossSection:
         """
         self.zs = self.zs + k
 
+    def get_thalweg_elevation(self):
+        """
+        Get elevation of the lowest point of the cross-section
+        """
+        return self.zs.min()
+    
+    def set_thalweg_elevation(self, thalweg_z):
+        """
+        Shift elevation so that the cross section's Thalweg elevation is the one specified
+        """
+        old_thalweg_z = self.get_thalweg_elevation()
+        self.zs = self.zs - old_thalweg_z + thalweg_z
+
     @classmethod
     def define_trapz_cross_section_width_slope_elevation(cls, **kwargs):
         """
