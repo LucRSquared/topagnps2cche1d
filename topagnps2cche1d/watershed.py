@@ -589,22 +589,24 @@ class Watershed:
         reaches = self.reaches
         cross_sections = self.cross_sections
 
-        compute_id_reach_id = {reach.cche1d_id:reach.id for reach in reaches.values}
+        compute_id_reach_id = {reach.cche1d_id:reach.id for reach in reaches.values()}
         max_compute_id = max(compute_id_reach_id.keys())
+        outlet_reach_id = compute_id_reach_id[max_compute_id]
 
         # Initialize loop
-        current_compute_id = max_compute_id # start with the last reach computed
-        outlet_reach = reaches[compute_id_reach_id[current_compute_id]] # Outlet ID
+        outlet_reach = reaches[outlet_reach_id] # Outlet ID
         outlet_node = outlet_reach.nodes[outlet_reach.ds_nd_id] # Outlet node
 
         elevation = outlet_elevation # Initial elevation
 
         # Get list of reaches from downstream to upstream in a Breadth-First-Search order
-        reaches_to_visit_going_upstream = list(nx.bfs_tree(self.current_graph, max_compute_id))
+        reaches_to_visit_going_upstream = list(nx.bfs_tree(self.current_graph.reverse(), outlet_reach_id))
+        print(reaches_to_visit_going_upstream)
 
         for reach_id in reaches_to_visit_going_upstream:
+            print("Reach ID", reach_id)
             # Get reach
-            current_reach = reaches[compute_id_reach_id[reach_id]]
+            current_reach = reaches[reach_id]
             # Identify the ID of its DS and US nodes
             ds_nd_id = current_reach.ds_nd_id
             us_nd_id = current_reach.us_nd_id
@@ -612,7 +614,7 @@ class Watershed:
             nodes = current_reach.nodes
 
             # Get previous node
-            if current_node == outlet_node:
+            if ds_nd_id == outlet_node.id:
                 previous_node = outlet_node
             else:
                 ds_reach = reaches[current_reach.receiving_reach_id]
@@ -628,6 +630,8 @@ class Watershed:
                 dist_prev_node = current_node.distance_from(previous_node)
                 # Compute elevation of current node based on slope
                 elevation += dist_prev_node * current_reach.slope
+                print("Node:", current_node.id)
+                print(elevation)
                 # Get node cross section
                 cross_section = cross_sections[current_node.csid]
                 # Shift current node cross section according to absolute elevation
@@ -638,6 +642,8 @@ class Watershed:
 
                 if current_node_id == us_nd_id:
                     break
+
+        print("Done")
 
     def create_cche1d_nodes_df(self):
         """
