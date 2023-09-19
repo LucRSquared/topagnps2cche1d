@@ -1190,6 +1190,27 @@ class Watershed:
         )
 
         return watershed_plot
+    
+    def update_default_us_ds_default_values(self):
+        """
+        After junctions the rest of the nodes need to be set to a default value for CCHE1D
+        """
+        reaches = self.reaches
+
+        for reach in reaches.values():
+            nodes = reach.nodes
+            for node in nodes.values():
+                if node.type == 9:  # if it's the outlet node then it's its own ds node
+                    node.dsid = node.id
+
+                if node.us2id is None:
+                    node.us2id = -1
+
+                if node.usid is None:
+                    node.usid = -1
+
+                if node.dsid is None:
+                    node.dsid = -1
 
     def _create_junctions_between_reaches(self):
         """
@@ -1306,27 +1327,6 @@ class Watershed:
                 ds_reach_us_junc_node.set_node_type(
                     2
                 )  # the junction node of two inflows is defined as type 2
-
-    def update_default_us_ds_default_values(self):
-        """
-        After junctions the rest of the nodes need to be set to a default value for CCHE1D
-        """
-        reaches = self.reaches
-
-        for reach in reaches.values():
-            nodes = reach.nodes
-            for node in nodes.values():
-                if node.type == 9:  # if it's the outlet node then it's its own ds node
-                    node.dsid = node.id
-
-                if node.us2id is None:
-                    node.us2id = -1
-
-                if node.usid is None:
-                    node.usid = -1
-
-                if node.dsid is None:
-                    node.dsid = -1
 
     def _find_cells_inflow_nodes(self):
         """
