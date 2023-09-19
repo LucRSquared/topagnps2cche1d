@@ -122,7 +122,7 @@ class CrossSection:
         Get elevation of the lowest point of the cross-section
         """
         return self.zs.min()
-    
+
     def set_thalweg_elevation(self, thalweg_z):
         """
         Shift elevation so that the cross section's Thalweg elevation is the one specified

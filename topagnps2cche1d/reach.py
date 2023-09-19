@@ -104,7 +104,7 @@ class Reach:
             current_node = nodes[current_node.dsid]
 
         return nodes_order
-    
+
     # def adjust_cross_sections_elevation_with_slope(self, ds_nd_elevation=0):
     #     """
     #     Goes through the nodes from downstream to upstream adjusting the cross sections

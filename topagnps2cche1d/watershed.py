@@ -579,6 +579,15 @@ class Watershed:
                 node.csid = cs_id
                 self.add_cross_section(cross_section)
 
+    def reset_cross_sections_elevation(self, elevation=0):
+        """
+        Resets the thalweg elevation of all cross sections in the watershed.
+        Default to 0 but can be specified to a constant value
+        """
+
+        for cross_section in self.cross_sections.values():
+            cross_section.set_thalweg_elevation(elevation)
+
     def adjust_cross_sections_elevation_with_slope(self, outlet_elevation=0):
         """
         Traverse the watershed network upstream and adjust the elevation of the thalweg
@@ -589,22 +598,22 @@ class Watershed:
         reaches = self.reaches
         cross_sections = self.cross_sections
 
-        compute_id_reach_id = {reach.cche1d_id:reach.id for reach in reaches.values()}
+        compute_id_reach_id = {reach.cche1d_id: reach.id for reach in reaches.values()}
         max_compute_id = max(compute_id_reach_id.keys())
         outlet_reach_id = compute_id_reach_id[max_compute_id]
 
         # Initialize loop
-        outlet_reach = reaches[outlet_reach_id] # Outlet ID
-        outlet_node = outlet_reach.nodes[outlet_reach.ds_nd_id] # Outlet node
-
-        elevation = outlet_elevation # Initial elevation
+        outlet_reach = reaches[outlet_reach_id]  # Outlet ID
+        outlet_node = outlet_reach.nodes[outlet_reach.ds_nd_id]  # Outlet node
 
         # Get list of reaches from downstream to upstream in a Breadth-First-Search order
-        reaches_to_visit_going_upstream = list(nx.bfs_tree(self.current_graph.reverse(), outlet_reach_id))
-        print(reaches_to_visit_going_upstream)
+        # Here we use .reverse() on the graph because conceptually the bfs algorithm works in verse
+        # from the upstream/downstream logic. Going "deeper" means going down the paths but it is
+        reaches_to_visit_going_upstream = list(
+            nx.bfs_tree(self.current_graph.reverse(), outlet_reach_id)
+        )
 
         for reach_id in reaches_to_visit_going_upstream:
-            print("Reach ID", reach_id)
             # Get reach
             current_reach = reaches[reach_id]
             # Identify the ID of its DS and US nodes
@@ -616,9 +625,12 @@ class Watershed:
             # Get previous node
             if ds_nd_id == outlet_node.id:
                 previous_node = outlet_node
+                elevation = outlet_elevation  # Initial elevation
             else:
                 ds_reach = reaches[current_reach.receiving_reach_id]
                 previous_node = ds_reach.nodes[ds_reach.us_nd_id]
+                # Restart elevation at the elevation of the previous node
+                elevation = cross_sections[previous_node.csid].get_thalweg_elevation()
 
             # Traverse nodes starting ds
             current_node_id = ds_nd_id
@@ -630,20 +642,17 @@ class Watershed:
                 dist_prev_node = current_node.distance_from(previous_node)
                 # Compute elevation of current node based on slope
                 elevation += dist_prev_node * current_reach.slope
-                print("Node:", current_node.id)
-                print(elevation)
+
                 # Get node cross section
                 cross_section = cross_sections[current_node.csid]
                 # Shift current node cross section according to absolute elevation
                 cross_section.set_thalweg_elevation(elevation)
 
-                current_node_id = current_node.usid
-                previous_node = current_node
-
                 if current_node_id == us_nd_id:
                     break
-
-        print("Done")
+                else:
+                    current_node_id = current_node.usid
+                    previous_node = current_node
 
     def create_cche1d_nodes_df(self):
         """
