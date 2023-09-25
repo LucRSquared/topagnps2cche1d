@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 from topagnps2cche1d.tools import (
     custom_dfs_traversal_sorted_predecessors,
+    find_extremities_pathgraph,
+    get_pathgraph_binary,
+    get_pathgraph_node_sequence,
     read_esri_asc_file,
     read_reach_data_section,
     read_cell_data_section,
@@ -203,7 +206,7 @@ class Watershed:
                 else:
                     current_reach.strahler_number = max_strahler
 
-    def read_reaches_geometry_from_polygons_gdf(gdf, column_id_name="dn"):
+    def read_reaches_geometry_from_polygons_gdf(self, gdf, column_id_name="dn"):
         """
         Takes a GeoDataFrame containing POLYGONS describing reaches (most likely from gdal_polygonize of AnnAGNPS_Reach_IDs.asc raster)
         and identifies the skeleton and adds nodes along the paths of every reach.
@@ -238,9 +241,9 @@ class Watershed:
         for reach_id in tqdm(list_of_reaches_in_raster, desc="Reading Reaches"):
             reach_img = np.where(img_reach_asc == reach_id, 1, 0)
             # at this point we don't know if the start and end are the upstream and downstream
-            extremities = find_extremities_binary(
-                reach_img, output_index_starts_one=False
-            )
+
+            connected_pixels_graph = get_pathgraph_binary(reach_img, output_index_starts_one=False)
+            extremities = find_extremities_pathgraph(connected_pixels_graph)
 
             if len(extremities) == 1:
                 # Case where the reach is only one pixel
@@ -259,10 +262,10 @@ class Watershed:
                     f"Invalid reach {reach_id} in raster, more than 2 extremities"
                 )
 
-            # TODO: optimize with path_crawler
-            reach_skel_rowcols = get_intermediate_nodes_img(
-                startrowcol, endrowcol, reach_img
-            )
+            reach_skel_rowcols = get_pathgraph_node_sequence(connected_pixels_graph, source=startrowcol, end=endrowcol)
+            # reach_skel_rowcols = get_intermediate_nodes_img(
+            #     startrowcol, endrowcol, reach_img
+            # )
 
             for k, pixel_rowcol in enumerate(reach_skel_rowcols, 1):
                 nd_counter += 1
