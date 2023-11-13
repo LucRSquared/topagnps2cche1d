@@ -169,6 +169,7 @@ cython_debug/
 
 *.vscode
 
+# data_inputs/goodwin_creek_1m*
 data_outputs/goodwin_creek_1m*
 data_outputs/ohio*
 data_outputs/test_3_reaches

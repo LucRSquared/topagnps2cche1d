@@ -284,7 +284,7 @@ def get_pathgraph_node_sequence(G, source=None, end=None):
     elif source not in G.nodes():
         raise Exception(f"The extremity provided ({source}) is not in the graph")
     else:
-        pathgraph = nx.dfs_preorder_nodes(G, source)
+        pathgraph = list(nx.dfs_preorder_nodes(G, source))
 
     if (end is not None) and (end == pathgraph[-1]):
         return pathgraph
