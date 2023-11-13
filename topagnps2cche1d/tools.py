@@ -201,7 +201,7 @@ def path_crawler(rowcols):
 
     rowcols_to_visit = rowcols.copy()
     maxiter = len(rowcols_to_visit)
-    orphans = [] # The algorithm will most likely not start by an actual extremity
+    orphans = []  # The algorithm will most likely not start by an actual extremity
     # Therefore the path will start at some pixel in between, the algorithm will crawl
     # to one end and then will continue from where it started and finish connecting the path
     # in the other direction
@@ -247,6 +247,7 @@ def path_crawler(rowcols):
 
     return G
 
+
 def find_extremities_pathgraph(G):
     """
     G: NetworkX graph where all nodes are connected with a maximum of 2 neighbors per node
@@ -268,7 +269,7 @@ def get_pathgraph_node_sequence(G, source=None, end=None):
             If not provided the extremities will be identified and the first one found will be used
 
     end: Optional, Other end of the pathgraph. If provided, verifies that the last node in the list is indeed that one
-    
+
     Returns:
     List of graph nodes starting at source and in path order
     """
@@ -278,7 +279,7 @@ def get_pathgraph_node_sequence(G, source=None, end=None):
             if nx.degree(G, node) <= 1:
                 source = node
                 break
-    
+
     if source is None:
         raise Exception("No valid extremities found for this graph")
     elif source not in G.nodes():
@@ -289,7 +290,10 @@ def get_pathgraph_node_sequence(G, source=None, end=None):
     if (end is not None) and (end == pathgraph[-1]):
         return pathgraph
     else:
-        raise Exception(f"End provided: ({end}) does not match with end found: ({pathgraph[-1]})")
+        raise Exception(
+            f"End provided: ({end}) does not match with end found: ({pathgraph[-1]})"
+        )
+
 
 def get_pathgraph_binary(img, output_index_starts_one=False):
     """

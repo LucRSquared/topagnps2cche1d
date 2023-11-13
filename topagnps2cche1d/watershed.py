@@ -242,7 +242,9 @@ class Watershed:
             reach_img = np.where(img_reach_asc == reach_id, 1, 0)
             # at this point we don't know if the start and end are the upstream and downstream
 
-            connected_pixels_graph = get_pathgraph_binary(reach_img, output_index_starts_one=False)
+            connected_pixels_graph = get_pathgraph_binary(
+                reach_img, output_index_starts_one=False
+            )
             extremities = find_extremities_pathgraph(connected_pixels_graph)
 
             if len(extremities) == 1:
@@ -262,7 +264,9 @@ class Watershed:
                     f"Invalid reach {reach_id} in raster, more than 2 extremities"
                 )
 
-            reach_skel_rowcols = get_pathgraph_node_sequence(connected_pixels_graph, source=startrowcol, end=endrowcol)
+            reach_skel_rowcols = get_pathgraph_node_sequence(
+                connected_pixels_graph, source=startrowcol, end=endrowcol
+            )
             # reach_skel_rowcols = get_intermediate_nodes_img(
             #     startrowcol, endrowcol, reach_img
             # )
@@ -1193,7 +1197,7 @@ class Watershed:
         )
 
         return watershed_plot
-    
+
     def update_default_us_ds_default_values(self):
         """
         After junctions the rest of the nodes need to be set to a default value for CCHE1D
