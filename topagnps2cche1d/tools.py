@@ -179,11 +179,10 @@ def assemble_agflow_reach_cche1d(df_agflow, df_top_cche1d, geoMatrix, network=No
 
     return combined
 
-
 def path_crawler(rowcols):
     """
     This function takes as input a list of (row, col) coordinates
-    forming a linear path and returns the linear path connecting them
+    and returns a graph representing the longest linear path connecting them
     prioritizing North/South/East/West direction over diagonals
     """
     deltas = {
@@ -196,56 +195,107 @@ def path_crawler(rowcols):
         (1, 1): "SouthEast",
         (-1, 1): "NorthEast",
     }
-
     G = nx.Graph()
+    rowcols_set = set(rowcols)
 
-    rowcols_to_visit = rowcols.copy()
-    maxiter = len(rowcols_to_visit)
-    orphans = []  # The algorithm will most likely not start by an actual extremity
-    # Therefore the path will start at some pixel in between, the algorithm will crawl
-    # to one end and then will continue from where it started and finish connecting the path
-    # in the other direction
+    if len(rowcols_set) == 1:
+        G.add_node(rowcols[0])
+        return G
 
-    rowcol = rowcols_to_visit.pop(0)
-    start = rowcol
-
-    if not rowcols_to_visit:
-        # only one node
-        G.add_node(rowcol)
-
-    iter = 0
-    while rowcols_to_visit:
-        iter += 1
-        if iter == maxiter:
-            raise Exception(
-                "Maximum number of iterations reached! Probably invalid path"
-            )
-
-        for counter, delta in enumerate(deltas, 1):
-            rowcolnext = (rowcol[0] + delta[0], rowcol[1] + delta[1])
-
-            if rowcolnext in rowcols_to_visit:
-                G.add_edge(rowcol, rowcolnext)
-                # jump there
-                rowcol = rowcolnext
-                rowcols_to_visit.remove(rowcolnext)
+    def extend_path(start, path):
+        path.append(start)
+        while True:
+            neighbors = [
+                (start[0] + delta[0], start[1] + delta[1])
+                for delta in deltas.keys()
+                if (start[0] + delta[0], start[1] + delta[1]) in rowcols_set - set(path)
+            ]
+            if not neighbors:
                 break
-            elif counter == 8:
-                # if all directions have been found and there are still rowcols to visit
-                # it means the starting point was not an extremity. Therefore we need to start
-                # somewhere else and append the orphans that we'll deal with later
-                orphans.append(start)
-                rowcol = rowcols_to_visit.pop(0)
-                start = rowcol
+            next_node = min(neighbors, key=lambda x: deltas.get((x[0] - start[0], x[1] - start[1]), -1))
+            G.add_edge(start, next_node)
+            start = next_node
+            path.append(start)
 
-    # Finish connecting the orphans
-    for orphan in orphans:
-        for delta in deltas:
-            rowcolnext = (orphan[0] + delta[0], orphan[1] + delta[1])
-            if rowcolnext in rowcols:
-                G.add_edge(orphan, rowcolnext)
+    longest_path = []
+    for rowcol in rowcols_set:
+        path = []
+        extend_path(rowcol, path)
+        if len(path) > len(longest_path):
+            longest_path = path
+
+    G.clear()
+    for i in range(len(longest_path) - 1):
+        G.add_edge(longest_path[i], longest_path[i + 1])
 
     return G
+
+# def path_crawler_old(rowcols):
+#     """
+#     This function takes as input a list of (row, col) coordinates
+#     forming a linear path and returns the linear path connecting them
+#     prioritizing North/South/East/West direction over diagonals
+#     """
+#     deltas = {
+#         (-1, 0): "North",
+#         (0, -1): "West",
+#         (1, 0): "South",
+#         (0, 1): "East",
+#         (-1, -1): "NorthWest",
+#         (1, -1): "SouthWest",
+#         (1, 1): "SouthEast",
+#         (-1, 1): "NorthEast",
+#     }
+
+#     G = nx.Graph()
+
+#     rowcols_to_visit = rowcols.copy()
+#     maxiter = len(rowcols_to_visit)
+#     orphans = []  # The algorithm will most likely not start by an actual extremity
+#     # Therefore the path will start at some pixel in between, the algorithm will crawl
+#     # to one end and then will continue from where it started and finish connecting the path
+#     # in the other direction
+
+#     rowcol = rowcols_to_visit.pop(0)
+#     start = rowcol
+
+#     if not rowcols_to_visit:
+#         # only one node
+#         G.add_node(rowcol)
+
+#     iter = 0
+#     while rowcols_to_visit:
+#         iter += 1
+#         if iter == maxiter:
+#             raise Exception(
+#                 "Maximum number of iterations reached! Probably invalid path"
+#             )
+
+#         for counter, delta in enumerate(deltas, 1):
+#             rowcolnext = (rowcol[0] + delta[0], rowcol[1] + delta[1])
+
+#             if rowcolnext in rowcols_to_visit:
+#                 G.add_edge(rowcol, rowcolnext)
+#                 # jump there
+#                 rowcol = rowcolnext
+#                 rowcols_to_visit.remove(rowcolnext)
+#                 break
+#             elif counter == 8:
+#                 # if all directions have been found and there are still rowcols to visit
+#                 # it means the starting point was not an extremity. Therefore we need to start
+#                 # somewhere else and append the orphans that we'll deal with later
+#                 orphans.append(start)
+#                 rowcol = rowcols_to_visit.pop(0)
+#                 start = rowcol
+
+#     # Finish connecting the orphans
+#     for orphan in orphans:
+#         for delta in deltas:
+#             rowcolnext = (orphan[0] + delta[0], orphan[1] + delta[1])
+#             if rowcolnext in rowcols:
+#                 G.add_edge(orphan, rowcolnext)
+
+#     return G
 
 
 def find_extremities_pathgraph(G):
