@@ -206,6 +206,19 @@ class Watershed:
                 else:
                     current_reach.strahler_number = max_strahler
 
+    def get_highest_strahler_number(self):
+        """
+        Returns the highest Strahler number in the watershed
+        """
+
+        reaches = self.reaches
+        highest_strahler = 0
+        for reach in reaches.values():
+            if reach.strahler_number > highest_strahler:
+                highest_strahler = reach.strahler_number
+        return highest_strahler
+
+
     def read_reaches_geometry_from_polygons_gdf(self, gdf, column_id_name="dn"):
         """
         Takes a GeoDataFrame containing POLYGONS describing reaches (most likely from gdal_polygonize of AnnAGNPS_Reach_IDs.asc raster)
@@ -604,8 +617,7 @@ class Watershed:
         """
         reaches = self.reaches
         cross_sections = self.cross_sections
-
-        compute_id_reach_id = {reach.cche1d_id: reach.id for reach in reaches.values()}
+        compute_id_reach_id = {reach.cche1d_id: reach.id for reach in reaches.values() if reach.cche1d_id is not None}
         max_compute_id = max(compute_id_reach_id.keys())
         outlet_reach_id = compute_id_reach_id[max_compute_id]
 
