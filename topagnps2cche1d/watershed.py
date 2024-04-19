@@ -328,6 +328,63 @@ class Watershed:
         for ri in reaches_to_remove:
             del reaches[ri]
 
+        # DEALING WITH CASES WHERE REACHES ONLY HAVE ONE NODE
+
+        for reach_id in reaches:
+            reach_before = reaches[reach_id]
+
+            reach_middle_id = reach_before.receiving_reach_id
+    
+            if (reach_middle_id is None) or (reach_middle_id not in reaches):
+                # reach before outlet case
+                continue
+            else:
+                reach_middle = reaches[reach_middle_id]
+                reach_after_id = reach_middle.receiving_reach_id
+
+            if (reach_after_id is None) or (reach_after_id not in reaches):
+                # reach before outlet case
+                continue
+            else:
+                reach_after = reaches[reach_after_id]
+
+            # If the middle has only one node we need to artificially add two more in between the others
+            if len(reach_middle.nodes)==1:
+                node_reach_before_ds = reach_before.nodes[reach_before.ds_nd_id]
+                node_middle = reach_middle.nodes[reach_middle.us_nd_id]
+                node_reach_after_us = reach_after.nodes[reach_after.us_nd_id]
+
+                # Create two new nodes that fit inbetween the middle node and the neighbors us and ds
+                nd_counter += 1
+                reach_middle.add_node(
+                    Node(
+                        id=nd_counter,
+                        usid=None,
+                        dsid=node_middle.id,
+                        row=(node_reach_before_ds.row+node_middle.row)/2,
+                        col=(node_reach_before_ds.col+node_middle.col)/2
+                    )
+                )
+
+                node_middle.usid = nd_counter
+
+                nd_counter += 1
+                reach_middle.add_node(
+                    Node(
+                        id=nd_counter,
+                        usid=node_middle.id,
+                        dsid=None,
+                        row=(node_reach_after_us.row+node_middle.row)/2,
+                        col=(node_reach_after_us.row+node_middle.col)/2
+                    )
+                )
+
+                node_middle.dsid = nd_counter
+
+            else:
+                continue
+
+
         self.compute_XY_coordinates_of_all_nodes(oneindexed=False)
         self.update_graph()
         self.determine_reaches_us_ds_direction()
@@ -420,6 +477,7 @@ class Watershed:
         - step : define a step length (in the units of x and y) to resample points along the cord length
         OR
         - numpoints: define an arbitrary number of points to resample along the cord length
+        - min_numpoints: define a minimum number of points to use (default: 3)
         WARNING: If both values are specified, the method yielding the greater of resampling nodes will be chosen
         It is advised to use only one of the keywords arguments.
         """

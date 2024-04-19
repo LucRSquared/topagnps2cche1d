@@ -122,6 +122,8 @@ class Reach:
         - step : define a step length (in the units of x and y) to resample points along the cord length
         OR
         - numpoints: define an arbitrary number of points to resample along the cord length
+        - min_numpoints: define a minimum number of points to use (default: 3)
+
         WARNING: If both values are specified, the method yielding the greater of resampling nodes will be chosen
         It is advised to use only one of the keywords arguments.
         - nodes_new_id_start : node id at which to start renumbering nodes

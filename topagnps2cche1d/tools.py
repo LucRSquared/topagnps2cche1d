@@ -451,6 +451,8 @@ def interpolate_xy_cord_step_numpoints(x, y, **kwargs):
         - step : define a step length (in the units of x and y) to resample points along the cord length
         OR
         - numpoints: define an arbitrary number of points to resample along the cord length
+        - min_numpoints: define a minimum number of points to use (default: 3)
+
     WARNING: If both values are specified, the method yielding the greater of resampling nodes will be chosen
     It is advised to use only one of the keywords arguments.
     """
@@ -463,6 +465,11 @@ def interpolate_xy_cord_step_numpoints(x, y, **kwargs):
         numpoints = kwargs["numpoints"]
     else:
         numpoints = 0
+
+    if "min_numpoints" in kwargs:
+        min_numpoints = kwargs["min_numpoints"]
+    else:
+        min_numpoints = 3
 
     if step is None and numpoints == 0:
         raise Exception("No resampling parameter provided (step, or numpoints)")
@@ -483,6 +490,8 @@ def interpolate_xy_cord_step_numpoints(x, y, **kwargs):
         numpoints = max(
             ceil(arc_length / step), numpoints
         )  # chooses the highest value between
+        numpoints = max(numpoints, min_numpoints)  # ensures at least min
+    #
         # provided numpoints and the one computed
         # with the step method
     # create spline interpolant and do linear if it fails
