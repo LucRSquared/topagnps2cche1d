@@ -269,6 +269,7 @@ class Watershed:
                 )
                 reaches[reach_id].us_nd_id = nd_counter
                 reaches[reach_id].ds_nd_id = nd_counter
+
                 continue
             elif len(extremities) == 2:
                 startrowcol, endrowcol = extremities
