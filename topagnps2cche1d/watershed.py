@@ -121,16 +121,23 @@ class Watershed:
                 "No reaches left to consider in Watershed connectivity graph"
             )
 
+        
         self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
         self.set_node_id_to_compute_id()
 
+        # Identify reaches with a single node and add two extra nodes, one upstream and one downstream
+        self.add_us_and_ds_node_to_single_node_reaches()
+
         self.update_junctions_and_node_types()
+
+        # # Identify reaches with a single node and add two extra nodes, one upstream and one downstream
+        # self.add_us_and_ds_node_to_single_node_reaches()
+
 
         self.identify_inflow_sources()
 
         # self._print_reaches_node_ids()
 
-        # self.identify_inflow_sources()
         self.update_default_us_ds_default_values()
         self.renumber_all_nodes_and_reaches_in_CCHE1D_computational_order()
         self.set_node_id_to_compute_id()
@@ -331,7 +338,7 @@ class Watershed:
         self.compute_XY_coordinates_of_all_nodes(oneindexed=False)
         self.update_graph()
         self.determine_reaches_us_ds_direction()
-        self.add_us_and_ds_node_to_single_node_reaches()
+        # self.add_us_and_ds_node_to_single_node_reaches()
 
     def add_us_and_ds_node_to_single_node_reaches(self):
         """
@@ -347,6 +354,9 @@ class Watershed:
         for reach_id in reaches:
             reach_before = reaches[reach_id]
 
+            if reach_before.ignore:
+                continue
+
             reach_middle_id = reach_before.receiving_reach_id
     
             if (reach_middle_id is None) or (reach_middle_id not in reaches):
@@ -354,6 +364,10 @@ class Watershed:
                 continue
             else:
                 reach_middle = reaches[reach_middle_id]
+                
+                if reach_middle.ignore:
+                    continue
+
                 reach_after_id = reach_middle.receiving_reach_id
 
             if (reach_after_id is None) or (reach_after_id not in reaches):
@@ -361,6 +375,10 @@ class Watershed:
                 continue
             else:
                 reach_after = reaches[reach_after_id]
+
+                if reach_after.ignore:
+                    continue
+
 
             # If the middle has only one node we need to artificially add two more in between the others
             if len(reach_middle.nodes)==1:
@@ -1459,10 +1477,19 @@ class Watershed:
             )
 
             reach_us_node = reach.nodes[reach.us_nd_id]
-            reach_us_node.inflow_reach_sources = set()
+            # Get node immediately next
+            second_most_us_node = reach.nodes[reach_us_node.dsid]
+
+            second_most_us_node.inflow_reach_sources = set()
 
             if removed_upstream_reaches:
-                reach_us_node.set_node_type(1)
+                if len(removed_upstream_reaches) == 1:
+                    # only one reach is removed therefore the upstream node is an inflow
+                    second_most_us_node.set_node_type(1)
+                elif len(removed_upstream_reaches) > 1:
+                    # more than one reach is removed therefore the upstream node is a source node
+                    reach_us_node.set_node_type(0)
+
 
             for removed_reach in removed_upstream_reaches:
                 reach_us_node.inflow_reach_sources.add(removed_reach)
