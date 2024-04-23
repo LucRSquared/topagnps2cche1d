@@ -328,6 +328,20 @@ class Watershed:
         for ri in reaches_to_remove:
             del reaches[ri]
 
+        self.compute_XY_coordinates_of_all_nodes(oneindexed=False)
+        self.update_graph()
+        self.determine_reaches_us_ds_direction()
+        self.add_us_and_ds_node_to_single_node_reaches()
+
+    def add_us_and_ds_node_to_single_node_reaches(self):
+        """
+        Looks for single node reaches and adds an upstream and downstream node to them
+        """
+
+        reaches = self.reaches
+
+        nd_counter = self._get_highest_node_id() + 1
+
         # DEALING WITH CASES WHERE REACHES ONLY HAVE ONE NODE
 
         for reach_id in reaches:
@@ -361,10 +375,11 @@ class Watershed:
                         id=nd_counter,
                         usid=None,
                         dsid=node_middle.id,
-                        row=(node_reach_before_ds.row+node_middle.row)/2,
-                        col=(node_reach_before_ds.col+node_middle.col)/2
+                        x=(node_reach_before_ds.x+node_middle.x)/2,
+                        y=(node_reach_before_ds.y+node_middle.y)/2
                     )
                 )
+                reach_middle.us_nd_id = nd_counter
 
                 node_middle.usid = nd_counter
 
@@ -374,20 +389,16 @@ class Watershed:
                         id=nd_counter,
                         usid=node_middle.id,
                         dsid=None,
-                        row=(node_reach_after_us.row+node_middle.row)/2,
-                        col=(node_reach_after_us.row+node_middle.col)/2
+                        x=(node_reach_after_us.x+node_middle.x)/2,
+                        y=(node_reach_after_us.y+node_middle.y)/2
                     )
                 )
+                reach_middle.ds_nd_id = nd_counter
 
                 node_middle.dsid = nd_counter
 
             else:
                 continue
-
-
-        self.compute_XY_coordinates_of_all_nodes(oneindexed=False)
-        self.update_graph()
-        self.determine_reaches_us_ds_direction()
 
     def compute_XY_coordinates_of_all_nodes(self, oneindexed=False):
         """
