@@ -1492,7 +1492,7 @@ class Watershed:
 
 
             for removed_reach in removed_upstream_reaches:
-                reach_us_node.inflow_reach_sources.add(removed_reach)
+                second_most_us_node.inflow_reach_sources.add(removed_reach)
 
     def _set_outlet_node_type(self):
         """
