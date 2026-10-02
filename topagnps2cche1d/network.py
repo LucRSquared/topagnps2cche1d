@@ -645,11 +645,19 @@ class NetworkValidationError(Exception):
 def validate_network(net: Cche1dNetwork):
     """
     Check a Cche1dNetwork against what the CCHE1D Fortran reader expects
-    (db_w_ntw_in.f90 / db_w_c1d_in.f90 / db_w_cs_in.f90).  Returns [] if the
-    network is valid, otherwise raises NetworkValidationError with the list
-    of problems.
+    (db_w_ntw_in.f90 / db_w_c1d_in.f90 / db_w_cs_in.f90).
+
+    Returns ``(errors, warnings)``.  ``errors`` are fatal: the Fortran import
+    would stop or produce a broken model, so this function raises
+    ``NetworkValidationError`` whenever the list is non-empty.  ``warnings``
+    mirror things the Fortran import *tolerates* -- most notably a node whose
+    ND_CSID has no matching row in the csec file (``db_w_c1d_in.f90:713``
+    runs ``DO CS = 1, CS_COUNT / IF(CS_ID(CS).EQ.NDCSID)`` with no else
+    branch and silently continues) and cross-section geometry problems
+    (``CP_W`` ordering, missing profile rows).  A warnings-only result means
+    "the model will import this; the geometry may be incomplete".
     """
-    errors = []
+    errors, warnings = [], []
     nodes = {n.nd_id: n for n in net.nodes}
     reaches = {r.rc_id: r for r in net.reaches}
     channels = {c.ch_id: c for c in net.channels}
@@ -671,7 +679,12 @@ def validate_network(net: Cche1dNetwork):
             if v not in (NEGATIVE_ONE, n.nd_id) and v not in node_ids:
                 errors.append(f"node {n.nd_id}: {attr}={v} not a known node")
         if n.csid != NEGATIVE_ONE and n.csid not in csecs:
-            errors.append(f"node {n.nd_id}: ND_CSID={n.csid} not in csec file")
+            # db_w_c1d_in.f90:713 tolerates an unmatched ND_CSID (no else
+            # branch) -- warning only.
+            warnings.append(f"node {n.nd_id}: ND_CSID={n.csid} has no "
+                            "matching row in the csec file (tolerated by "
+                            "the model; cross-section geometry will be "
+                            "missing at this node)")
 
     # computing order: ND_FRMNO must be a permutation of 1..N and every
     # inflow branch must be computed strictly earlier than its junction node.
@@ -760,15 +773,18 @@ def validate_network(net: Cche1dNetwork):
             errors.append(f"link {l.lk_id}: reach refs "
                           f"{l.rcusid}/{l.rcdsid} missing")
 
-    # cross sections
+    # cross sections (geometry-level issues are tolerated by the model --
+    # it never checks station ordering or row counts -- so they are
+    # warnings, not errors)
     for cs in net.csecs:
         if not cs.points:
-            errors.append(f"cross section {cs.cs_id}: no profile points")
+            warnings.append(f"cross section {cs.cs_id}: no profile points")
         else:
             ws = [p[1] for p in cs.points]
             if ws != sorted(ws):
-                errors.append(f"cross section {cs.cs_id}: CP_W not increasing")
+                warnings.append(f"cross section {cs.cs_id}: CP_W not "
+                                "increasing")
 
     if errors:
         raise NetworkValidationError(errors)
-    return []
+    return errors, warnings

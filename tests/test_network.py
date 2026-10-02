@@ -6,7 +6,11 @@ These tests load ``network.py`` directly so they run without the package's
 heavy TopAGNPS dependencies (GDAL, pandas, holoviews); network.py itself is
 stdlib-only.  Inside the pixi environment they pass either way.
 
-Run:  pixi run test        (or: pytest -q tests)
+# Run:  pixi run test        (or: pytest -q tests)
+
+validate_network() returns ``(errors, warnings)``: a non-empty error list
+raises NetworkValidationError, a warnings-only result is "imports cleanly,
+geometry may be incomplete" (the Fortran import tolerates those cases).
 """
 
 import importlib.util
@@ -47,6 +51,7 @@ sys.modules["topagnps2cche1d_network"] = net
 SPEC.loader.exec_module(net)
 
 GT_DIR = ROOT / "data_inputs" / "netchanTest_example_cche1d_input_files"
+LOOPTEST_DIR = ROOT / "documents" / "LoopTest"
 
 
 def simple_network():
@@ -67,7 +72,20 @@ def test_ground_truth_reads_and_validates():
     assert len(n.nodes) == 48
     assert len(n.channels) == 5
     assert len(n.junctions) == 2
-    assert net.validate_network(n) == []
+    assert net.validate_network(n) == ([], [])
+
+
+def test_looptest_reads_and_validates_with_warnings():
+    # The LoopTest ground-truth files pair 12 nodes with ND_CSID=1..12 but
+    # ship an EMPTY _csec.dat (0 records).  The Fortran import tolerates that
+    # (unmatched ND_CSID -> DO loop simply never matches), so the network is
+    # valid and the validator reports it as warnings, not errors.
+    n = net.read_cche1d_network(LOOPTEST_DIR)
+    assert len(n.nodes) == 12
+    assert len(n.csecs) == 0
+    errors, warnings = net.validate_network(n)
+    assert errors == []
+    assert any("ND_CSID" in w for w in warnings)
 
 
 def test_ground_truth_round_trip():
@@ -79,7 +97,7 @@ def test_ground_truth_round_trip():
     assert [(x.nd_id, x.frmno, x.nd_type, x.dsid, x.usid, x.us2id)
             for x in n.nodes] == [(x.nd_id, x.frmno, x.nd_type, x.dsid,
                                    x.usid, x.us2id) for x in n2.nodes]
-    assert net.validate_network(n2) == []
+    assert net.validate_network(n2) == ([], [])
     for p in paths.values():
         p.unlink()
 
@@ -99,7 +117,7 @@ def test_builder_two_inflow_junction():
     # both branches discharge into the junction
     for b in (j.usid, j.us2id):
         assert n.node_by_id(b).dsid == j.nd_id
-    assert net.validate_network(n) == []
+    assert net.validate_network(n) == ([], [])
 
 
 def test_builder_three_way_junction():
@@ -115,7 +133,7 @@ def test_builder_three_way_junction():
     # the third branch is stored in the junction block, not inline
     extra = [x for x in n.junctions if x.node_id == j.nd_id][0]
     assert extra.branches345[0] != -1
-    assert net.validate_network(n) == []
+    assert net.validate_network(n) == ([], [])
 
 
 def test_builder_rejects_more_than_five_inflows():
@@ -142,7 +160,7 @@ def test_write_read_round_trip_symmetric():
     assert len(r.nodes) == len(n.nodes)
     assert [(j.node_id, j.branches345) for j in r.junctions] == \
            [(j.node_id, j.branches345) for j in n.junctions]
-    assert net.validate_network(r) == []
+    assert net.validate_network(r) == ([], [])
 
 
 def test_builder_accepts_generic_reach_objects():
@@ -174,7 +192,7 @@ def test_builder_accepts_generic_reach_objects():
     reaches = [RReach(r, spec[r][0], spec[r][1]) for r in spec]
     n = net.ChannelNetworkBuilder(reaches, resample_step=4).build()
     assert len(n.channels) == 3
-    assert net.validate_network(n) == []
+    assert net.validate_network(n) == ([], [])
 
 
 def test_channel_defs_from_reaches_rejects_degenerate_reach():
@@ -218,13 +236,16 @@ def test_validator_catches_inflow_computed_later():
     assert any("not computed earlier" in e for e in ei.value.errors)
 
 
-def test_validator_catches_unsorted_cross_section_points():
+def test_validator_warns_on_unsorted_cross_section_points():
+    # CP_W ordering is not checked by the Fortran import, so this is a
+    # warning: the network still validates (no exception), it just reports
+    # the geometry defect.
     n = net.ChannelNetworkBuilder(simple_network(),
                                   cs_template=(1, 1, 1, 1)).build()
     n.csecs[0].points = [(1, 5.0, 0.0, 0.03, 1), (2, 1.0, 0.0, 0.03, 1)]
-    with pytest.raises(net.NetworkValidationError) as ei:
-        net.validate_network(n)
-    assert any("CP_W" in e for e in ei.value.errors)
+    errors, warnings = net.validate_network(n)
+    assert errors == []
+    assert any("CP_W" in w for w in warnings)
 
 
 if __name__ == "__main__":

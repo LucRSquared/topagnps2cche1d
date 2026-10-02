@@ -51,7 +51,7 @@ def test_real_reach_objects_match_dict_api():
     reach_net = net.ChannelNetworkBuilder(
         [_reach(rid, spec[0], spec[1]) for rid, spec in SPEC2.items()],
         resample_step=4).build()
-    assert net.validate_network(reach_net) == []
+    assert net.validate_network(reach_net) == ([], [])
     a = [(x.nd_id, x.frmno, x.nd_type, x.dsid, x.usid, x.us2id, x.xc, x.yc)
          for x in dict_net.nodes]
     b = [(x.nd_id, x.frmno, x.nd_type, x.dsid, x.usid, x.us2id, x.xc, x.yc)
