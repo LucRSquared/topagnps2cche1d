@@ -1,2 +1,3 @@
 tests/_rt/
 tests/_gt_roundtrip/
+__pycache__/
