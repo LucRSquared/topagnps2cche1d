@@ -248,6 +248,36 @@ def cche1d_compute_order(receiving, outlet):
 # Manual network definition (the "final product" API)
 # ---------------------------------------------------------------------------
 
+def channel_defs_from_reaches(reaches):
+    """
+    Build the ``{id: (receiving_id, [(x, y), ...])}`` mapping that
+    ChannelNetworkBuilder accepts, from the generic ``Reach``/``Node`` objects
+    of topagnps2cche1d (or anything duck-typed like them).
+
+    Each reach must expose ``.id``, ``.receiving_reach_id`` (None = outlet),
+    ``.us_nd_id``, ``.ds_nd_id`` and ``.nodes`` (dict id -> node); each node
+    must expose ``.x``, ``.y``, ``.dsid``.  Nodes are read in US -> DS order
+    by walking the ``dsid`` chain — the same convention as
+    ``Reach.get_nodes_us_ds_order``.
+    """
+    defs = {}
+    for reach in reaches:
+        nodes = reach.nodes
+        order = []
+        cur = nodes[reach.us_nd_id]
+        while cur is not None:
+            order.append((cur.x, cur.y))
+            if cur.dsid is None or cur.dsid not in nodes:
+                break
+            cur = nodes[cur.dsid]
+        if len(order) < 2:
+            raise ValueError(
+                f"reach {reach.id}: fewer than 2 nodes in US->DS order "
+                f"(check us_nd_id / dsid chain)")
+        defs[reach.id] = (reach.receiving_reach_id, order)
+    return defs
+
+
 class ChannelNetworkBuilder:
     """
     Build a CCHE1D network from a manual topology definition.
@@ -255,12 +285,14 @@ class ChannelNetworkBuilder:
     Parameters
     ----------
     channels : dict {reach_id: (receiving_reach_id_or_None, [(x, y), ...])}
-        Each entry defines one channel by the id of the reach it discharges
-        into (``None`` for the outlet channel) and an ordered list of
-        (x, y) points from its upstream (head) end to its downstream (tail)
-        end.  The reach ids should be the *TopAGNPS-style* ids (ascending
-        from upstream to downstream), as in the original import; the builder
-        re-derives the CCHE1D channel/compute order from them.
+        OR an iterable of generic ``Reach`` objects from topagnps2cche1d
+        (see ``channel_defs_from_reaches``).  Each entry defines one channel
+        by the id of the reach it discharges into (``None`` for the outlet
+        channel) and an ordered list of (x, y) points from its upstream
+        (head) end to its downstream (tail) end.  The reach ids should be
+        the *TopAGNPS-style* ids (ascending from upstream to downstream), as
+        in the original import; the builder re-derives the CCHE1D
+        channel/compute order from them.
     strahler : dict {reach_id: strahler_number}, optional (default 1).
     resample_step : float or None
         If given, interior nodes are sampled along each channel geometry at
@@ -274,6 +306,9 @@ class ChannelNetworkBuilder:
 
     def __init__(self, channels, strahler=None, resample_step=None,
                  cs_template=None, head_type=NODE_SOURCE):
+        if hasattr(channels, "__iter__") and not isinstance(channels, dict):
+            # an iterable of generic Reach objects (see docstring)
+            channels = channel_defs_from_reaches(channels)
         if not channels:
             raise ValueError("channels dict is empty")
         self.channel_defs = dict(channels)

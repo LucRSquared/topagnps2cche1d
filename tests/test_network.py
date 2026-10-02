@@ -145,6 +145,54 @@ def test_write_read_round_trip_symmetric():
     assert net.validate_network(r) == []
 
 
+def test_builder_accepts_generic_reach_objects():
+    # Duck-typed stand-ins for topagnps2cche1d.Reach / .Node so this test
+    # also runs in a bare interpreter (the pixi env exercises the REAL
+    # classes in tests/_check_reach_adapter.py, run via `pixi run test2`).
+    class RNode:
+        def __init__(self, x, y, dsid=None):
+            self.x, self.y, self.dsid = x, y, dsid
+
+    class RReach:
+        def __init__(self, id, receiving_reach_id, pts):
+            self.id = id
+            self.receiving_reach_id = receiving_reach_id
+            self.nodes = {}
+            prev = None
+            for i, (x, y) in enumerate(pts):
+                nid = 100 * id + i
+                self.nodes[nid] = RNode(x, y,
+                                        dsid=100 * id + i + 1 if i + 1 < len(pts)
+                                        else None)
+                if prev is not None:
+                    prev.dsid = nid
+                prev = self.nodes[nid]
+            self.us_nd_id = 100 * id
+            self.ds_nd_id = 100 * id + len(pts) - 1
+
+    spec = simple_network()
+    reaches = [RReach(r, spec[r][0], spec[r][1]) for r in spec]
+    n = net.ChannelNetworkBuilder(reaches, resample_step=4).build()
+    assert len(n.channels) == 3
+    assert net.validate_network(n) == []
+
+
+def test_channel_defs_from_reaches_rejects_degenerate_reach():
+    class RNode:
+        def __init__(self, x, y, dsid=None):
+            self.x, self.y, self.dsid = x, y, dsid
+
+    class RReach:
+        id = 1
+        receiving_reach_id = None
+        nodes = {5: RNode(0, 0, dsid=None)}
+        us_nd_id = 5
+        ds_nd_id = 5
+
+    with pytest.raises(ValueError, match="fewer than 2 nodes"):
+        net.channel_defs_from_reaches([RReach()])
+
+
 # ---------------------------------------------------------------------------
 # Validator (negative cases: it must catch real defects)
 # ---------------------------------------------------------------------------
