@@ -1,3 +1,10 @@
 tests/_rt/
 tests/_gt_roundtrip/
 __pycache__/
+
+# Large raster inputs and their GDAL sidecars are NOT committed.
+# The CSV inputs are tracked; the reach-ID rasters are large (the Goodwin
+# 1 m raster is ~300 MB) and are produced by TopAGNPS.
+data_inputs/**/*.asc
+data_inputs/**/*.asc.aux.xml
+data_inputs/**/*.PRJ

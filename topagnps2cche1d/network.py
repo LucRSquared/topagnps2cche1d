@@ -36,8 +36,11 @@ known-good Goodwin-Creek files in data_inputs/):
 * Junction nodes (ND_TYPE = 2) may have up to **5** upstream branches
   (ND_JUNCT5 in the Fortran).  Branches 3..5 live in the junction block;
   absent branches are written as ``-1`` (the Fortran applies MAX(x,0)).
-  Branch 1 (USID) = tail node of the largest-id inflow channel, branch 2
-  (US2ID) = the next, matching the two-inflow rule in the reference code.
+  Branch order matches the reference
+  (``Watershed._create_junctions_between_reaches``) and the known-good files:
+  inflow channels sorted by **ascending TopAGNPS-style reach id** fill the
+  branches in order -- branch 1 (ND_USID) = tail node of the *smallest-id*
+  inflow channel, branch 2 (ND_US2ID) = the next, and so on.
 * ``*_reach.dat``: one row per segment between two consecutive nodes;
   ``RC_NDUSID``/``RC_NDDSID`` carry the real connectivity, ``RC_ID`` is an
   identifier.
@@ -170,6 +173,17 @@ class Cche1dNetwork:
     csecs: list
     junctions: list = field(default_factory=list)
     name: str = "network"
+    # metadata only (never written): nd_id -> generic node id, so a caller
+    # can map a network node back to the generic reach node it came from
+    # (used to assign per-node cross sections).  A junction tail node
+    # (ND_TYPE 3) merged onto a receiving head points at the receiving
+    # head's generic node (the cross section standing at that pixel).
+    node_provenance: dict = field(default_factory=dict)
+    # Bijective variant: nd_id -> the generic node at this channel's own
+    # point (no tail override).  Every kept generic node maps to exactly one
+    # network node, so callers that attribute *bookkeeping* (cell drainage,
+    # removed-reach records) to a node use this one.
+    node_origin: dict = field(default_factory=dict)
 
     def node_by_id(self, nd_id: int) -> NodeSpec:
         return next(n for n in self.nodes if n.nd_id == nd_id)
@@ -248,34 +262,199 @@ def cche1d_compute_order(receiving, outlet):
 # Manual network definition (the "final product" API)
 # ---------------------------------------------------------------------------
 
+def cross_section_to_spec(cs, cs_id=None):
+    """
+    Convert a topagnps2cche1d ``CrossSection`` (or any object exposing the
+    same duck-typed attributes) into a ``CrossSectionSpec`` for this module.
+
+    The generic cross section stores ``ws``/``zs`` left-to-right and four
+    1-based feature indices (lfp, lbt, rbt, rfp).  This maps them onto the
+    CCHE1D csec columns exactly as
+    ``Watershed.create_cche1d_csec_csprf_df`` does:
+
+        CS_LOB = lfp_idx    CS_LBT = lbt_idx
+        CS_ROB = rfp_idx    CS_RBT = rbt_idx
+
+    ``mannings_roughness`` may be a scalar (broadcast to every point) or a
+    per-point sequence.  Points are emitted in ``ws`` order (already left to
+    right) with ``CP_BLOCK`` = 1, matching the reference pipeline.  No numpy
+    is required: the arrays are consumed by iteration / ``float()``.
+    """
+    ws = [float(w) for w in cs.ws]
+    zs = [float(z) for z in cs.zs]
+    n = len(ws)
+    if n != len(zs):
+        raise ValueError(
+            f"cross section: ws ({n}) and zs ({len(zs)}) length mismatch")
+    if n == 0:
+        raise ValueError("cross section has no points")
+    n_rgh = cs.n_rgh
+    if isinstance(n_rgh, (int, float)):
+        n_rgh_list = [float(n_rgh)] * n
+    else:
+        n_rgh_list = [float(v) for v in n_rgh]
+    if len(n_rgh_list) != n:
+        raise ValueError(
+            f"cross section: roughness length {len(n_rgh_list)} != {n} points")
+    if cs_id is None:
+        cs_id = getattr(cs, "id", NEGATIVE_ONE)
+    points = [(i + 1, ws[i], zs[i], n_rgh_list[i], 1) for i in range(n)]
+    return CrossSectionSpec(
+        cs_id=cs_id,
+        lob=int(cs.lfp_idx), lbt=int(cs.lbt_idx),
+        rob=int(cs.rfp_idx), rbt=int(cs.rbt_idx),
+        points=points)
+
+
+def _reaches_to_defs(reaches):
+    """
+    Convert an iterable of generic ``Reach`` objects into
+    ``(defs, node_ids)`` where:
+
+    * ``defs``     maps ``reach_id -> (receiving_id, [(x, y), ...])`` (points
+      in US -> DS order), and
+    * ``node_ids`` maps ``reach_id -> [generic_node_id, ...]`` in the same
+      US -> DS order.
+
+    ``node_ids`` lets a caller map a renumbered network node back to the
+    generic reach node it was created from (see ``Cche1dNetwork
+    .node_provenance``).  The outlet normalisation (a dangling
+    ``receiving_reach_id`` maps to ``None``) is applied here.
+    """
+    reaches = list(reaches)
+    ids = {reach.id for reach in reaches}
+    defs = {}
+    node_ids = {}
+    for reach in reaches:
+        nodes = reach.nodes
+        order = []
+        nid_list = []
+        cur = nodes[reach.us_nd_id]
+        while cur is not None:
+            order.append((cur.x, cur.y))
+            gid = getattr(cur, "id", None)
+            if gid is not None:
+                nid_list.append(gid)
+            if cur.dsid is None or cur.dsid not in nodes:
+                break
+            cur = nodes[cur.dsid]
+        if len(order) < 1:
+            raise ValueError(
+                f"reach {reach.id}: no nodes in US->DS order "
+                f"(check us_nd_id / dsid chain)")
+        recv = reach.receiving_reach_id
+        if recv is not None and recv not in ids:
+            recv = None
+        defs[reach.id] = (recv, order)
+        node_ids[reach.id] = nid_list
+    return defs, node_ids
+
+
 def channel_defs_from_reaches(reaches):
     """
     Build the ``{id: (receiving_id, [(x, y), ...])}`` mapping that
     ChannelNetworkBuilder accepts, from the generic ``Reach``/``Node`` objects
     of topagnps2cche1d (or anything duck-typed like them).
 
-    Each reach must expose ``.id``, ``.receiving_reach_id`` (None = outlet),
-    ``.us_nd_id``, ``.ds_nd_id`` and ``.nodes`` (dict id -> node); each node
-    must expose ``.x``, ``.y``, ``.dsid``.  Nodes are read in US -> DS order
-    by walking the ``dsid`` chain — the same convention as
-    ``Reach.get_nodes_us_ds_order``.
+    Each reach must expose ``.id``, ``.receiving_reach_id``, ``.us_nd_id`` and
+    ``.nodes`` (dict id -> node); each node must expose ``.x``, ``.y``, ``.id``
+    and ``.dsid``.  Nodes are read in US -> DS order by walking the ``dsid``
+    chain — the same convention as ``Reach.get_nodes_us_ds_order``.
+
+    Outlet normalisation: a reach whose ``receiving_reach_id`` is ``None`` **or
+    not present among the provided reaches** (TopAGNPS marks the outlet with a
+    dangling id) is treated as the outlet channel and mapped to ``None``.
     """
-    defs = {}
-    for reach in reaches:
-        nodes = reach.nodes
-        order = []
-        cur = nodes[reach.us_nd_id]
-        while cur is not None:
-            order.append((cur.x, cur.y))
-            if cur.dsid is None or cur.dsid not in nodes:
-                break
-            cur = nodes[cur.dsid]
-        if len(order) < 2:
-            raise ValueError(
-                f"reach {reach.id}: fewer than 2 nodes in US->DS order "
-                f"(check us_nd_id / dsid chain)")
-        defs[reach.id] = (reach.receiving_reach_id, order)
+    defs, _node_ids = _reaches_to_defs(reaches)
     return defs
+
+
+def build_network_from_reaches(reaches, strahler_drop=0, resample_step=None,
+                               cs_template=None, cs_by_generic_id=None):
+    """
+    Build a CCHE1D network from generic ``Reach``/``Node`` objects, with
+    optional Strahler coarsening.  This is the single high-level entry point
+    that unifies the old ``Watershed`` CCHE1D build on ``network.py``.
+
+    Parameters
+    ----------
+    reaches : iterable of Reach (or dict id->Reach)
+        Generic reach objects (``.id``, ``.receiving_reach_id``,
+        ``.strahler_number``, ``.us_nd_id``, ``.nodes``).  Every reach must
+        already have **at least two** nodes in a complete US->DS ``dsid``
+        chain -- run ``Watershed.add_us_and_ds_node_to_single_node_reaches``
+        first if the source may contain single-pixel reaches.
+    strahler_drop : int, default 0
+        Drop every reach whose Strahler order is ``<= strahler_drop``.  0
+        keeps the whole network.  Because Strahler order is monotone
+        downstream (a reach is never higher order than its receivers), a kept
+        reach's receiver is either kept or the outlet -- the kept set is
+        always a valid connected sub-network with exactly one outlet.
+    resample_step : float or None, passed to the builder.
+    cs_template : CrossSection, 4-tuple, or None, passed to the builder.
+    cs_by_generic_id : dict {generic_node_id: CrossSection}, optional
+        Per-node cross sections.  Each node in the built network is mapped
+        back to the generic node it was created from (see
+        ``Cche1dNetwork.node_provenance``) and given the section registered
+        for that node.  Nodes with no registered section fall back to
+        ``cs_template``.  When both are ``None`` the network has no cross
+        sections (the caller can add them afterwards).
+
+    Head-node classification of the kept sub-network (the old code's
+    ``_set_inflow_nodes_type`` / ``_find_removed_reaches_inflow_nodes``,
+    re-derived without networkx and without the fragile ``dsid`` walk that
+    crashed on aggressive coarsening):
+
+    * ``>= 2`` kept upstream reaches  -> junction (type 2, wired branches)
+    * exactly 1 removed upstream reach -> inflow boundary (type 1)
+    * ``>= 2`` removed upstream reaches -> source (type 0)
+    * no upstream reaches at all   -> source (type 0)
+    * exactly 1 kept upstream reach  -> trivial connection (type 6)
+
+    Returns a ``Cche1dNetwork`` (see ``write_cche1d_dat_files``).
+    """
+    if isinstance(reaches, dict):
+        reaches = list(reaches.values())
+    else:
+        reaches = list(reaches)
+    by_id = {r.id: r for r in reaches}
+    strahler = {r.id: r.strahler_number for r in reaches}
+    # A reach is built when it is not flagged ignore AND its Strahler order is
+    # above the drop threshold.  The two coarsening mechanisms compose: the
+    # generic Watershed coarsens via the ``ignore`` flag (see
+    # Watershed.ignore_reaches_with_strahler_leq), while a standalone caller can
+    # coarsen purely by ``strahler_drop``.  Removed reaches are still passed in
+    # so a kept reach's head can be classified (one removed inflow -> inflow
+    # boundary, several -> source).
+    kept = {
+        r.id
+        for r in reaches
+        if not getattr(r, "ignore", False) and r.strahler_number > strahler_drop
+    }
+    if len(kept) < 2:
+        raise ValueError(
+            f"strahler_drop={strahler_drop} leaves {len(kept)} reaches; "
+            "a CCHE1D network needs at least two")
+
+    # head classification (see docstring)
+    head_types = {}
+    for rid in kept:
+        inflows = {s for s in by_id
+                   if by_id[s].receiving_reach_id == rid}
+        kept_in = inflows & kept
+        rem_in = inflows - kept
+        if len(kept_in) >= 2 or not inflows:
+            pass                      # junction / plain source: builder default
+        elif len(rem_in) == 1:
+            head_types[rid] = NODE_INFLOW
+        elif len(rem_in) >= 2:
+            head_types[rid] = NODE_SOURCE
+
+    builder = ChannelNetworkBuilder(
+        [by_id[r] for r in kept], strahler=strahler,
+        resample_step=resample_step, cs_template=cs_template,
+        head_types=head_types, cs_by_generic_id=cs_by_generic_id)
+    return builder.build()
 
 
 class ChannelNetworkBuilder:
@@ -297,25 +476,40 @@ class ChannelNetworkBuilder:
     resample_step : float or None
         If given, interior nodes are sampled along each channel geometry at
         this spacing (in coordinate units).
-    cs_template : (lob, lbt, rob, rbt) or None
-        If given, every non-junction, non-outlet node gets a cross section
-        from this template with a single bed point.
+    cs_template : tuple (lob, lbt, rob, rbt), a full ``CrossSection``, or None
+        If given, every non-junction, non-outlet node gets a cross section.
+        A 4-tuple produces a single bed point (as before).  A full
+        ``CrossSection`` object (see ``cross_section_to_spec``) is applied
+        identically to every node -- use ``build()`` then assign per-node
+        sections to vary them.
     head_type : int, default NODE_SOURCE
         ND_TYPE for the head node of a channel with no upstream inflows.
+    head_types : dict {reach_id: nd_type}, optional
+        Per-channel override of the head node type.  Used when a channel
+        head represents a coarsened boundary (upstream reaches removed):
+        ``build_network_from_reaches`` passes NODE_INFLOW for one removed
+        upstream reach and NODE_SOURCE for several.  Takes precedence over
+        ``head_type``.  Channels not listed here use the normal
+        head/junction classification.
     """
 
     def __init__(self, channels, strahler=None, resample_step=None,
-                 cs_template=None, head_type=NODE_SOURCE):
+                 cs_template=None, head_type=NODE_SOURCE, head_types=None,
+                 cs_by_generic_id=None):
         if hasattr(channels, "__iter__") and not isinstance(channels, dict):
             # an iterable of generic Reach objects (see docstring)
-            channels = channel_defs_from_reaches(channels)
-        if not channels:
+            self.channel_defs, self.node_ids = _reaches_to_defs(channels)
+        else:
+            self.channel_defs = channels
+            self.node_ids = {}
+        if not self.channel_defs:
             raise ValueError("channels dict is empty")
-        self.channel_defs = dict(channels)
         self.strahler = strahler or {}
         self.resample_step = resample_step
         self.cs_template = cs_template
+        self.cs_by_generic_id = dict(cs_by_generic_id) if cs_by_generic_id else {}
         self.head_type = head_type
+        self.head_types = dict(head_types) if head_types else {}
 
     # -- internals ----------------------------------------------------------
     def _geom(self, rid):
@@ -343,7 +537,7 @@ class ChannelNetworkBuilder:
         compute_order = cche1d_compute_order(receiving, outlet)
         ch_id = {r: i for i, r in enumerate(compute_order, start=1)}
         geom = {r: self._geom(r) for r in raw_ids}
-        npts = {r: len(geom[r]) for r in raw_ids}
+        npts = {r: max(len(geom[r]), 1) for r in raw_ids}
 
         # ---- number nodes head->tail in computing order; ND_ID == FRMNO ----
         frmno = {}
@@ -355,6 +549,32 @@ class ChannelNetworkBuilder:
         if counter != sum(npts.values()):
             raise RuntimeError("node count mismatch (unreachable channel?)")
 
+        # provenance: each (reach, k) maps to the generic node it was created
+        # from, so a caller can relate a renumbered network node back to the
+        # original reach node (used to carry over per-node cross sections).
+        node_origin = {}
+        node_provenance = {}
+        for (r, k), nd_id in frmno.items():
+            nids = self.node_ids.get(r)
+            if nids is not None and k < len(nids):
+                node_origin[nd_id] = nids[k]
+                node_provenance[nd_id] = nids[k]
+        # a type-3 tail merged onto a junction head now sits at the head
+        # pixel: point its provenance (cross-section source) at the receiving
+        # channel's head node (the generic node at that pixel), not the
+        # inflow reach's tail node.  node_origin keeps the bijective
+        # origin for bookkeeping.
+        for r in raw_ids:
+            recv = defs[r][0]
+            if recv is None:
+                continue
+            if not any(c != r for c in raw_ids if defs[c][0] == recv):
+                continue
+            tail = frmno[(r, npts[r] - 1)]
+            recv_nids = self.node_ids.get(recv)
+            if recv_nids:
+                node_provenance[tail] = recv_nids[0]
+
         nodes = {}
         for (r, k), nd_id in frmno.items():
             x, y = geom[r][k]
@@ -363,10 +583,14 @@ class ChannelNetworkBuilder:
                 xc=x, yc=y, dsid=NEGATIVE_ONE, usid=NEGATIVE_ONE,
                 us2id=NEGATIVE_ONE)
 
-        # intra-channel links + tail node type
+        # ---- head positions, then intra-channel links + tail nodes --------
+        # A type-3 junction tail node sits exactly at the junction head's
+        # coordinates (matching the reference pipeline and the known-good
+        # files: the tail pixel is merged onto the downstream head pixel).
+        heads = {r: frmno[(r, 0)] for r in raw_ids}
+        head_pos = {(r, 0): geom[r][0] for r in raw_ids}
         for r in raw_ids:
             n = npts[r]
-            head = frmno[(r, 0)]
             tail = frmno[(r, n - 1)]
             for k in range(n - 1):
                 a, b = frmno[(r, k)], frmno[(r, k + 1)]
@@ -380,7 +604,13 @@ class ChannelNetworkBuilder:
             else:
                 # channel tail -> head node of the receiving channel
                 nodes[tail].nd_type = NODE_END_LINK
-                nodes[tail].dsid = frmno[(recv, 0)]
+                nodes[tail].dsid = heads[recv]
+                if any(c != r for c in raw_ids if defs[c][0] == recv):
+                    # this channel discharges into a JUNCTION head: merge the
+                    # tail node onto the head position
+                    hx, hy = head_pos[(recv, 0)]
+                    nodes[tail].xc = hx
+                    nodes[tail].yc = hy
 
         # head node type + junction wiring
         junctions = []
@@ -388,15 +618,20 @@ class ChannelNetworkBuilder:
             inflows = [c for c in raw_ids if defs[c][0] == r]
             head = frmno[(r, 0)]
             if not inflows:
-                # source channel: no upstream inflow
-                nodes[head].nd_type = self.head_type
+                # boundary head: no upstream inflow in the (kept) set.  A
+                # coarsened network marks these via the head_types override
+                # (NODE_INFLOW for one removed upstream reach, NODE_SOURCE
+                # for several); otherwise fall back to the default head_type.
+                nodes[head].nd_type = self.head_types.get(r, self.head_type)
                 nodes[head].usid = NEGATIVE_ONE
                 continue
             # a channel head with >=1 inflow: junction if >=2, trivial if 1
-            # branch order: inflows by descending raw reach id (== descending
-            # TopAGNPS id), the highest first -> USID, then US2ID, then 3..5
+            # branch order: inflows by ASCENDING raw reach id (== TopAGNPS
+            # numbering), smallest id first -> branch 1 (USID), branch 2
+            # (US2ID), then 3..5 -- matches the reference code and the
+            # known-good files (junction 6: USID=5, US2ID=4 -> smallest first).
             ends = [frmno[(c, npts[c] - 1)] for c in
-                    sorted(inflows, key=lambda c: -c)]
+                    sorted(inflows, key=lambda c: c)]
             if len(ends) > MAX_JUNCTION_BRANCHES:
                 raise ValueError(
                     f"junction node {head} has {len(ends)} inflows; "
@@ -425,8 +660,10 @@ class ChannelNetworkBuilder:
             n = npts[r]
             head, tail = frmno[(r, 0)], frmno[(r, n - 1)]
             channels.append(ChannelSpec(ch_id[r], head, tail))
-            xs = [geom[r][k][0] for k in range(n)]
-            ys = [geom[r][k][1] for k in range(n)]
+            # length from the moved node positions (junction tails sit on the
+            # head, so their final segment length is 0, as in the reference)
+            xs = [nodes[frmno[(r, k)]].xc for k in range(n)]
+            ys = [nodes[frmno[(r, k)]].yc for k in range(n)]
             first_rc = rc_id + 1
             for k in range(n - 1):
                 rc_id += 1
@@ -434,25 +671,61 @@ class ChannelNetworkBuilder:
                 length = math.hypot(ys[k + 1] - ys[k], xs[k + 1] - xs[k])
                 reaches.append(ReachSpec(rc_id, a, b,
                                          self.strahler.get(r, 1), length))
-            links.append(LinkSpec(ch_id[r], ch_id[r], head, tail,
-                                  first_rc, rc_id, 1))
+            if n == 1:
+                # 1-point channel (unexpanded boundary single-node reach):
+                # zero reach segments.  -1 is the CCHE1D absent sentinel; the
+                # model ignores LK_RCUSID/LK_RCDSID entirely (it reconstructs
+                # the network from the node references).
+                links.append(LinkSpec(ch_id[r], ch_id[r], head, tail,
+                                      NEGATIVE_ONE, NEGATIVE_ONE, 1))
+            else:
+                links.append(LinkSpec(ch_id[r], ch_id[r], head, tail,
+                                      first_rc, rc_id, 1))
 
         # ---- cross sections ------------------------------------------------
+        # Every node carries a cross section, matching the reference pipeline
+        # (junction heads and the outlet node included).  Resolution order for
+        # each node: a per-node CrossSection looked up by its provenance (the
+        # generic node id), else the shared template.  A full CrossSection
+        # (ws/zs/n_rgh + 4 indices) is converted once per source and reused;
+        # a 4-tuple template keeps the single-bed-point behaviour.
         csecs = []
-        if self.cs_template is not None:
-            lob, lbt, rob, rbt = self.cs_template
-            for nd in nodes.values():
-                if nd.nd_type in (NODE_JUNCTION, NODE_WATSHDOUTL):
-                    continue  # junction / outlet nodes carry no cross section
+        have_cs = bool(self.cs_by_generic_id) or self.cs_template is not None
+        if have_cs:
+            tpl = self.cs_template
+            if hasattr(tpl, "ws") and hasattr(tpl, "lfp_idx"):
+                template_spec = cross_section_to_spec(tpl, cs_id=NEGATIVE_ONE)
+            elif tpl is not None:
+                lob, lbt, rob, rbt = tpl
+                template_spec = CrossSectionSpec(
+                    cs_id=NEGATIVE_ONE, lob=lob, lbt=lbt, rob=rob, rbt=rbt,
+                    points=[(1, 0.0, 0.0, 0.03, 1)])
+            else:
+                template_spec = None
+            cache = {}
+            for nd in sorted(nodes.values(), key=lambda n: n.nd_id):
+                gid = node_provenance.get(nd.nd_id)
+                src = self.cs_by_generic_id.get(gid) if gid is not None else None
+                if src is None:
+                    spec = template_spec
+                else:
+                    if id(src) not in cache:
+                        cache[id(src)] = cross_section_to_spec(src,
+                                                               cs_id=NEGATIVE_ONE)
+                    spec = cache[id(src)]
+                if spec is None:
+                    continue
                 nd.csid = nd.nd_id
                 csecs.append(CrossSectionSpec(
-                    cs_id=nd.nd_id, lob=lob, lbt=lbt, rob=rob, rbt=rbt,
-                    points=[(1, 0.0, 0.0, 0.03, 1)]))
+                    cs_id=nd.nd_id,
+                    lob=spec.lob, lbt=spec.lbt, rob=spec.rob, rbt=spec.rbt,
+                    points=[tuple(p) for p in spec.points]))
 
         return Cche1dNetwork(
             nodes=sorted(nodes.values(), key=lambda n: n.frmno),
             reaches=reaches, channels=channels, links=links,
             csecs=csecs, junctions=junctions,
+            node_provenance=node_provenance, node_origin=node_origin,
             name=f"manual_{len(raw_ids)}ch")
 
 
@@ -534,7 +807,7 @@ def write_cche1d_dat_files(net: Cche1dNetwork, out_dir, prefix=None):
         for (posidx, w, z, rgh, block) in cs.points:
             cp_id += 1
             cp_rows.append((cp_id, cs.cs_id, posidx, _fmt_float(w),
-                            _fmt_float(z), f"{rgh:.2f}", block))
+                            _fmt_float(z), _fmt_float(rgh), block))
     _write_table(out_dir / f"{prefix}_csec.dat", CSEC_HEADER, cs_rows)
     _write_table(out_dir / f"{prefix}_csprf.dat", CSPRF_HEADER, cp_rows)
 
@@ -769,7 +1042,16 @@ def validate_network(net: Cche1dNetwork):
             errors.append(f"link {l.lk_id}: invalid LK_TYPE {l.lk_type}")
         if l.lk_type == 1 and l.lk_id not in channels:
             errors.append(f"link {l.lk_id}: LK_ID should be a CH_ID (type 1)")
-        if l.rcusid not in reaches or l.rcdsid not in reaches:
+        # A 1-point channel has no reach segments and carries the -1 sentinel
+        # (the model ignores LK_RCUSID/LK_RCDSID anyway).
+        if l.rcusid == NEGATIVE_ONE:
+            if l.rcdsid != NEGATIVE_ONE:
+                errors.append(f"link {l.lk_id}: LK_RCUSID=-1 requires "
+                              "LK_RCDSID=-1 (1-point channel)")
+        elif l.rcdsid == NEGATIVE_ONE:
+            errors.append(f"link {l.lk_id}: LK_RCDSID=-1 requires "
+                          "LK_RCUSID=-1 (1-point channel)")
+        elif l.rcusid not in reaches or l.rcdsid not in reaches:
             errors.append(f"link {l.lk_id}: reach refs "
                           f"{l.rcusid}/{l.rcdsid} missing")
 

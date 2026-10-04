@@ -3,3 +3,8 @@ from topagnps2cche1d.crosssection import CrossSection
 from topagnps2cche1d.reach import Reach
 from topagnps2cche1d.cell import Cell
 from topagnps2cche1d.watershed import Watershed
+from topagnps2cche1d.plotting import (
+    plot_cche1d_network,
+    plot_watershed,
+    plot_cross_section,
+)

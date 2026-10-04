@@ -31,4 +31,9 @@ test = { features = ["test"] }
 [tasks]
 # `python -m pytest` (not bare `pytest`) so the project root is on sys.path
 # and the real topagnps2cche1d package is importable by the adapter test.
-test = "python -m pytest -q tests/test_network.py tests/test_reach_adapter.py"
+# Fast suite: network.py units + ground-truth fixtures + generic-reach
+# topology/bookkeeping + manual parabolic network + full Ohio e2e (seconds).
+test = "python -m pytest -q tests/test_network.py tests/test_reach_adapter.py tests/test_topology_bookkeeping.py tests/test_manual_parabolic.py tests/test_ohio_e2e.py"
+# Slow suite: the large Goodwin Creek 1 m dataset (~18 min raster load).
+# Not part of `test`; run explicitly when the dataset is on disk.
+test_slow = "python -m pytest -q tests/test_goodwin_e2e.py"

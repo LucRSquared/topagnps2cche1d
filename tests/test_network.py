@@ -195,20 +195,63 @@ def test_builder_accepts_generic_reach_objects():
     assert net.validate_network(n) == ([], [])
 
 
-def test_channel_defs_from_reaches_rejects_degenerate_reach():
+def test_channel_defs_from_reaches_accepts_single_node_reach():
+    # A single-node reach is legal: it becomes a 1-point channel (head == tail).
     class RNode:
         def __init__(self, x, y, dsid=None):
             self.x, self.y, self.dsid = x, y, dsid
+            self.id = None
+
+    node = RNode(10.0, 20.0)
+    node.id = 5
 
     class RReach:
         id = 1
         receiving_reach_id = None
-        nodes = {5: RNode(0, 0, dsid=None)}
+        nodes = {5: node}
         us_nd_id = 5
         ds_nd_id = 5
 
-    with pytest.raises(ValueError, match="fewer than 2 nodes"):
+    defs = net.channel_defs_from_reaches([RReach()])
+    assert defs[1] == (None, [(10.0, 20.0)])
+
+
+def test_channel_defs_from_reaches_rejects_reach_with_no_us_node():
+    class RReach:
+        id = 1
+        receiving_reach_id = None
+        nodes = {}
+        us_nd_id = 5
+
+    with pytest.raises(KeyError):
         net.channel_defs_from_reaches([RReach()])
+
+
+def test_one_point_channel_builds_and_validates():
+    # A 1-point channel (head == tail) is a legal CCHE1D construct: it comes
+    # from an unexpanded boundary single-node reach after coarsening.  Its
+    # link carries the -1 reach-range sentinel and the validator accepts it.
+    spec = {
+        1: (None, [(0, 0)]),                # outlet: 1 point
+        2: (1, [(10, 5), (5, 0)]),          # 2-point inflow
+        3: (1, [(10, -5), (5, 0)]),         # 2-point inflow (junction head)
+    }
+    n = net.ChannelNetworkBuilder(spec).build()
+    assert len(n.channels) == 3
+    # channel 1 (the 1-point one) has no reach rows
+    onepoint = [c for c in n.channels if c.ndusid == c.nddsid]
+    assert len(onepoint) == 1
+    sent = [l for l in n.links if l.rcusid == net.NEGATIVE_ONE]
+    assert len(sent) == 1 and sent[0].rcdsid == net.NEGATIVE_ONE
+    assert net.validate_network(n) == ([], [])
+    # round-trip through the writer/reader keeps the sentinel
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        net.write_cche1d_dat_files(n, d, prefix="oncpt")
+        n2 = net.read_cche1d_network(d)
+        assert net.validate_network(n2) == ([], [])
+        assert any(l.rcusid == net.NEGATIVE_ONE for l in n2.links)
+
 
 
 # ---------------------------------------------------------------------------
