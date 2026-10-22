@@ -184,6 +184,15 @@ class Cche1dNetwork:
     # network node, so callers that attribute *bookkeeping* (cell drainage,
     # removed-reach records) to a node use this one.
     node_origin: dict = field(default_factory=dict)
+    # generic reach id -> head ND_ID, for every channel in the built network.
+    # Lets a caller map the channel a removed reach feeds into onto the CCHE1D
+    # node (its head) where that water enters the kept network.
+    channel_heads: dict = field(default_factory=dict)
+    # [(removed_reach_id, receiving_reach_id)] for reaches dropped by the
+    # ``ignore`` flag / Strahler threshold.  Populated by
+    # ``build_network_from_reaches``; empty for a pure manual build with no
+    # ignored reaches.  See ``inflow_reaches_records`` for the node-id form.
+    removed_reaches: list = field(default_factory=list)
 
     def node_by_id(self, nd_id: int) -> NodeSpec:
         return next(n for n in self.nodes if n.nd_id == nd_id)
@@ -369,6 +378,77 @@ def channel_defs_from_reaches(reaches):
     return defs
 
 
+def _kept_ids(reaches, strahler_drop):
+    """
+    Return the set of reach ids that survive coarsening: a reach is kept when
+    it is not flagged ``ignore`` and its Strahler order is above
+    ``strahler_drop``.  A reach with no Strahler order (a hand-built manual
+    network) is kept unless ignored.  This is the single keep rule shared by
+    ``build_network_from_reaches`` and ``removed_reach_inflow_pairs`` so the
+    kept sub-network and the removed-reach inflow record never disagree.
+    """
+    reaches = (list(reaches.values()) if isinstance(reaches, dict)
+               else list(reaches))
+    kept = set()
+    for r in reaches:
+        if getattr(r, "ignore", False):
+            continue
+        s = getattr(r, "strahler_number", None)
+        if s is None or s > strahler_drop:
+            kept.add(r.id)
+    return kept
+
+
+def removed_reach_inflow_pairs(reaches, strahler_drop=0):
+    """
+    Return ``[(removed_reach_id, receiving_reach_id)]`` for every reach that
+    is dropped by the ``ignore`` flag or the Strahler threshold but still
+    feeds the kept sub-network (its receiver is kept).  This is the generic,
+    source-agnostic counterpart of the head-node classification in
+    ``build_network_from_reaches``: it needs only the reach objects and the
+    shared keep rule, so a hand-built (manual) network gets the same
+    removed-reach inflow record as one imported from TopAGNPS.  Only the
+    removed reaches that are *direct* upstream neighbours of a kept reach are
+    listed (a removed reach whose receiver is itself removed is absorbed into
+    that receiver's record) — the same convention as
+    ``Watershed._find_removed_reaches_inflow_nodes``.
+    """
+    reaches = (list(reaches.values()) if isinstance(reaches, dict)
+               else list(reaches))
+    kept = _kept_ids(reaches, strahler_drop)
+    pairs = [(r.id, r.receiving_reach_id) for r in reaches
+             if r.id not in kept and r.receiving_reach_id in kept]
+    return sorted(pairs, key=lambda p: p[0])
+
+
+def inflow_reaches_records(net):
+    """
+    Return ``[(removed_reach_id, receiving_node_id)]`` for the removed reaches
+    of a built ``Cche1dNetwork``, where ``receiving_node_id`` is the CCHE1D
+    head ``ND_ID`` of the kept channel each removed reach feeds into.
+
+    Works for any network produced by ``build_network_from_reaches`` (which
+    stores ``net.removed_reaches`` and ``net.channel_heads``).  A pure manual
+    build with no ignored reaches returns ``[]``.  This is the manual-path
+    counterpart of ``Watershed.get_list_of_inflow_reaches_df``; both describe
+    the same coarsened inflow boundary conditions (the set of AnnAGNPS reach
+    outputs that must be generated and wired in as CCHE1D inflows).
+    """
+    pairs = list(net.removed_reaches) if net.removed_reaches else []
+    if not pairs:
+        return []
+    heads = net.channel_heads
+    out = []
+    for removed_id, receiving_id in pairs:
+        node_id = heads.get(receiving_id)
+        if node_id is None:
+            raise ValueError(
+                f"removed reach {removed_id} feeds kept reach {receiving_id}, "
+                "which has no head node in the built network")
+        out.append((removed_id, node_id))
+    return sorted(out, key=lambda p: p[0])
+
+
 def build_network_from_reaches(reaches, strahler_drop=0, resample_step=None,
                                cs_template=None, cs_by_generic_id=None):
     """
@@ -418,19 +498,20 @@ def build_network_from_reaches(reaches, strahler_drop=0, resample_step=None,
     else:
         reaches = list(reaches)
     by_id = {r.id: r for r in reaches}
-    strahler = {r.id: r.strahler_number for r in reaches}
+    # A reach with no Strahler order (a hand-built manual network that never
+    # ran assign_strahler_number_to_reaches) is treated as order 1 for the
+    # RC_ORDER column, matching the builder's default.
+    strahler = {r.id: (getattr(r, "strahler_number", None) or 1)
+                for r in reaches}
     # A reach is built when it is not flagged ignore AND its Strahler order is
     # above the drop threshold.  The two coarsening mechanisms compose: the
     # generic Watershed coarsens via the ``ignore`` flag (see
     # Watershed.ignore_reaches_with_strahler_leq), while a standalone caller can
     # coarsen purely by ``strahler_drop``.  Removed reaches are still passed in
     # so a kept reach's head can be classified (one removed inflow -> inflow
-    # boundary, several -> source).
-    kept = {
-        r.id
-        for r in reaches
-        if not getattr(r, "ignore", False) and r.strahler_number > strahler_drop
-    }
+    # boundary, several -> source).  The keep rule is shared with
+    # removed_reach_inflow_pairs via _kept_ids.
+    kept = _kept_ids(reaches, strahler_drop)
     if len(kept) < 2:
         raise ValueError(
             f"strahler_drop={strahler_drop} leaves {len(kept)} reaches; "
@@ -454,7 +535,13 @@ def build_network_from_reaches(reaches, strahler_drop=0, resample_step=None,
         [by_id[r] for r in kept], strahler=strahler,
         resample_step=resample_step, cs_template=cs_template,
         head_types=head_types, cs_by_generic_id=cs_by_generic_id)
-    return builder.build()
+    net = builder.build()
+    # Record the removed reaches that feed the kept network, so the caller can
+    # emit the removed-reach inflow record (inflow_reaches_records /
+    # write_inflow_reaches_csv) without re-deriving it from the generic state.
+    # This is what lets a hand-built (manual) network keep its inflow bookkeeping.
+    net.removed_reaches = removed_reach_inflow_pairs(reaches, strahler_drop)
+    return net
 
 
 class ChannelNetworkBuilder:
@@ -726,6 +813,7 @@ class ChannelNetworkBuilder:
             reaches=reaches, channels=channels, links=links,
             csecs=csecs, junctions=junctions,
             node_provenance=node_provenance, node_origin=node_origin,
+            channel_heads=dict(heads),
             name=f"manual_{len(raw_ids)}ch")
 
 
@@ -819,6 +907,27 @@ def write_cche1d_dat_files(net: Cche1dNetwork, out_dir, prefix=None):
         "csec": out_dir / f"{prefix}_csec.dat",
         "csprf": out_dir / f"{prefix}_csprf.dat",
     }
+
+
+def write_inflow_reaches_csv(net: Cche1dNetwork, path):
+    """
+    Write the removed-reach inflow record for a built network to ``path`` as a
+    two-column CSV.  The columns are ``inflow_topagnps_reach_id`` (the id of the
+    removed reach — the AnnAGNPS/TopAGNPS reach id in the imported case, or the
+    reach id you used in a manual build) and ``receiving_node_id`` (the CCHE1D
+    head ``ND_ID`` of the kept channel each removed reach feeds).  This is the
+    same schema ``Watershed.get_list_of_inflow_reaches_df`` writes, so the
+    manual and TopAGNPS paths are byte-consistent.  The rows are whatever
+    ``inflow_reaches_records`` returns (empty for a pure manual build with no
+    ignored reaches); the file always carries the header line.  Returns the
+    number of removed-reach rows written.
+    """
+    rows = inflow_reaches_records(net)
+    Path(path).write_text(
+        "inflow_topagnps_reach_id,receiving_node_id\n" +
+        "".join(f"{a},{b}\n" for a, b in rows),
+        encoding="utf-8")
+    return len(rows)
 
 
 # ---------------------------------------------------------------------------

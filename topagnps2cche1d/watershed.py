@@ -19,6 +19,7 @@ from topagnps2cche1d.network import (
     build_network_from_reaches,
     write_cche1d_dat_files as _write_cche1d_dat_files,
     validate_network,
+    inflow_reaches_records,
 )
 
 import holoviews as hv
@@ -569,59 +570,32 @@ class Watershed:
 
     def _find_removed_reaches_inflow_nodes(self):
         """
-        If the network was simplified and reaches were removed then we need to set them as boundary conditions inflows
+        Stamp the head node of each kept reach with the ids of the removed
+        upstream reaches it receives (``Node.inflow_reach_sources``).  This is
+        the generic-layer bookkeeping, used by ``Node.__str__`` and plotting.
+        The head node is the receiving boundary: it is the CCHE1D inflow node
+        (type 1 or 0) that ``build_network_from_reaches`` classifies, so the
+        stamp, the builder's head typing, and the model-facing record
+        (``network.inflow_reaches_records``) all point at the same node.
         """
         current_graph = self.current_graph
         full_graph = self.full_graph
-
         reaches = self.reaches
 
         for reach_id, reach in reaches.items():
             if reach_id not in current_graph:
                 continue
-
-            current_graph_reach_predecessors = set(
-                current_graph.predecessors(reach_id)
-            )
-            full_graph_reach_predecessors = set(full_graph.predecessors(reach_id))
-
             removed_upstream_reaches = (
-                full_graph_reach_predecessors - current_graph_reach_predecessors
+                set(full_graph.predecessors(reach_id))
+                - set(current_graph.predecessors(reach_id))
             )
-
-            reach_us_node = reach.nodes[reach.us_nd_id]
-
-            if len(reach.nodes) == 1:
-                # Single-node reach that was not expanded (a kept neighbour is
-                # missing, so it is a boundary reach).  Its only node carries
-                # the inflow record; the CCHE1D head type is set by the builder.
-                reach_us_node.inflow_reach_sources = set()
-                if removed_upstream_reaches:
-                    if len(removed_upstream_reaches) == 1:
-                        reach_us_node.set_node_type(1)
-                    else:
-                        reach_us_node.set_node_type(0)
-                for removed_reach in removed_upstream_reaches:
-                    reach_us_node.inflow_reach_sources.add(removed_reach)
+            if not removed_upstream_reaches:
                 continue
-
-            # Get node immediately next in the US->DS chain
-            if reach_us_node.dsid is None or reach_us_node.dsid not in reach.nodes:
-                continue
-            second_most_us_node = reach.nodes[reach_us_node.dsid]
-
-            second_most_us_node.inflow_reach_sources = set()
-
-            if removed_upstream_reaches:
-                if len(removed_upstream_reaches) == 1:
-                    # only one reach is removed therefore the upstream node is an inflow
-                    second_most_us_node.set_node_type(1)
-                elif len(removed_upstream_reaches) > 1:
-                    # more than one reach is removed therefore the upstream node is a source node
-                    reach_us_node.set_node_type(0)
-
-            for removed_reach in removed_upstream_reaches:
-                second_most_us_node.inflow_reach_sources.add(removed_reach)
+            head = reach.nodes[reach.us_nd_id]
+            head.inflow_reach_sources = set(removed_upstream_reaches)
+            # display node type: one removed inflow -> inflow boundary (1),
+            # several -> source (0)
+            head.set_node_type(1 if len(removed_upstream_reaches) == 1 else 0)
 
     # ------------------------------------------------------------------
     # Cross sections (per generic node)
@@ -1046,38 +1020,30 @@ class Watershed:
 
     def get_list_of_inflow_reaches_df(self):
         """
-        Create a DataFrame with a list of nodes that have inflow reaches that were
-        removed from an AnnAGNPS simulation.  Node references are CCHE1D network
-        node ids (ND_ID).
+        Create a DataFrame with a list of reaches that were removed from the
+        network (coarsened away) and the CCHE1D node each one feeds.  Node
+        references are CCHE1D network node ids (``ND_ID``), specifically the
+        **head** node of the kept reach the removed reach discharges into — the
+        inflow boundary condition node.
 
-        Uses the bijective origin map (``node_origin``) so a record attached to
-        a generic node maps to the network node it was created from.
+        The record is derived by :func:`topagnps2cche1d.network.inflow_reaches_records`
+        from the built network's ``removed_reaches`` / ``channel_heads`` (the
+        same source-agnostic implementation a hand-built network uses), so the
+        TopAGNPS and manual paths can never disagree.  This is the list of
+        AnnAGNPS reach outputs that must be generated and wired in as CCHE1D
+        inflow boundary conditions.
         """
         net = self.get_cche1d_network()
-        inv_origin = {
-            gid: nid for nid, gid in net.node_origin.items() if gid is not None
-        }
-
-        reaches = self.reaches
-        current_graph = self.current_graph
-
-        inflow_reach_ID, receiving_node_ID = [], []
-        for reach_id, reach in reaches.items():
-            if reach_id not in current_graph:
-                continue
-            for node in reach.nodes.values():
-                for inflow_reach in node.inflow_reach_sources:
-                    inflow_reach_ID.append(inflow_reach)
-                    receiving_node_ID.append(inv_origin.get(node.id))
-
+        rows = inflow_reaches_records(net)
         df = pd.DataFrame(
             {
-                "inflow_topagnps_reach_id": inflow_reach_ID,
-                "receiving_node_id": receiving_node_ID,
+                "inflow_topagnps_reach_id": [r for r, _ in rows],
+                "receiving_node_id": [n for _, n in rows],
             }
         )
-        df = df.sort_values(by="inflow_topagnps_reach_id")
-        df.reset_index(inplace=True, drop=True)
+        if not df.empty:
+            df = df.sort_values(by="inflow_topagnps_reach_id")
+            df.reset_index(inplace=True, drop=True)
         return df
 
     # ------------------------------------------------------------------
