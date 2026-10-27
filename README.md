@@ -3,6 +3,11 @@ Toolbox of Python functions to handle TopAGNPS outputs and reformat them as CCHE
 
 Please refer to the `top2cche1d_notebook.ipynb` for explanations and quick-start guide.
 
+This version of the code is in a refactorization phase and was developed using a branch of the original code developed in 2022. This refactorization was performed with the help of an AI agent that considered the CCHE1D Intel fortran source code and particularly the validation subroutines. These subroutines were incorporated in the code itself to perform validation of the input files.
+
+## Requirements
+
+It is recommended to use [`pixi`](https://pixi.prefix.dev/) to test this code but it will easily be handled with other environment managers. Pixi easily handles the testing environment.
 
 ## Current features
 Using the files produced by TopAGNPS:
