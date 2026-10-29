@@ -571,12 +571,16 @@ class Watershed:
     def _find_removed_reaches_inflow_nodes(self):
         """
         Stamp the head node of each kept reach with the ids of the removed
-        upstream reaches it receives (``Node.inflow_reach_sources``).  This is
-        the generic-layer bookkeeping, used by ``Node.__str__`` and plotting.
-        The head node is the receiving boundary: it is the CCHE1D inflow node
-        (type 1 or 0) that ``build_network_from_reaches`` classifies, so the
-        stamp, the builder's head typing, and the model-facing record
-        (``network.inflow_reaches_records``) all point at the same node.
+        upstream reaches it receives (``Node.inflow_reach_sources``).  This
+        is the generic-layer bookkeeping, used by ``Node.__str__`` and
+        plotting.  The head node is the receiving boundary: it is where the
+        removed reach's water enters the kept network, and the model-facing
+        record (``network.inflow_reaches_records``) points at the CCHE1D
+        node standing at that head pixel.  NOTE: the stamp here (type 1 for
+        one removed inflow) is display-only -- the CCHE1D file written by
+        ``build_cche1d_network`` places the type-1 inflow-boundary label on
+        the node just downstream of the head (a type-1 head of a multi-node
+        channel would stop the model at import, c1dlnk.f90).
         """
         current_graph = self.current_graph
         full_graph = self.full_graph
@@ -977,9 +981,12 @@ class Watershed:
         the generic node it was created from.
         """
         net = self.get_cche1d_network()
-        # generic node id -> network node id (bijective for kept nodes)
+        # generic node id -> network node id (bijective for kept nodes; a
+        # merged confluence node carries a list of two generic node ids)
         inv_origin = {
-            gid: nid for nid, gid in net.node_origin.items() if gid is not None
+            gid: nid for nid, val in net.node_origin.items()
+            for gid in (val if isinstance(val, (list, tuple)) else [val])
+            if gid is not None
         }
         # network node id -> its upstream node id (for convenience column)
         net_usid = {n.nd_id: n.usid for n in net.nodes}

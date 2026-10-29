@@ -41,6 +41,38 @@ known-good Goodwin-Creek files in data_inputs/):
   inflow channels sorted by **ascending TopAGNPS-style reach id** fill the
   branches in order -- branch 1 (ND_USID) = tail node of the *smallest-id*
   inflow channel, branch 2 (ND_US2ID) = the next, and so on.
+* **Junction branch nodes (ND_TYPE = 3)**: every channel that discharges
+  into a junction must end in a type-3 ENDOFLINK node sitting exactly at
+  the junction head's pixel, with ``ND_DSID`` pointing at the head; the
+  channel's ``CH_NDDSID``/``LK_NDDSID`` is that type-3 node (netchan
+  channel 1: 3 -> 4; LoopTest channel 2: 1 -> 8).  When the channel's own
+  tail pixel is not the head pixel, the tail keeps its coordinates (user
+  geometry is never moved) and a SYNTHETIC type-3 node is inserted at the
+  head pixel, with a tail -> branch reach segment between them (netchan
+  reach 7: 26 -> 4).  Only when the tail pixel already equals the head
+  pixel does the tail itself become the branch node.  The branch node's
+  cross section is the junction head's (netchan: nodes 4, 5, 6 share CSID
+  4).  The model never uses the coordinates for anything (it rebuilds the
+  network from the DSID chains); they only serve the GUI display.
+* **Single-inflow confluences merge**: a kept reach whose head has exactly
+  one kept inflow is merged with that inflow into ONE continuous channel
+  (a split would give a type-3 tail pointing at a type-6 head, which
+  c1dlnk.f90 cannot code -- C1DERRF; a 1-branch type-2 junction would make
+  cs_adj_jnc.f90 corrupt the thalweg of section 1).  The confluence is one
+  shared node when the two pixels coincide, else both nodes are kept at
+  their own coordinates and joined by a cross-boundary reach segment.
+* **Coarsened (inflow boundary) heads**: a kept head whose upstream reaches
+  were all removed is a boundary.  Exactly ONE removed upstream reach ->
+  the head is a source (type 0, the only c1dlnk-legal head type for a
+  multi-node channel) and the type-1 inflow-boundary label goes on the node
+  just DOWNSTREAM of the head (a type-1 head of a multi-node channel stops
+  the model at import; the model never reads the label, and the removed-
+  reach inflow record points at the head).  A boundary head whose link is a
+  single node (and has no stronger functional type 3/9) gets the type-1
+  head itself -- legal for a 1-node link (c1dlnk.f90:157-158).  >= 2 removed
+  upstream reaches -> plain source (type 0).  This is the original
+  reference pipeline's placement
+  (``Watershed._find_removed_reaches_inflow_nodes``).
 * ``*_reach.dat``: one row per segment between two consecutive nodes;
   ``RC_NDUSID``/``RC_NDDSID`` carry the real connectivity, ``RC_ID`` is an
   identifier.
@@ -182,7 +214,10 @@ class Cche1dNetwork:
     # Bijective variant: nd_id -> the generic node at this channel's own
     # point (no tail override).  Every kept generic node maps to exactly one
     # network node, so callers that attribute *bookkeeping* (cell drainage,
-    # removed-reach records) to a node use this one.
+    # removed-reach records) to a node use this one.  EXCEPTION: a merged
+    # confluence node carries a TWO-element list [inflow-tail generic id,
+    # receiver-head generic id] (both generic nodes are the same pixel), so
+    # its value is iterable -- flatten before inverting.
     node_origin: dict = field(default_factory=dict)
     # generic reach id -> head ND_ID, for every channel in the built network.
     # Lets a caller map the channel a removed reach feeds into onto the CCHE1D
@@ -485,11 +520,22 @@ def build_network_from_reaches(reaches, strahler_drop=0, resample_step=None,
     re-derived without networkx and without the fragile ``dsid`` walk that
     crashed on aggressive coarsening):
 
-    * ``>= 2`` kept upstream reaches  -> junction (type 2, wired branches)
-    * exactly 1 removed upstream reach -> inflow boundary (type 1)
+    * ``>= 2`` kept upstream reaches  -> junction (type 2, wired branches,
+      one type-3 branch node per inflow at the head pixel)
+    * exactly 1 kept upstream reach   -> MERGED with that reach into one
+      continuous channel (the confluence is a single interior type-6 node
+      when the pixels coincide, else two interior nodes joined by a reach
+      segment; see ``ChannelNetworkBuilder.build`` for why)
+    * exactly 1 removed upstream reach (no kept inflows) -> source head
+      (type 0) with the type-1 inflow-boundary label on the node just
+      downstream of the head (the model never reads the label; the
+      removed-reach inflow record points at the head).  A type-1 head of a
+      multi-node channel would stop the model at import (c1dlnk.f90); for a
+      1-node link the head itself carries the type-1 label.
     * ``>= 2`` removed upstream reaches -> source (type 0)
     * no upstream reaches at all   -> source (type 0)
-    * exactly 1 kept upstream reach  -> trivial connection (type 6)
+    * exactly 1 removed upstream reach AT a merged/junction head -> head
+      type unchanged, type-1 label on the node just downstream of the head
 
     Returns a ``Cche1dNetwork`` (see ``write_cche1d_dat_files``).
     """
@@ -517,18 +563,20 @@ def build_network_from_reaches(reaches, strahler_drop=0, resample_step=None,
             f"strahler_drop={strahler_drop} leaves {len(kept)} reaches; "
             "a CCHE1D network needs at least two")
 
-    # head classification (see docstring)
+    # head classification (see docstring): NODE_INFLOW marks a head with
+    # EXACTLY ONE removed upstream reach -- the builder places the type-1
+    # inflow-boundary label on the node just downstream of the head (a
+    # type-1 head of a multi-node channel would stop the model at import);
+    # NODE_SOURCE marks a boundary head with >= 2 removed upstream reaches.
     head_types = {}
     for rid in kept:
         inflows = {s for s in by_id
                    if by_id[s].receiving_reach_id == rid}
         kept_in = inflows & kept
         rem_in = inflows - kept
-        if len(kept_in) >= 2 or not inflows:
-            pass                      # junction / plain source: builder default
-        elif len(rem_in) == 1:
+        if len(rem_in) == 1:
             head_types[rid] = NODE_INFLOW
-        elif len(rem_in) >= 2:
+        elif len(rem_in) >= 2 and not kept_in:
             head_types[rid] = NODE_SOURCE
 
     builder = ChannelNetworkBuilder(
@@ -572,12 +620,16 @@ class ChannelNetworkBuilder:
     head_type : int, default NODE_SOURCE
         ND_TYPE for the head node of a channel with no upstream inflows.
     head_types : dict {reach_id: nd_type}, optional
-        Per-channel override of the head node type.  Used when a channel
-        head represents a coarsened boundary (upstream reaches removed):
-        ``build_network_from_reaches`` passes NODE_INFLOW for one removed
-        upstream reach and NODE_SOURCE for several.  Takes precedence over
-        ``head_type``.  Channels not listed here use the normal
-        head/junction classification.
+        Per-channel marker for coarsened heads (upstream reaches removed).
+        ``build_network_from_reaches`` passes NODE_INFLOW for a head with
+        exactly ONE removed upstream reach and NODE_SOURCE for a boundary
+        head with several.  The builder translates NODE_INFLOW into a
+        c1dlnk-legal pattern (module docstring, "Coarsened heads"): a
+        boundary head becomes type 0 (type 1 for a 1-node channel) and the
+        type-1 inflow-boundary label goes on the node just downstream of
+        the head; at a merged/junction head only the label is placed.
+        NODE_SOURCE sets a boundary head to type 0.  Channels not listed
+        here use the normal head/junction classification.
     """
 
     def __init__(self, channels, strahler=None, resample_step=None,
@@ -625,15 +677,85 @@ class ChannelNetworkBuilder:
         ch_id = {r: i for i, r in enumerate(compute_order, start=1)}
         geom = {r: self._geom(r) for r in raw_ids}
         npts = {r: max(len(geom[r]), 1) for r in raw_ids}
+        # inflows of each channel, in branch order: ASCENDING raw reach id
+        # (== TopAGNPS numbering) -- smallest id first, matching the
+        # reference code and the known-good files (netchan junction 6:
+        # USID=5 / US2ID=4, i.e. the smaller-id tributary first).
+        inflows_of = {r: sorted(c for c in raw_ids if defs[c][0] == r)
+                      for r in raw_ids}
+
+        # ---- junctions: type-3 branch nodes at the junction head pixel ----
+        # Ground truth (the netchan / LoopTest reference files and
+        # c1dlnk.f90): every channel c that discharges into a proper
+        # junction (a head with >= 2 inflows) must END in a type-3 ENDOFLINK
+        # node sitting exactly at the junction head's pixel, with ND_DSID
+        # pointing at the head; the junction's branches are those type-3
+        # nodes, and the channel's CH_NDDSID/LK_NDDSID is the type-3 node
+        # (netchan channel 1: 3 -> 4; LoopTest channel 2: 1 -> 8).  When c's
+        # own tail pixel is NOT the head pixel, the tail node keeps its
+        # coordinates (user-defined geometry is never moved) and a
+        # SYNTHETIC type-3 node is inserted at the head pixel between the
+        # tail and the head, with the tail -> branch reach segment between
+        # them (netchan reaches 26->...->26->4, LoopTest 2->8).  Only when
+        # the tail pixel already equals the head pixel does the tail itself
+        # become the branch node.
+        insert_tail = {}
+        shared_tail = {}
+        for c in raw_ids:
+            recv = defs[c][0]
+            if recv is None or len(inflows_of[recv]) < 2:
+                continue
+            if geom[c][-1] == geom[recv][0]:
+                shared_tail[c] = recv
+            else:
+                insert_tail[c] = recv
+
+        # ---- single-inflow confluences: MERGE, never split ---------------
+        # A kept reach whose head has exactly one kept inflow cannot be
+        # represented as two channels: the tributary tail (type 3) would
+        # point at a type-6 head, and c1dlnk.f90 has no link code for a
+        # link ending downstream of a type-6 node (C1DERRF stops the model
+        # at import).  A 1-branch type-2 junction imports but makes
+        # cs_adj_jnc.f90 adjust the thalweg of network section 1 (IU(1) =
+        # FRMND(-1) -> ABS -> 1), silently corrupting an unrelated section.
+        # So the two reaches are merged into ONE continuous channel and the
+        # model flows water through it (it rebuilds the network from the
+        # node DSID chains; channel grouping is bookkeeping only).  The
+        # confluence is a single shared node when the two pixels coincide
+        # (a TopAGNPS raster confluence); otherwise BOTH nodes are kept at
+        # their own coordinates and joined by a cross-boundary reach
+        # segment -- again, user geometry is never moved.  merge_into maps
+        # receiver -> its single kept inflow.
+        merge_into = {r: inflows_of[r][0] for r in raw_ids
+                      if len(inflows_of[r]) == 1}
+        shared_head = {r for r in merge_into
+                       if geom[merge_into[r]][-1] == geom[r][0]}
+        shared_inflow = {merge_into[r] for r in shared_head}
 
         # ---- number nodes head->tail in computing order; ND_ID == FRMNO ----
+        # A shared confluence reuses the inflow reach's tail node number
+        # (computed earlier -- DFS is upstream first).  An inserted branch
+        # node gets the next number right after its channel's chain, so the
+        # channel's FRMNO span stays contiguous (c1dlnk.f90:113 computes
+        # ILNCHR(L,1) = LNKEND - LNKSTT + 1) and the outlet channel's tail
+        # keeps the last number (NumNodes = LNKEND(LK_COUNT), c1dlnk.f90:296).
         frmno = {}
+        inserted = {}
         counter = 0
         for r in compute_order:
             for k in range(npts[r]):
+                if k == 0 and r in shared_head:
+                    # shared confluence node: reuse the inflow reach's tail
+                    frmno[(r, 0)] = frmno[(merge_into[r],
+                                           npts[merge_into[r]] - 1)]
+                    continue
                 counter += 1
                 frmno[(r, k)] = counter
-        if counter != sum(npts.values()):
+            if r in insert_tail:
+                counter += 1
+                inserted[r] = counter
+        if (counter != sum(npts.values()) - len(shared_head)
+                + len(insert_tail)):
             raise RuntimeError("node count mismatch (unreachable channel?)")
 
         # provenance: each (reach, k) maps to the generic node it was created
@@ -646,36 +768,52 @@ class ChannelNetworkBuilder:
             if nids is not None and k < len(nids):
                 node_origin[nd_id] = nids[k]
                 node_provenance[nd_id] = nids[k]
-        # a type-3 tail merged onto a junction head now sits at the head
-        # pixel: point its provenance (cross-section source) at the receiving
-        # channel's head node (the generic node at that pixel), not the
-        # inflow reach's tail node.  node_origin keeps the bijective
-        # origin for bookkeeping.
-        for r in raw_ids:
-            recv = defs[r][0]
-            if recv is None:
-                continue
-            if not any(c != r for c in raw_ids if defs[c][0] == recv):
-                continue
-            tail = frmno[(r, npts[r] - 1)]
-            recv_nids = self.node_ids.get(recv)
+        # A branch node sits at the junction head's pixel, so its cross
+        # section is the head's (netchan: the head and all its type-3
+        # branches share one cross-section profile -- CSID 4 for nodes 4,5,6).
+        # Inserted nodes map to the head's generic node; a tail that is
+        # itself the branch (shared pixel) overrides its own origin.
+        # node_origin (the bijective bookkeeping map) never lists inserted
+        # nodes, so its bijection with the kept generic nodes is preserved.
+        for c in insert_tail:
+            recv_nids = self.node_ids.get(insert_tail[c])
             if recv_nids:
-                node_provenance[tail] = recv_nids[0]
+                node_provenance[inserted[c]] = recv_nids[0]
+        for c in shared_tail:
+            recv_nids = self.node_ids.get(shared_tail[c])
+            if recv_nids:
+                node_provenance[frmno[(c, npts[c] - 1)]] = recv_nids[0]
+        # a SHARED merged confluence node carries BOTH generic nodes (the
+        # inflow reach's tail and the receiver's head are the same pixel),
+        # so cell drainage bookkeeping finds it from either reach.
+        for r in shared_head:
+            nd_id = frmno[(r, 0)]
+            src_nids = self.node_ids.get(merge_into[r])
+            head_nids = self.node_ids.get(r)
+            if src_nids and head_nids:
+                node_origin[nd_id] = [src_nids[-1], head_nids[0]]
 
         nodes = {}
         for (r, k), nd_id in frmno.items():
+            if nd_id in nodes:
+                # shared confluence node (created at the inflow reach's
+                # tail, identical pixel) -- created once, coordinates kept
+                continue
             x, y = geom[r][k]
             nodes[nd_id] = NodeSpec(
                 nd_id=nd_id, frmno=nd_id, nd_type=NODE_USERADDED,
                 xc=x, yc=y, dsid=NEGATIVE_ONE, usid=NEGATIVE_ONE,
                 us2id=NEGATIVE_ONE)
+        for c, e in inserted.items():
+            # synthetic branch node: at the receiving junction head's pixel
+            hx, hy = geom[insert_tail[c]][0]
+            nodes[e] = NodeSpec(
+                nd_id=e, frmno=e, nd_type=NODE_USERADDED,
+                xc=hx, yc=hy, dsid=NEGATIVE_ONE, usid=NEGATIVE_ONE,
+                us2id=NEGATIVE_ONE)
 
-        # ---- head positions, then intra-channel links + tail nodes --------
-        # A type-3 junction tail node sits exactly at the junction head's
-        # coordinates (matching the reference pipeline and the known-good
-        # files: the tail pixel is merged onto the downstream head pixel).
+        # ---- intra-channel links + tail nodes ----------------------------
         heads = {r: frmno[(r, 0)] for r in raw_ids}
-        head_pos = {(r, 0): geom[r][0] for r in raw_ids}
         for r in raw_ids:
             n = npts[r]
             tail = frmno[(r, n - 1)]
@@ -688,85 +826,207 @@ class ChannelNetworkBuilder:
                 # outlet channel: tail is the watershed outlet (terminal node)
                 nodes[tail].nd_type = NODE_WATSHDOUTL
                 nodes[tail].dsid = tail
-            else:
-                # channel tail -> head node of the receiving channel
+            elif merge_into.get(recv) == r:
+                # single-inflow confluence: merged into one channel, no
+                # branch node.  Shared pixel: the one confluence node is
+                # wired by the two chains above.  Distinct pixels: both
+                # nodes keep their own coordinates; the cross-boundary
+                # wiring (and reach segment, added in the reach loop)
+                # joins tail -> head.
+                if r not in shared_inflow:
+                    h = frmno[(recv, 0)]
+                    nodes[tail].dsid = h
+                    nodes[h].usid = tail
+            elif r in shared_tail:
+                # tail pixel == junction head pixel: the tail node IS the
+                # junction's branch node (type 3)
                 nodes[tail].nd_type = NODE_END_LINK
                 nodes[tail].dsid = heads[recv]
-                if any(c != r for c in raw_ids if defs[c][0] == recv):
-                    # this channel discharges into a JUNCTION head: merge the
-                    # tail node onto the head position
-                    hx, hy = head_pos[(recv, 0)]
-                    nodes[tail].xc = hx
-                    nodes[tail].yc = hy
+            else:
+                # junction, distinct tail pixel: the synthetic type-3 branch
+                # node stands at the head pixel; the tail keeps its
+                # coordinates and its interior (type-6) node type
+                e = inserted[r]
+                nodes[e].nd_type = NODE_END_LINK
+                nodes[e].usid = tail
+                nodes[e].dsid = heads[recv]
+                nodes[tail].dsid = e
 
         # head node type + junction wiring
         junctions = []
         for r in raw_ids:
-            inflows = [c for c in raw_ids if defs[c][0] == r]
+            inflows = inflows_of[r]
             head = frmno[(r, 0)]
             if not inflows:
                 # boundary head: no upstream inflow in the (kept) set.  A
                 # coarsened network marks these via the head_types override
                 # (NODE_INFLOW for one removed upstream reach, NODE_SOURCE
                 # for several); otherwise fall back to the default head_type.
-                nodes[head].nd_type = self.head_types.get(r, self.head_type)
+                nt = self.head_types.get(r, self.head_type)
+                if nt == NODE_INFLOW:
+                    # exactly one removed upstream reach.  A type-1 head is
+                    # only legal for a 1-NODE link (c1dlnk.f90:157-158); a
+                    # type-1 head of a multi-node link stops the model at
+                    # import.  The link this head starts is r's own channel
+                    # extended through any downstream merge chain (and the
+                    # synthetic branch node, when present):
+                    g = r
+                    while (defs[g][0] is not None and defs[g][0] in merge_into
+                           and merge_into[defs[g][0]] == g):
+                        g = defs[g][0]
+                    link_tail = inserted[g] if g in inserted \
+                        else frmno[(g, npts[g] - 1)]
+                    if link_tail == head:
+                        # 1-node link: type 1 is legal; a functional type
+                        # already set by the tail wiring (3 branch / 9
+                        # outlet) wins over the label
+                        if nodes[head].nd_type == NODE_USERADDED:
+                            nodes[head].nd_type = NODE_INFLOW
+                    else:
+                        # multi-node link: legal source head; the type-1
+                        # inflow-boundary label goes on the node just
+                        # downstream of the head -- the original reference
+                        # pipeline's placement (the model never reads the
+                        # label; the removed-reach inflow record points at
+                        # the head).  A functional type at that node wins.
+                        nodes[head].nd_type = NODE_SOURCE
+                        nxt = nodes[head].dsid
+                        if (nxt not in (NEGATIVE_ONE, head)
+                                and nodes[nxt].nd_type == NODE_USERADDED):
+                            nodes[nxt].nd_type = NODE_INFLOW
+                else:
+                    nodes[head].nd_type = nt
                 nodes[head].usid = NEGATIVE_ONE
                 continue
-            # a channel head with >=1 inflow: junction if >=2, trivial if 1
             # branch order: inflows by ASCENDING raw reach id (== TopAGNPS
             # numbering), smallest id first -> branch 1 (USID), branch 2
-            # (US2ID), then 3..5 -- matches the reference code and the
-            # known-good files (junction 6: USID=5, US2ID=4 -> smallest first).
-            ends = [frmno[(c, npts[c] - 1)] for c in
-                    sorted(inflows, key=lambda c: c)]
+            # (US2ID), then 3..5.  A branch is the channel's synthetic type-3
+            # node when one was inserted, else its own tail node.
+            ends = [inserted[c] if c in inserted
+                    else frmno[(c, npts[c] - 1)] for c in inflows]
             if len(ends) > MAX_JUNCTION_BRANCHES:
                 raise ValueError(
                     f"junction node {head} has {len(ends)} inflows; "
                     f"CCHE1D supports at most {MAX_JUNCTION_BRANCHES}")
+            if len(ends) == 1:
+                # single kept inflow: MERGED with this channel (merge_into).
+                # The head is the interior confluence node (shared node or
+                # the receiver's own head point); the chain wiring already
+                # set its USID and DSID.  No ENDOFLINK tail, no branch, no
+                # junction-block row.
+                if self.head_types.get(r) == NODE_INFLOW:
+                    # one removed upstream reach: the type-1 label goes on
+                    # the node just downstream of the head (a functional
+                    # type there wins)
+                    nxt = nodes[head].dsid
+                    if (nxt not in (NEGATIVE_ONE, head)
+                            and nodes[nxt].nd_type == NODE_USERADDED):
+                        nodes[nxt].nd_type = NODE_INFLOW
+                continue
             for e in ends:
                 nodes[e].dsid = head
-            if len(ends) == 1:
-                # trivial connection: head stays type 6, single USID
-                nodes[head].nd_type = NODE_USERADDED
-                nodes[head].usid = ends[0]
-                nodes[head].us2id = NEGATIVE_ONE
-            else:
-                # proper junction
-                nodes[head].nd_type = NODE_JUNCTION
-                nodes[head].usid = ends[0]
-                nodes[head].us2id = ends[1]
-                # every type-2 node gets a junction-block row; branches 3..5
-                # beyond the inflows are padded with -1 (Fortran MAX(x,0))
-                junctions.append(JunctionExtra(
-                    head, tuple((ends[2:] + [-1, -1, -1])[:3])))
+            # proper junction
+            nodes[head].nd_type = NODE_JUNCTION
+            nodes[head].usid = ends[0]
+            nodes[head].us2id = ends[1]
+            if self.head_types.get(r) == NODE_INFLOW:
+                # one removed upstream reach at a junction head: the type-1
+                # label goes on the node just downstream of the head (a
+                # functional type there wins)
+                nxt = nodes[head].dsid
+                if (nxt not in (NEGATIVE_ONE, head)
+                        and nodes[nxt].nd_type == NODE_USERADDED):
+                    nodes[nxt].nd_type = NODE_INFLOW
+            # every type-2 node gets a junction-block row; branches 3..5
+            # beyond the inflows are padded with -1 (Fortran MAX(x,0))
+            junctions.append(JunctionExtra(
+                head, tuple((ends[2:] + [-1, -1, -1])[:3])))
 
         # ---- channels, reaches, links (in computing order) ----------------
+        # A merged pair (inflow T -> receiver M) is ONE continuous channel
+        # from T's head to M's tail: splitting it would create a link ending
+        # at the shared type-6 confluence node, which c1dlnk.f90 cannot
+        # assign a link code for (C1DERRF).  Channel grouping is bookkeeping
+        # only -- the model rebuilds the network from the node DSID chains.
+        #
+        # A channel that ends at a junction with a distinct tail pixel ends
+        # at its synthetic type-3 branch node (netchan: CH_NDDSID is the
+        # type-3 node, e.g. channel 1: 3 -> 4), and its last reach segment
+        # is the tail -> branch segment.  A merged confluence with distinct
+        # pixels contributes one cross-boundary segment (tail -> head); its
+        # RC_ORDER is the downstream member's (the model does not read
+        # RC_ORDER; it is bookkeeping).
+        group_of = {}
+        for r in raw_ids:
+            g = r
+            while (defs[g][0] is not None and defs[g][0] in merge_into
+                   and merge_into[defs[g][0]] == g):
+                g = defs[g][0]
+            group_of[r] = g
+
         channels, reaches, links = [], [], []
         rc_id = 0
+        ch_seq = 0
         for r in compute_order:
-            n = npts[r]
-            head, tail = frmno[(r, 0)], frmno[(r, n - 1)]
-            channels.append(ChannelSpec(ch_id[r], head, tail))
-            # length from the moved node positions (junction tails sit on the
-            # head, so their final segment length is 0, as in the reference)
-            xs = [nodes[frmno[(r, k)]].xc for k in range(n)]
-            ys = [nodes[frmno[(r, k)]].yc for k in range(n)]
+            if group_of[r] != r:
+                continue          # merged into r's group's downstream member
+            # group members, upstream -> downstream
+            members = [r]
+            h = r
+            while h in merge_into:
+                s = merge_into[h]
+                if defs[s][0] != h:
+                    break
+                members.insert(0, s)
+                h = s
+            ch_seq += 1
+            head = frmno[(members[0], 0)]
+            last = members[-1]
+            # channel tail: the synthetic branch node when the channel ends
+            # at a junction with a distinct tail pixel, else the last node
+            tail = inserted[last] if last in inserted \
+                else frmno[(last, npts[last] - 1)]
+            channels.append(ChannelSpec(ch_seq, head, tail))
             first_rc = rc_id + 1
-            for k in range(n - 1):
+            for i, m in enumerate(members):
+                for k in range(npts[m] - 1):
+                    rc_id += 1
+                    a, b = frmno[(m, k)], frmno[(m, k + 1)]
+                    length = math.hypot(
+                        nodes[b].yc - nodes[a].yc, nodes[b].xc - nodes[a].xc)
+                    reaches.append(ReachSpec(
+                        rc_id, a, b, self.strahler.get(m, 1), length))
+                # cross-boundary segment of a distinct-pixel merged
+                # confluence (between member i's tail and member i+1's head)
+                if i + 1 < len(members):
+                    nxt = members[i + 1]
+                    a = frmno[(m, npts[m] - 1)]
+                    b = frmno[(nxt, 0)]
+                    if a != b:
+                        rc_id += 1
+                        length = math.hypot(
+                            nodes[b].yc - nodes[a].yc,
+                            nodes[b].xc - nodes[a].xc)
+                        reaches.append(ReachSpec(
+                            rc_id, a, b, self.strahler.get(nxt, 1), length))
+            # final segment: channel tail -> synthetic branch node
+            if last in inserted:
                 rc_id += 1
-                a, b = frmno[(r, k)], frmno[(r, k + 1)]
-                length = math.hypot(ys[k + 1] - ys[k], xs[k + 1] - xs[k])
-                reaches.append(ReachSpec(rc_id, a, b,
-                                         self.strahler.get(r, 1), length))
-            if n == 1:
+                a = frmno[(last, npts[last] - 1)]
+                length = math.hypot(
+                    nodes[tail].yc - nodes[a].yc,
+                    nodes[tail].xc - nodes[a].xc)
+                reaches.append(ReachSpec(
+                    rc_id, a, tail, self.strahler.get(last, 1), length))
+            if head == tail:
                 # 1-point channel (unexpanded boundary single-node reach):
                 # zero reach segments.  -1 is the CCHE1D absent sentinel; the
                 # model ignores LK_RCUSID/LK_RCDSID entirely (it reconstructs
                 # the network from the node references).
-                links.append(LinkSpec(ch_id[r], ch_id[r], head, tail,
+                links.append(LinkSpec(ch_seq, ch_seq, head, tail,
                                       NEGATIVE_ONE, NEGATIVE_ONE, 1))
             else:
-                links.append(LinkSpec(ch_id[r], ch_id[r], head, tail,
+                links.append(LinkSpec(ch_seq, ch_seq, head, tail,
                                       first_rc, rc_id, 1))
 
         # ---- cross sections ------------------------------------------------
@@ -860,10 +1120,12 @@ def write_cche1d_dat_files(net: Cche1dNetwork, out_dir, prefix=None):
         rows.append([n.nd_id, n.frmno, n.nd_type, _fmt_float(n.xc),
                      _fmt_float(n.yc), n.dsid, n.usid, n.us2id,
                      n.csid, n.rsid, n.stid, n.sbid])
-    # one junction-block row per type-2 node (branch order 3,4,5; -1 = absent)
-    junc_nodes = sorted((j for j in net.junctions),
-                        key=lambda j: next(m.frmno for m in net.nodes
-                                           if m.nd_id == j.node_id))
+    # one junction-block row per type-2 node (branch order 3,4,5; -1 =
+    # absent), in ND_ID order: the Fortran reader stores branch 3..5 under
+    # the row's ND_ID and reads them back by node-file row index (db_w_ntw_
+    # in.f90:287-293), so the row's J must equal the row number.  FRMNO
+    # order would corrupt the block whenever ND_ID != FRMNO.
+    junc_nodes = sorted(net.junctions, key=lambda j: j.node_id)
     junc_lines = [str(len(junc_nodes))]
     for j in junc_nodes:
         b = tuple((j.branches345 + (-1, -1, -1))[:3])
@@ -1105,6 +1367,129 @@ def validate_network(net: Cche1dNetwork):
                 errors.append(f"junction node {j.node_id}: inflow branch "
                               f"{b} has DSID {nodes[b].dsid}, expected "
                               f"{j.node_id}")
+
+    # ---- c1dlnk.f90 link-code rules (fatal in the model) ------------------
+    # For every link the model reads the type of the node downstream of the
+    # link tail (NDCODE(NDDSND(LNKEND))) and maps it to a link code:
+    #   type 2 -> 3 (channel junction), 9 -> 2 (watershed outlet),
+    #   11..15 -> structures, 3 -> 2 only for the last link in CMPSEQ,
+    #   10 -> re-read the tail's own type (structure),
+    # anything else -> C1DERRF (the model stops at import).
+
+    # Loop-channel end (documents/LoopTest, the model's own ground truth):
+    # a link that starts at a type-2 junction and ends at a type-3 node with
+    # ND_DSID = -1.  FRMND is allocated from -1 so FRMND(-1) = -1 is safe;
+    # c1dlnk.f90 then evaluates NDCODE(-1) -- strictly out of bounds, but the
+    # pattern is what the model authors ship and run for loop testing.  The
+    # builder never emits it; here it is a warning (tolerated ground truth),
+    # anywhere else it is an error.
+    loop_tails = set()
+    for l in net.links:
+        head = nodes.get(l.ndusid)
+        tail = nodes.get(l.nddsid)
+        if (head is not None and tail is not None
+                and head.nd_type == NODE_JUNCTION
+                and tail.nd_type == NODE_END_LINK
+                and tail.dsid == NEGATIVE_ONE):
+            loop_tails.add(l.nddsid)
+    for n in net.nodes:
+        if n.dsid == NEGATIVE_ONE:
+            if n.nd_id in loop_tails:
+                warnings.append(
+                    f"node {n.nd_id}: ND_DSID=-1 (loop-channel end, the "
+                    "documents/LoopTest pattern); c1dlnk.f90 evaluates "
+                    "NDCODE(-1) out of bounds for it -- the model tolerates "
+                    "this ground-truth pattern, the builder never emits it")
+            else:
+                errors.append(
+                    f"node {n.nd_id}: ND_DSID=-1 makes the model evaluate "
+                    "NDCODE(-1) out of bounds in c1dlnk.f90; the outlet uses "
+                    "the self-reference (ND_DSID = own ND_ID)")
+
+    # Looped-channel nodes (20/21) are valid CCHE1D input -- the GUI produces
+    # them and db_w_ntw_in.f90:296-305 / c1dlnk.f90:145-185 wire them -- but
+    # this builder can never emit them, so one in a built network is suspect.
+    for n in net.nodes:
+        if n.nd_type in (NODE_JUNCTSOURCE, NODE_JUNCTEND):
+            warnings.append(
+                f"node {n.nd_id}: ND_TYPE {n.nd_type} (looped channel, a "
+                "GUI-produced pattern); the builder does not emit these")
+
+    # A type-2 junction with exactly one branch imports (link code 3) but
+    # cs_adj_jnc.f90 computes IU(1) = FRMND(US2ID) = FRMND(-1) = -1,
+    # ABS(-1) = 1, and adjusts the thalweg of network section 1 -- a silent
+    # geometry corruption unless the junction sits on channel 1.
+    for n in net.nodes:
+        if n.nd_type != NODE_JUNCTION:
+            continue
+        branches = net.junction_branches(n.nd_id)
+        if len(branches) == 1:
+            errors.append(
+                f"junction node {n.nd_id} has exactly one inflow branch "
+                f"({branches[0]}); the model imports it but cs_adj_jnc.f90 "
+                "would corrupt the thalweg of network section 1")
+
+    # link-tail termination rule (c1dlnk.f90:202-278)
+    last_cmpseq = max((l.cmpseq for l in net.links), default=0)
+    for l in net.links:
+        tail = nodes.get(l.nddsid)
+        if tail is None or tail.dsid == NEGATIVE_ONE:
+            continue          # covered above / by the reference checks
+        target = nodes.get(tail.dsid)
+        if target is None:
+            continue          # dangling DSID already reported
+        ttype = target.nd_type
+        if ttype == NODE_STRTDS:
+            # ICOD == 10: c1dlnk.f90 re-reads the tail's own type
+            ttype = tail.nd_type
+        is_last = l.cmpseq == last_cmpseq
+        ok = (ttype in (NODE_JUNCTION, NODE_WATSHDOUTL, NODE_BRIDGE,
+                        NODE_CULVERT, NODE_DROP, NODE_MEASFLUME, NODE_DAM)
+              or (ttype == NODE_END_LINK and is_last))
+        if not ok:
+            errors.append(
+                f"link {l.lk_id}: downstream of tail node {l.nddsid} is "
+                f"node {tail.dsid} with ND_TYPE {ttype}; c1dlnk.f90 has no "
+                "link code for it and the model stops at import (C1DERRF)")
+
+    # c1dlnk.f90:125-163 head-side rule: ILNCHR(L,3) (number of upstream
+    # nodes) is assigned from the type of the link's FIRST node --
+    #   type 0 source -> 0, type 2 junction -> 2 (+ block branches),
+    #   type 20 (loop) -> left at default, type 10 -> 1,
+    #   1-NODE link -> 1 (any type is legal there),
+    #   anything else on a multi-node link -> C1DERRF (model stops).
+    # In particular a type-1 (inflow boundary) node is only legal as the
+    # head of a 1-node link -- the builder therefore places the type-1
+    # label one node downstream of a coarsened head.
+    for l in net.links:
+        head = nodes.get(l.ndusid)
+        if head is None or l.ndusid == l.nddsid:
+            continue          # dangling head / 1-node link: covered/any type
+        if head.nd_type not in (NODE_SOURCE, NODE_JUNCTION, NODE_STRTDS,
+                                NODE_JUNCTSOURCE):
+            errors.append(
+                f"link {l.lk_id}: channel head node {l.ndusid} has ND_TYPE "
+                f"{head.nd_type}; c1dlnk.f90 can only start a multi-node "
+                "channel at a source (0), junction (2), STRTDS (10) or "
+                "JUNCTSOURCE (20) node and the model stops at import "
+                "(C1DERRF)")
+
+    # c1dlnk.f90:296: handleNTW%NumNodes = LNKEND(LK_COUNT) -- the model
+    # sizes its node array from the LAST link's tail FRMNO, so that tail
+    # must carry FRMNO N (the node count).  The builder keeps the outlet
+    # channel (last in computing order) tail-free of inserted nodes, which
+    # makes this hold.
+    n_nodes = len(net.nodes)
+    if net.links:
+        last_link = max(net.links, key=lambda l: l.cmpseq)
+        tail = nodes.get(last_link.nddsid)
+        if tail is not None and tail.frmno != n_nodes:
+            errors.append(
+                f"link {last_link.lk_id} (last in computing order) ends at "
+                f"node {tail.nd_id} with FRMNO {tail.frmno}, but the node "
+                "count is "
+                f"{n_nodes}; c1dlnk.f90 sizes the model's node array from "
+                "this FRMNO (NumNodes = LNKEND(LK_COUNT))")
 
     # reach file: RC_NDUSID/RC_NDDSID must be a consistent DSID/USID pair
     for r in net.reaches:
