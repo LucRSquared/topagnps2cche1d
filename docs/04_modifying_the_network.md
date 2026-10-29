@@ -32,14 +32,18 @@ the *full* set (the full rule is in [03_network_builder](03_network_builder.md))
 | Upstream reaches (full set) | Head type | Meaning |
 |---|---|---|
 | ≥ 2 kept, or none at all | junction (2) / source (0) | confluence or true source |
-| exactly 1 kept | trivial connection (6) | single inflow |
-| exactly 1 removed, ≥1 kept | trivial/junction (6/2) | removed reach recorded, **not** a BC head |
-| exactly 1 removed, none kept | **inflow boundary (1)** | one removed reach pours in here |
+| exactly 1 kept | merged channel (interior 6) | single inflow; the pair is one continuous channel |
+| exactly 1 removed, ≥1 kept | junction/trivial (2/6) | removed reach recorded, **not** a BC head |
+| exactly 1 removed, none kept, 1-node link | **inflow boundary (1)** on the head | a type-1 head is legal only for a 1-node link (c1dlnk.f90:157-158) |
+| exactly 1 removed, none kept, multi-node link | **source (0)** head + type-1 label one node downstream | a type-1 multi-node head stops the import (C1DERRF) |
 | ≥ 2 removed, none kept | **source (0)** | several removed reaches |
 
-A head that keeps any inflow stays a junction or trivial connection; the removed
-reach is only listed in the inflow record. Type-1/type-0 heads appear only when
-*all* of a head's upstream reaches are removed.
+A head that keeps any inflow stays a junction or a merged confluence; the
+removed reach is only listed in the inflow record. Type-1/type-0 heads appear
+only when *all* of a head's upstream reaches are removed, and the type-1
+label itself sits on the head only for a 1-node link — otherwise one node
+downstream of the (type-0) head. The label is display-only; the model never
+reads it, and the inflow record always points at the head.
 
 ## The removed-reach (inflow) record
 

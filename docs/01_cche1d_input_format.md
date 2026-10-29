@@ -65,7 +65,10 @@ trailing, is `ND_SBID`.)
   `ND_FRMNO` to be a legal permutation.
 - **ND_TYPE** — node role (table below, from `MyHeader.h`).
 - **ND_XC / ND_YC** — planar (projected) coordinates, same CRS as the file.
-- **ND_DSID** — downstream node id. `-1` is allowed at the outlet.
+- **ND_DSID** — downstream node id. **Never `-1`**: the outlet node uses the
+  self-reference (`ND_DSID` = own `ND_ID`). A `-1` makes the import evaluate
+  `NDCODE(-1)` out of bounds in `c1dlnk.f90` (only `FRMND` is allocated from
+  −1; `NDCODE` is not).
 - **ND_USID / ND_US2ID** — the first and second upstream-branch nodes (the tails
   of the upstream reaches that discharge into this node). `-1` = absent. For a
   two-branch junction these two columns are the whole story; branches 3–5 live
@@ -86,7 +89,7 @@ trailing, is `ND_SBID`.)
 | 3  | `ENDOFLINK`    | tail of a reach that joins a junction (sits at the junction head's XY) |
 | 4  | `STRTUS`       | start of upstream (auto) |
 | 5  | `AUTOADDED`    | auto added |
-| 6  | `USERADDED`    | interior node / trivial single-inflow connection |
+| 6  | `USERADDED`    | interior node (incl. a merged single-inflow confluence, see below) |
 | 9  | `WATSHDOUTL`   | watershed outlet |
 | 10 | `STRTDS`       | start of downstream (auto) |
 | 11 | `BRIDGE`       | bridge |
@@ -118,6 +121,48 @@ J  branch3  branch4  branch5     <- one row per type-2 node
 - `-1` in the file is clamped to `0` internally = "no branch".
 - A junction may therefore have **2, 3, 4, or 5** inflow branches (CCHE1D's
   `ND_JUNCT5` limit). The builder rejects more than 5.
+- Rows are stored **by `J` = the node's `ND_ID`** and read back by node-file row
+  index, so block rows must be in `ND_ID` order (with the file invariant
+  `ND_ID == row`, that is ascending `ND_ID`).
+- The same block also carries **looped-channel** support: a loop channel is a
+  channel between two junctions whose first node is type 20 (`JUNCTSOURCE`);
+  `db_w_ntw_in.f90:296-305` normalises a type-20 branch into position 2 and
+  `c1dlnk.f90:145-185` marks it negative in `ILNCHR` (the loop outflow). The
+  builder never emits type 20/21 nodes — loops are GUI-only.
+
+### Link-tail termination (the rule `c1dlnk.f90` enforces)
+
+For every link the import computes the type of the node **downstream of the
+link tail** (`NDCODE(NDDSND(LNKEND))`) and maps it to a link code:
+
+| downstream type of the tail | link code |
+|---|---|
+| 2 (junction) | 3 — channel junction |
+| 9 (outlet) | 2 — watershed outlet |
+| 3 (ENDOFLINK) | 2 — **only if this is the last link in CMPSEQ** |
+| 11 / 12 / 13 / 14 / 15 | 7 / 6 / 9 / (1 if last) 8 / 10 — structures |
+| 10 (STRTDS) | re-read the tail's own type (a structure) |
+| **anything else (0, 1, 6, …)** | **`C1DERRF` — the model stops at import** |
+
+Consequence: **a reach whose tail points at a type-6 node is fatal input.**
+That is why a confluence with a single kept inflow must **not** be written as
+two channels (type-3 tail → type-6 head). The builder merges such a pair into
+ONE continuous channel: the confluence pixel is a single interior type-6 node,
+no `ENDOFLINK` tail, no branch, no junction-block row. (A 1-branch type-2
+junction imports but makes `cs_adj_jnc.f90` adjust the thalweg of network
+section 1 — a silent geometry corruption — so that is rejected too.)
+
+Junction node count is not a surprise: a junction with `k` inflows has **k
+branch nodes plus the type-2 head, all at the junction head's XY** — `k + 1`
+overlapping nodes. Each branch node is either the inflow's own tail node
+(when the tail pixel coincides with the head pixel) or a synthetic type-3
+node the builder inserts at the head pixel (when the pixels differ — the
+original tail keeps its coordinates and gains a reach segment to the branch
+node; see [03_network_builder](03_network_builder.md)). The known-good
+reference files show the shared-tail form (e.g. Goodwin junction 6: nodes 4, 5
+type 3 + node 6 type 2, all at (5254.32, 6882.35)) — and the reference files
+were hand-authored with tail pixels on the head pixel, so both forms are
+legal; the builder emits the form the input geometry demands.
 
 ## 3. Reaches, channels, links
 
@@ -246,12 +291,14 @@ remain the single source of truth for the model.
 ## 8. Checklist for a hand-written network
 
 1. Number nodes 1..N; keep row = `ND_ID`.
-2. Fill `ND_DSID` (−1 only at the outlet), `ND_USID`/`ND_US2ID` for junctions
+2. Fill `ND_DSID` (self-reference at the outlet; never −1 elsewhere),
+   `ND_USID`/`ND_US2ID` for junctions
    (branch 1 = tail of the smallest-id inflow, branch 2 = next — the generator's
    convention).
-3. Type every confluence with ≥2 inflows as `2`; single-inflow link ends that
-   join a junction as `3`; a lone removed inflow as `1`; a head with no kept
-   inflow as `0`; the outlet as `9`; interior/trivial nodes as `6`.
+3. Type every confluence with ≥2 inflows as `2`; multi-inflow junction tails as
+   `3`; a lone removed inflow as `1`; a head with no kept inflow as `0`; the
+   outlet as `9`; interior nodes as `6`. A single-inflow confluence is **one**
+   type-6 interior node (merged), never a `3`→`6` pair.
 4. Emit one junction row per type-2 node, padding branches 3–5 with `-1`.
 5. Compute `ND_FRMNO` by the post-order DFS of §5.
 6. Emit one reach per node-pair inside each channel.

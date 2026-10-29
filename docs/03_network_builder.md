@@ -26,10 +26,13 @@ manual path and the TopAGNPS path go through.
   dropped by coarsening (populated by `build_network_from_reaches`).
 
 `node_origin` is the **bijective** map from a network node to the generic node
-at that channel's own point; `node_provenance` is a variant where a type-3 tail
-merged onto a junction head points at the *receiving* head's generic node (so it
-carries the section standing at that pixel). Cross-section assignment uses
-`node_provenance`; per-node bookkeeping (cell drainage) uses `node_origin`.
+at that channel's own point; `node_provenance` is a variant where a type-3
+branch node standing at a junction head pixel (either the shared tail node or
+a synthetic inserted one) points at the *receiving* head's generic node (so it
+carries the cross-section profile standing at that pixel).
+`node_origin` never lists synthetic inserted nodes. Cross-section assignment
+uses `node_provenance`; per-node bookkeeping (cell drainage) uses
+`node_origin`.
 
 ## 2. Defining a network
 
@@ -89,14 +92,20 @@ net = build_network_from_reaches(reaches, strahler_drop=0,
   | Upstream reaches (full set) | Head type | Meaning |
   |---|---|---|
   | ≥ 2 kept, or none at all | junction (2) / source (0) | normal confluence or true source |
-  | exactly 1 kept | trivial connection (6) | single inflow |
-  | exactly 1 removed, ≥1 kept | trivial/junction (6/2) | removed reach recorded, not a BC head |
-  | exactly 1 removed, none kept | **inflow boundary (1)** | one removed reach pours in here |
-  | ≥ 2 removed, none kept | **source (0)** | several removed reaches |
+  | exactly 1 kept | trivial connection (6) | single inflow, merged channel |
+  | exactly 1 removed, ≥1 kept | junction/trivial (2/6) | removed reach only *recorded*; the head is never a BC boundary |
+  | exactly 1 removed, none kept, 1-node link | **inflow boundary (1)** on the head itself | a type-1 head is legal only for a 1-node link (c1dlnk.f90:157-158) |
+  | exactly 1 removed, none kept, multi-node link | **source (0)** head + type-1 label one node downstream | a type-1 head of a multi-node link stops the model at import (C1DERRF) |
+  | ≥ 2 removed, none kept | **source (0)** | several removed reaches; the record points at the head |
 
-  A head keeps a kept inflow ⇒ it is a junction or trivial connection, **not** a
-  type-1 boundary; the removed reach is only recorded in the inflow list. Type-1
-  / type-0 heads appear only when *all* upstream reaches of a head are removed.
+  A head keeps a kept inflow ⇒ it is a junction or trivial connection, **not**
+  a type-1 boundary; the removed reach is only recorded in the inflow list.
+  Type-1 / type-0 heads appear only when *all* upstream reaches of a head are
+  removed. Wherever a type-1 label is placed (head of a 1-node link, or the
+  node just downstream of a multi-node boundary head), a functional type
+  already assigned to that node (3 branch / 9 outlet) wins; the label is
+  display-only — the model never reads it, and the removed-reach inflow record
+  always points at the head node.
 
 `build_network_from_reaches` also sets `net.removed_reaches` (via
 `removed_reach_inflow_pairs`) so the caller can emit the removed-reach inflow
@@ -112,13 +121,35 @@ inflow bookkeeping (see §4).
    (`cche1d_compute_order`, identical to
    `tools.custom_dfs_traversal_sorted_predecessors`). `CH_ID` = position in that
    traversal.
-3. **Wires junctions**: a channel head with ≥2 inflow channel tails becomes a
-   type-2 node with a junction-block row. Branch order: inflows sorted by
-   **ascending** reach id → branch 1 (`ND_USID`), branch 2 (`ND_US2ID`), then
-   3–5 in the block. A 1-inflow head stays type-6 (trivial). The builder rejects
-   more than 5 inflows (CCHE1D's `ND_JUNCT5` limit).
-4. **Merges junction tails**: the tail node of a channel that joins a junction
-   (type 3) is moved onto the junction head's XY, matching the reference files.
+3. **Wires junctions and confluences.** The governing invariant (verified
+   against the `netchan` and `LoopTest` reference files and the GUI/fortran
+   sources): **no node that belongs to a geometrically defined reach ever
+   changes coordinates**. Junctions are handled by *adding* nodes:
+
+   - A channel head with ≥2 inflow tails becomes a **type-2 node** with a
+     junction-block row. Branch order: inflows sorted by **ascending** reach
+     id → branch 1 (`ND_USID`), branch 2 (`ND_US2ID`), then 3–5 in the block
+     (`-1` padding). The builder rejects more than 5 inflows (CCHE1D's
+     `ND_JUNCT5` limit).
+   - Each inflow's **branch node** is the tributary's tail node when the tail
+     pixel coincides with the junction head pixel (shared tail — the tail
+     becomes type 3 in place). When the pixels differ, the builder **inserts
+     one synthetic type-3 node** at the junction head pixel: the original tail
+     keeps its coordinates and its interior (type-6) type, its `DSID` points
+     at the new branch node, and a reach segment (tail → branch) is added.
+     The channel's tail is the branch node in both cases (netchan:
+     `CH_NDDSID` is the type-3 node standing at the junction pixel).
+   - A head with exactly one kept inflow is a **single-inflow confluence**:
+     the pair merges into one continuous channel (splitting it would create
+     a link ending at an interior type-6 node, which `c1dlnk.f90` cannot
+     code — `C1DERRF`). Shared pixel: the single confluence node is type 6.
+     Distinct pixels: both nodes are kept at their own coordinates and joined
+     by a cross-boundary reach segment. No ENDOFLINK tail, no junction-block
+     row.
+   - The outlet channel's tail node is type 9 with self-`DSID`.
+4. **Types boundary heads**: a head with no kept inflow takes its type from
+   the `head_types` override (see §2) — including the 1-node-link vs
+   multi-node-link rule for where the type-1 inflow-boundary label sits.
 5. **Numbers nodes** head→tail in computing order (`ND_ID == ND_FRMNO`), and
    assigns the outlet node type 9.
 6. **Numbers reaches** (globally-unique `RC_ID` in this library) and channels /
@@ -193,13 +224,18 @@ Error-level checks, in the order the model needs them:
 | 5 | type-2 nodes have 2–5 inflow branches; each has a junction-block row (and vice versa); branches 3–5 resolve; no duplicate branch; each branch's `DSID` points back at the junction |
 | 6 | every reach attaches to a consistent `DSID`/`USID` node pair |
 | 7 | each channel is a connected `DSID` chain head→tail; link `RC` refs resolve (a 1-point channel carries the `-1` sentinel on both) |
+| 8 | **link-tail termination** (c1dlnk.f90:202-278): the node downstream of a link's tail must be a junction (2), outlet (9), or a hydraulic-structure node (11–15) — or an end-of-link (3) node on the *last* link. Anything else (a type-6 interior node, a split channel at a confluence, …) has no link code in `c1dlnk.f90` → `C1DERRF` |
+| 9 | **head-side rule** (c1dlnk.f90:125-163): a multi-node link's head must be a source (0), junction (2), STRTDS (10) or JUNCTSOURCE (20) node; any other type — in particular a **type-1 inflow-boundary node** — leaves `ILNCHR(L,3)` unassigned → `C1DERRF`. A 1-node link may start at any type (that is the only legal home for a type-1 head) |
+| 10 | **`FRMNO`-N rule** (c1dlnk.f90:296): the model sizes its node array from the last link's tail FRMNO (`NumNodes = LNKEND(LK_COUNT)`), so the last link (by computing order) must end at the node with `FRMNO = N` |
 
 Warning-level (import-tolerated): unmatched `ND_CSID` (the model's `DO CS / IF`
 has no else branch — e.g. the `documents/LoopTest` files pair 12 nodes with
 `ND_CSID=1..12` but an **empty** `_csec.dat` and still import), a CS without
 profile points, non-increasing `CP_W`. Negative tests prove the error level
-fires (broken `DSID`, inflow computed after its junction); the LoopTest test
-proves the warning level does not over-reject.
+fires (broken `DSID`, inflow computed after its junction, a split channel
+ending downstream of a type-6 node, a type-1 multi-node head, a wrong last
+link tail `FRMNO`); the LoopTest test proves the warning level does not
+over-reject.
 
 ## 7. Running the tests
 
