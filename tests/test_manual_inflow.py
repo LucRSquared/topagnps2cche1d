@@ -95,9 +95,11 @@ def test_manual_build_produces_inflow_reaches_record():
     """
     A hand-built network (no TopAGNPS, no Watershed) that drops reach A must
     still emit the removed-reach inflow record, pointing at B's head node.
-    B's head keeps C as a kept inflow, so it stays a trivial connection
-    (type 6); the removed reach A is recorded in the inflow record at B's
-    head (a head only becomes a type-1 inflow BC when ALL its upstream
+    B's head keeps C as a kept inflow, so the confluence is MERGED into one
+    continuous channel (a single interior type-6 node at the pixel -- see
+    the builder docstring for why a type-3 tail -> type-6 head pair is
+    fatal input); the removed reach A is recorded in the inflow record at
+    that node (a head only becomes a type-1 inflow BC when ALL its upstream
     reaches are removed -- see the two-removed test below).
     """
     n = build_and_drop_A()
@@ -112,8 +114,10 @@ def test_manual_build_produces_inflow_reaches_record():
     head_nd = n.channel_heads[2]
     assert (1, head_nd) in recs
     node = n.node_by_id(head_nd)
-    # B still has the kept inflow C, so the head is a trivial connection,
-    # and C's tail is wired in as its single upstream branch.
+    # B still has the kept inflow C, so the confluence is MERGED into one
+    # continuous channel: the head is a single interior type-6 node (the
+    # C tail and the B head are the same node), and its USID is the
+    # predecessor inside the merged channel.
     assert node.nd_type == net.NODE_USERADDED
     assert node.usid != net.NEGATIVE_ONE
 

@@ -80,12 +80,19 @@ def test_looptest_reads_and_validates_with_warnings():
     # ship an EMPTY _csec.dat (0 records).  The Fortran import tolerates that
     # (unmatched ND_CSID -> DO loop simply never matches), so the network is
     # valid and the validator reports it as warnings, not errors.
+    #
+    # They also carry the model authors' looped-channel end pattern: link 3
+    # runs from junction node 9 to type-3 node 4 with ND_DSID = -1.  The
+    # import survives (FRMND is allocated from -1) though c1dlnk.f90 then
+    # evaluates NDCODE(-1) strictly out of bounds -- the validator therefore
+    # reports it as a warning (tolerated ground truth), not an error.
     n = net.read_cche1d_network(LOOPTEST_DIR)
     assert len(n.nodes) == 12
     assert len(n.csecs) == 0
     errors, warnings = net.validate_network(n)
     assert errors == []
     assert any("ND_CSID" in w for w in warnings)
+    assert any("ND_DSID=-1" in w for w in warnings)
 
 
 def test_ground_truth_round_trip():
@@ -227,6 +234,60 @@ def test_channel_defs_from_reaches_rejects_reach_with_no_us_node():
         net.channel_defs_from_reaches([RReach()])
 
 
+def test_builder_merges_single_inflow_confluence():
+    # A tributary discharging into a main-stem head with no other inflow
+    # CANNOT be written as two channels: the tributary tail (type 3) would
+    # point at a type-6 head, and c1dlnk.f90 has no link code for that
+    # (C1DERRF stops the model at import -- see the validator tests below).
+    # The builder therefore merges the pair into ONE continuous channel:
+    # the confluence pixel is a single interior type-6 node, with no
+    # ENDOFLINK tail, no branch and no junction-block row.
+    spec = {
+        1: (2, [(0, 0), (5, 0), (10, 0)]),      # tributary
+        2: (3, [(10, 0), (15, 0), (20, 0)]),    # main stem (head on tail)
+        3: (None, [(20, 0), (25, 0), (30, 0)]), # outlet
+    }
+    n = net.ChannelNetworkBuilder(spec, resample_step=6).build()
+    assert len(n.nodes) == 7            # 3 + 3 + 3 points, 2 merged away
+    assert len(n.channels) == 1
+    ch = n.channels[0]
+    assert ch.ndusid != ch.nddsid
+    types = [x.nd_type for x in n.nodes]
+    assert net.NODE_JUNCTION not in types
+    assert net.NODE_END_LINK not in types
+    assert net.NODE_SOURCE in types and net.NODE_WATSHDOUTL in types
+    assert n.junctions == []
+    # the chain is continuous: head -> ... -> tail via DSID, one link
+    assert len(n.links) == 1 and len(n.reaches) == 6
+    assert net.validate_network(n) == ([], [])
+    # round trip keeps the merge (node count, types, no junction block)
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        net.write_cche1d_dat_files(n, d, prefix="mrg")
+        n2 = net.read_cche1d_network(d)
+        assert len(n2.nodes) == len(n.nodes)
+        assert [x.nd_type for x in n2.nodes] == types
+        assert n2.junctions == []
+        assert net.validate_network(n2) == ([], [])
+
+
+def test_builder_merges_chain_of_single_inflow_heads():
+    # a->b->c with a single inflow at EVERY junction: one continuous channel
+    spec = {
+        1: (2, [(0, 0), (5, 0)]),
+        2: (3, [(5, 0), (10, 0)]),
+        3: (None, [(10, 0), (15, 0)]),
+    }
+    n = net.ChannelNetworkBuilder(spec).build()
+    assert len(n.channels) == 1
+    assert len(n.nodes) == 4            # 2+2+2 points, 2 merged away
+    assert net.validate_network(n) == ([], [])
+    # channel_heads still resolves every kept channel onto a network node
+    # (a merged receiver points at the shared confluence node)
+    for rid in (1, 2, 3):
+        assert n.channel_heads[rid] in {x.nd_id for x in n.nodes}
+
+
 def test_one_point_channel_builds_and_validates():
     # A 1-point channel (head == tail) is a legal CCHE1D construct: it comes
     # from an unexpanded boundary single-node reach after coarsening.  Its
@@ -252,6 +313,153 @@ def test_one_point_channel_builds_and_validates():
         assert net.validate_network(n2) == ([], [])
         assert any(l.rcusid == net.NEGATIVE_ONE for l in n2.links)
 
+
+
+def test_builder_junction_with_distinct_tail_pixels_inserts_branch_nodes():
+    # The user's test_small_object_watershed topology: two tributaries
+    # (reach 4 and reach 3) discharge into the outlet channel's head (reach
+    # 2), and the tributary tails do NOT sit on the junction pixel.  The
+    # correct representation (netchan / LoopTest ground truth) keeps every
+    # user node at its own coordinates and inserts one SYNTHETIC type-3
+    # branch node per tributary at the junction pixel:
+    #   ... -> tail (type 6, own pixel) -> branch (type 3, head pixel) -> junction
+    spec = {
+        4: (2, [(700, 100), (600, 200), (500, 300)]),
+        3: (2, [(700, 700), (600, 600), (500, 500)]),
+        2: (None, [(400, 400), (300, 400), (200, 400), (100, 400)]),
+    }
+    n = net.ChannelNetworkBuilder(spec).build()
+    # 10 user nodes + 2 inserted branch nodes
+    assert len(n.nodes) == 12
+    # no user node moved: every original pixel is present exactly once as a
+    # non-junction-pixel node, and only the junction head + the 2 branch
+    # nodes stand at (400, 400)
+    pixels = [(x.xc, x.yc) for x in n.nodes]
+    for p in [(700, 100), (600, 200), (500, 300),
+              (700, 700), (600, 600), (500, 500),
+              (300, 400), (200, 400), (100, 400)]:
+        assert pixels.count(p) == 1, p
+    assert pixels.count((400, 400)) == 3
+    j = [x for x in n.nodes if x.nd_type == net.NODE_JUNCTION][0]
+    assert (j.xc, j.yc) == (400, 400)
+    # branches are the two type-3 nodes at the junction pixel (branch order:
+    # ascending reach id -> reach 3 first = USID, reach 4 = US2ID)
+    branches = [n.node_by_id(b) for b in n.junction_branches(j.nd_id)]
+    assert len(branches) == 2
+    for b in branches:
+        assert b.nd_type == net.NODE_END_LINK
+        assert (b.xc, b.yc) == (400, 400)
+        assert b.dsid == j.nd_id
+        # the branch's USID is the tributary's own tail node, which kept
+        # its coordinates and its interior (type-6) node type
+        tail = n.node_by_id(b.usid)
+        assert tail.nd_type == net.NODE_USERADDED
+        assert tail.dsid == b.nd_id
+    assert (n.node_by_id(branches[0].usid).xc,
+            n.node_by_id(branches[0].usid).yc) == (500, 500)  # reach 3 tail
+    assert (n.node_by_id(branches[1].usid).xc,
+            n.node_by_id(branches[1].usid).yc) == (500, 300)  # reach 4 tail
+    # the channel tail IS the branch node (netchan: CH_NDDSID = type-3 node)
+    for c in n.channels:
+        if c.nddsid in (branches[0].nd_id, branches[1].nd_id):
+            tail_node = n.node_by_id(c.ndusid)
+            assert tail_node.nd_type in (net.NODE_SOURCE, net.NODE_USERADDED)
+    branch_ids = {branches[0].nd_id, branches[1].nd_id}
+    assert {c.nddsid for c in n.channels if c.nddsid in branch_ids} == branch_ids
+    # tail -> branch reach segments exist (one per tributary)
+    segs = {(r.ndusid, r.nddsid) for r in n.reaches}
+    for b in branches:
+        assert (b.usid, b.nd_id) in segs
+    assert net.validate_network(n) == ([], [])
+    # round trip keeps the inserted nodes (count, types, coordinates)
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        net.write_cche1d_dat_files(n, d, prefix="sob")
+        n2 = net.read_cche1d_network(d)
+        assert len(n2.nodes) == 12
+        assert sorted((x.nd_type, x.xc, x.yc) for x in n2.nodes) == \
+            sorted((x.nd_type, x.xc, x.yc) for x in n.nodes)
+        assert net.validate_network(n2) == ([], [])
+
+
+def test_builder_merges_single_inflow_with_distinct_pixels():
+    # A single-inflow confluence whose tail and head pixels DIFFER still
+    # merges into one continuous channel (a split would be C1DERRF), but
+    # both nodes are kept at their own coordinates and joined by a
+    # cross-boundary reach segment -- nothing moves.
+    spec = {
+        1: (2, [(0, 0), (10, 0), (20, 0)]),    # tributary, tail (20, 0)
+        2: (3, [(30, 5), (40, 0), (50, 0)]),   # head (30, 5) != (20, 0)
+        3: (None, [(60, 0), (70, 0)]),         # head (60, 0) != (50, 0)
+    }
+    n = net.ChannelNetworkBuilder(spec).build()
+    # 8 nodes: nothing shared away
+    assert len(n.nodes) == 8
+    pixels = [(x.xc, x.yc) for x in n.nodes]
+    for p in [(20, 0), (30, 5), (50, 0), (60, 0)]:
+        assert pixels.count(p) == 1, p
+    assert len(n.channels) == 1
+    ch = n.channels[0]
+    assert ch.ndusid != ch.nddsid
+    # 2 + 1 + 2 + 1 + 1 = 7 reach segments (incl. both cross-boundary ones)
+    assert len(n.reaches) == 7
+    segs = {(r.ndusid, r.nddsid) for r in n.reaches}
+    a = n.node_by_id(next(x.nd_id for x in n.nodes if (x.xc, x.yc) == (20, 0)))
+    b = n.node_by_id(next(x.nd_id for x in n.nodes if (x.xc, x.yc) == (30, 5)))
+    c = n.node_by_id(next(x.nd_id for x in n.nodes if (x.xc, x.yc) == (50, 0)))
+    d = n.node_by_id(next(x.nd_id for x in n.nodes if (x.xc, x.yc) == (60, 0)))
+    assert (a.nd_id, b.nd_id) in segs and (c.nd_id, d.nd_id) in segs
+    assert a.dsid == b.nd_id and b.usid == a.nd_id
+    # no junction, no ENDOFLINK, no coordinate move
+    types = [x.nd_type for x in n.nodes]
+    assert net.NODE_JUNCTION not in types
+    assert net.NODE_END_LINK not in types
+    assert n.junctions == []
+    assert net.validate_network(n) == ([], [])
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        net.write_cche1d_dat_files(n, d, prefix="dxp")
+        n2 = net.read_cche1d_network(d)
+        assert len(n2.nodes) == 8
+        assert net.validate_network(n2) == ([], [])
+
+
+def test_builder_four_way_junction_with_distinct_tail_pixels():
+    # 4-way junction, every tributary tail off-pixel: 4 inserted type-3
+    # branch nodes, branches 1-2 inline (USID/US2ID), branches 3-4 in the
+    # junction block, branch 5 padded with -1.
+    ch = {1: (None, [(0, 0), (10, 0)])}
+    ch[2] = (1, [(30, -40), (15, -20), (8, -3)])
+    ch[3] = (1, [(30, -10), (8, -1)])
+    ch[4] = (1, [(30, 10), (8, 1)])
+    ch[5] = (1, [(30, 40), (15, 20), (8, 3)])
+    n = net.ChannelNetworkBuilder(ch).build()
+    j = [x for x in n.nodes if x.nd_type == net.NODE_JUNCTION][0]
+    assert (j.xc, j.yc) == (0, 0)
+    branches = n.junction_branches(j.nd_id)
+    assert len(branches) == 4
+    for b in branches:
+        node = n.node_by_id(b)
+        assert node.nd_type == net.NODE_END_LINK
+        assert (node.xc, node.yc) == (0, 0)
+        assert node.dsid == j.nd_id
+    # branch 3 and branch 4 live in the junction block, branch 5 padded -1
+    extra = [x for x in n.junctions if x.node_id == j.nd_id][0]
+    assert extra.branches345 == (branches[2], branches[3],
+                                 net.NEGATIVE_ONE)
+    # every inserted branch sits at the head pixel; the original tails kept
+    # theirs
+    tails = [n.node_by_id(n.node_by_id(b).usid) for b in branches]
+    assert all(t.nd_type == net.NODE_USERADDED for t in tails)
+    assert all((t.xc, t.yc) != (0, 0) for t in tails)
+    assert net.validate_network(n) == ([], [])
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        net.write_cche1d_dat_files(n, d, prefix="fway")
+        n2 = net.read_cche1d_network(d)
+        assert net.validate_network(n2) == ([], [])
+        j2 = [x for x in n2.nodes if x.nd_type == net.NODE_JUNCTION][0]
+        assert len(n2.junction_branches(j2.nd_id)) == 4
 
 
 # ---------------------------------------------------------------------------
@@ -289,6 +497,149 @@ def test_validator_warns_on_unsorted_cross_section_points():
     errors, warnings = net.validate_network(n)
     assert errors == []
     assert any("CP_W" in w for w in warnings)
+
+
+def _split_channel_network():
+    """Hand-assembled FATAL pattern (what the builder emitted before the
+    merge fix): two channels whose seam is a type-3 tail -> type-6 head
+    pair.  Channel A = nodes 1,2,3; channel B = nodes 4,5; the DSID chain
+    runs 1 -> 2 -> 3 -> 4 -> 5.  c1dlnk.f90 has no link code for link A
+    (downstream of its tail, node 3, is type-6 node 4) -> C1DERRF."""
+    nodes = [
+        net.NodeSpec(1, 1, 0, 0.0, 0.0, 2, -1, -1),
+        net.NodeSpec(2, 2, 6, 5.0, 0.0, 3, 1, -1),
+        net.NodeSpec(3, 3, 6, 10.0, 0.0, 4, 2, -1),
+        net.NodeSpec(4, 4, 6, 15.0, 0.0, 5, 3, -1),
+        net.NodeSpec(5, 5, 9, 20.0, 0.0, 5, 4, -1),
+    ]
+    reaches = [
+        net.ReachSpec(1, 1, 2, 1, 5.0),
+        net.ReachSpec(2, 2, 3, 1, 5.0),
+        net.ReachSpec(3, 4, 5, 1, 5.0),
+    ]
+    channels = [
+        net.ChannelSpec(1, 1, 3),
+        net.ChannelSpec(2, 4, 5),
+    ]
+    links = [
+        net.LinkSpec(1, 1, 1, 3, 1, 2, 1),
+        net.LinkSpec(2, 2, 4, 5, 3, 3, 1),
+    ]
+    return net.Cche1dNetwork(nodes=nodes, reaches=reaches,
+                             channels=channels, links=links, csecs=[])
+
+
+def test_validator_rejects_link_ending_downstream_of_type6():
+    n = _split_channel_network()
+    with pytest.raises(net.NetworkValidationError) as ei:
+        net.validate_network(n)
+    assert any("ND_TYPE 6" in e and "C1DERRF" in e
+               for e in ei.value.errors)
+
+
+def test_validator_rejects_type1_multi_node_head():
+    # A type-1 (inflow boundary) head of a MULTI-NODE link: c1dlnk.f90:125-163
+    # has no ILNCHR(L,3) value for it -> C1DERRF.  This is what a coarsened
+    # head must never look like -- the builder places the type-1 label one
+    # node downstream instead.
+    nodes = [
+        net.NodeSpec(1, 1, 1, 0.0, 0.0, 2, -1, -1),    # type-1 head
+        net.NodeSpec(2, 2, 6, 5.0, 0.0, 3, 1, -1),
+        net.NodeSpec(3, 3, 9, 10.0, 0.0, 3, 2, -1),    # outlet (self DSID)
+    ]
+    reaches = [
+        net.ReachSpec(1, 1, 2, 1, 5.0),
+        net.ReachSpec(2, 2, 3, 1, 5.0),
+    ]
+    channels = [net.ChannelSpec(1, 1, 3)]
+    links = [net.LinkSpec(1, 1, 1, 3, 1, 2, 1)]
+    n = net.Cche1dNetwork(nodes=nodes, reaches=reaches, channels=channels,
+                          links=links, csecs=[])
+    with pytest.raises(net.NetworkValidationError) as ei:
+        net.validate_network(n)
+    assert any("ND_TYPE 1" in e and "C1DERRF" in e
+               for e in ei.value.errors)
+
+
+def test_validator_accepts_type1_head_of_one_node_link():
+    # A 1-NODE link (head == tail, the -1 reach-range sentinel): c1dlnk.f90
+    # :157-158 assigns ILNCHR(L,3)=1 for ANY node type, so a type-1 head is
+    # legal here (it is still a legal branch of the downstream junction).
+    nodes = [
+        net.NodeSpec(1, 1, 1, 0.0, 0.0, 2, -1, -1),   # type-1, 1-node link
+        net.NodeSpec(2, 4, 2, 0.0, 0.0, 3, 1, 4),     # junction, 2 branches
+        net.NodeSpec(3, 5, 9, 10.0, 0.0, 3, 2, -1),   # outlet (last link)
+        net.NodeSpec(4, 3, 3, 0.0, 0.0, 2, 5, -1),    # type-3 branch
+        net.NodeSpec(5, 2, 0, -5.0, 0.0, 4, -1, -1),  # source channel head
+    ]
+    reaches = [
+        net.ReachSpec(1, 5, 4, 1, 5.0),
+        net.ReachSpec(2, 2, 3, 1, 10.0),
+    ]
+    channels = [
+        net.ChannelSpec(1, 1, 1),   # 1-point channel (type-1 head)
+        net.ChannelSpec(2, 5, 4),   # source -> type-3 branch
+        net.ChannelSpec(3, 2, 3),   # junction -> outlet (last link)
+    ]
+    links = [
+        net.LinkSpec(1, 1, 1, 1, net.NEGATIVE_ONE, net.NEGATIVE_ONE, 1),
+        net.LinkSpec(2, 2, 5, 4, 1, 1, 1),
+        net.LinkSpec(3, 3, 2, 3, 2, 2, 1),
+    ]
+    n = net.Cche1dNetwork(nodes=nodes, reaches=reaches, channels=channels,
+                          links=links, csecs=[])
+    assert net.validate_network(n) == ([], [])
+
+
+def test_validator_rejects_wrong_last_link_tail_frmno():
+    # c1dlnk.f90:296 sizes the model node array from LNKEND(LK_COUNT): the
+    # last link's tail must carry FRMNO N.  Swap the FRMNOs so it does not.
+    n = net.ChannelNetworkBuilder(simple_network(), resample_step=4).build()
+    outlet = [x for x in n.nodes if x.nd_type == net.NODE_WATSHDOUTL][0]
+    interior = n.node_by_id(outlet.usid)
+    outlet.frmno, interior.frmno = interior.frmno, outlet.frmno
+    with pytest.raises(net.NetworkValidationError) as ei:
+        net.validate_network(n)
+    assert any("LNKEND(LK_COUNT)" in e for e in ei.value.errors)
+
+
+def test_validator_rejects_negative_one_dsid_outside_loop_end():
+    n = net.ChannelNetworkBuilder(simple_network(), resample_step=4).build()
+    victim = n.node_by_id(2)            # interior node of the outlet channel
+    victim.dsid = net.NEGATIVE_ONE
+    with pytest.raises(net.NetworkValidationError) as ei:
+        net.validate_network(n)
+    assert any("NDCODE(-1)" in e for e in ei.value.errors)
+
+
+def test_validator_rejects_one_branch_junction():
+    # A type-2 junction with exactly one inflow imports fine (link code 3)
+    # but cs_adj_jnc.f90 computes IU(1) = FRMND(US2ID) = FRMND(-1) = -1,
+    # ABS(-1) = 1, and adjusts the thalweg of network section 1 -- silent
+    # geometry corruption, so the validator rejects it.
+    nodes = [
+        net.NodeSpec(1, 1, 0, 0.0, 0.0, 2, -1, -1),
+        net.NodeSpec(2, 2, 3, 5.0, 0.0, 3, 1, -1),     # ENDOFLINK tail
+        net.NodeSpec(3, 3, 2, 10.0, 0.0, 4, 2, -1),    # junction, 1 branch
+        net.NodeSpec(4, 4, 9, 15.0, 0.0, 4, 3, -1),    # outlet
+    ]
+    reaches = [
+        net.ReachSpec(1, 1, 2, 1, 5.0),
+        net.ReachSpec(2, 3, 4, 1, 5.0),
+    ]
+    channels = [
+        net.ChannelSpec(1, 1, 2),
+        net.ChannelSpec(2, 3, 4),
+    ]
+    links = [
+        net.LinkSpec(1, 1, 1, 2, 1, 1, 1),
+        net.LinkSpec(2, 2, 3, 4, 2, 2, 1),
+    ]
+    n = net.Cche1dNetwork(nodes=nodes, reaches=reaches,
+                          channels=channels, links=links, csecs=[])
+    with pytest.raises(net.NetworkValidationError) as ei:
+        net.validate_network(n)
+    assert any("exactly one inflow branch" in e for e in ei.value.errors)
 
 
 if __name__ == "__main__":

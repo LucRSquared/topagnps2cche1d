@@ -96,7 +96,8 @@ def test_ohio_coarsened_bookkeeping(imported, drop, tmp_path):
     assert errors == [], errors
 
     valid_nd = {n.nd_id for n in net.nodes}
-    origin = {gid: nid for nid, gid in net.node_origin.items()
+    origin = {gid: nid for nid, val in net.node_origin.items()
+              for gid in (val if isinstance(val, (list, tuple)) else [val])
               if gid is not None}
 
     # --- independent recount of the removed-reach records ---

@@ -149,9 +149,11 @@ def test_inflow_reaches_df_empty_when_nothing_removed():
 def test_coarsened_junction_head_records_removed_inflow():
     """
     Remove A (one of the two inflows into B's head).  B's head still has C
-    as a kept inflow, so it stays a junction/trivial connection (type 2 or
-    6) -- not a type-1 boundary.  The removed reach A is recorded in the
-    inflow_reaches DataFrame at B's head node.
+    as a kept inflow, so it is a merged confluence (type 6) -- never a
+    type-1 boundary (a type-1 head of a multi-node link would stop the
+    model at import, c1dlnk.f90).  The removed reach A is recorded in the
+    inflow_reaches DataFrame at B's head node, and the type-1 inflow-
+    boundary label sits on the node just downstream of the head.
     """
     w = small_watershed()
     w.reaches[1].ignore_reach()      # remove A
@@ -159,21 +161,24 @@ def test_coarsened_junction_head_records_removed_inflow():
     net = w.build_cche1d_network(strahler_drop=0)
     errors, warnings = netmod.validate_network(net)
     assert errors == [] and warnings == []
-    # B's head: C is still a kept inflow -> junction (type 2) or
-    # trivial (type 6), never a type-1 boundary
-    types = [n.nd_type for n in net.nodes]
-    assert 1 not in types
     # the removed reach A is recorded in the inflow_reaches DataFrame
     df_in = w.get_list_of_inflow_reaches_df()
     assert len(df_in) == 1
     row = df_in.iloc[0]
     assert int(row["inflow_topagnps_reach_id"]) == 1
-    valid_nd = {n.nd_id for n in net.nodes}
-    assert int(row["receiving_node_id"]) in valid_nd
+    by_id = {n.nd_id: n for n in net.nodes}
+    assert int(row["receiving_node_id"]) in by_id
+    # B's head: C is still a kept inflow -> merged confluence (type 6),
+    # never a type-1 boundary
+    head = by_id[int(row["receiving_node_id"])]
+    assert head.nd_type == netmod.NODE_USERADDED
+    # the type-1 inflow-boundary label sits on the node just downstream
+    # of the head (the removed reach's water enters at the head itself)
+    assert by_id[head.dsid].nd_type == netmod.NODE_INFLOW
     # the cell still drains into B's head (unchanged)
     df_tw = w.create_cche1d_twcells_df()
     assert len(df_tw) == 1
-    assert int(df_tw.iloc[0]["TW_NDDSID"]) in valid_nd
+    assert int(df_tw.iloc[0]["TW_NDDSID"]) in by_id
 
 
 def test_two_removed_inflows_make_a_source_head():
@@ -195,9 +200,14 @@ def test_two_removed_inflows_make_a_source_head():
 def test_single_node_reach_expansion_after_upstream_removal():
     """
     Linear chain 1 -> 2 -> 3 where reach 2 is a single pixel.  With reach
-    1 removed, reach 2's only kept neighbour is 3, so its single node is
-    expanded into a 2-node reach and its head is an inflow boundary (type
-    1) fed by the removed reach 1.
+    1 removed, reach 2's only kept neighbour is 3, so the pair merges into
+    one continuous channel.  Reach 2's head (the boundary for the removed
+    reach 1) heads a MULTI-NODE link, so it stays a legal source (type 0)
+    and the type-1 inflow-boundary label goes on the node just downstream
+    of the head (a type-1 multi-node link head would stop the model at
+    import, c1dlnk.f90).  The single pixel is NOT expanded here: the
+    expansion (Watershed.add_us_and_ds_node_to_single_node_reaches) requires
+    both neighbours kept, and reach 2's downstream neighbour is the outlet.
     """
     w = Watershed()
     w.add_reach(make_reach(1, 2, [(0.0, 0.0), (10.0, 10.0), (20.0, 20.0)]))
@@ -214,20 +224,27 @@ def test_single_node_reach_expansion_after_upstream_removal():
     net = w.build_cche1d_network(strahler_drop=0)
     errors, _ = netmod.validate_network(net)
     assert errors == []
-    # expansion gave reach 2 two nodes; its head is the type-1 inflow node
     types = [n.nd_type for n in net.nodes]
     assert 1 in types and 2 not in types
+    # the boundary head is a legal source; the type-1 label is one node
+    # downstream of it
+    by_id = {n.nd_id: n for n in net.nodes}
+    head = by_id[1]
+    assert head.nd_type == netmod.NODE_SOURCE
+    assert by_id[head.dsid].nd_type == netmod.NODE_INFLOW
     df_in = w.get_list_of_inflow_reaches_df()
     assert len(df_in) == 1
     assert int(df_in.iloc[0]["inflow_topagnps_reach_id"]) == 1
 
 
-def test_single_node_outlet_reach_gives_one_point_channel():
+def test_single_node_outlet_reach_merges_into_continuous_channel():
     """
-    Chain 1 -> 2 where reach 2 is a single pixel AND the outlet reach
-    (no kept downstream neighbour), so it is NOT expanded: it becomes a
-    1-point channel whose link carries the -1 reach-range sentinel.  The
-    validator accepts it and the sentinel survives a write/read round trip.
+    Chain 1 -> 2 where reach 2 is a single pixel AND the outlet reach.
+    The outlet channel's head has exactly one kept inflow (channel 1), so
+    the builder merges the pair into ONE continuous channel: the single
+    pixel is an interior type-6 node and the channel tail (the same node)
+    is the watershed outlet (type 9, self-referencing DSID).  There is no
+    1-point channel and no -1 reach-range link sentinel as a result.
     """
     w = Watershed()
     w.add_reach(make_reach(1, 2, [(0.0, 0.0), (10.0, 10.0), (20.0, 20.0)]))
@@ -241,13 +258,17 @@ def test_single_node_outlet_reach_gives_one_point_channel():
     net = w.build_cche1d_network(strahler_drop=0)
     errors, _ = netmod.validate_network(net)
     assert errors == []
-    one_point = [c for c in net.channels if c.ndusid == c.nddsid]
-    assert len(one_point) == 1
-    assert any(l.rcusid == netmod.NEGATIVE_ONE for l in net.links)
+    assert len(net.channels) == 1
+    ch = net.channels[0]
+    assert ch.ndusid != ch.nddsid          # merged: one continuous channel
+    outlet = net.node_by_id(ch.nddsid)
+    assert outlet.nd_type == netmod.NODE_WATSHDOUTL
+    assert outlet.dsid == ch.nddsid        # outlet self-reference
+    assert all(l.rcusid != netmod.NEGATIVE_ONE for l in net.links)
     import tempfile
     with tempfile.TemporaryDirectory() as d:
         netmod.write_cche1d_dat_files(net, d, prefix="onetest")
         back = netmod.read_cche1d_network(d)
         errors2, _ = netmod.validate_network(back)
         assert errors2 == []
-        assert any(l.rcusid == netmod.NEGATIVE_ONE for l in back.links)
+        assert all(l.rcusid != netmod.NEGATIVE_ONE for l in back.links)
